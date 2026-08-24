@@ -137,14 +137,17 @@ async def seed_if_empty():
 
             parsed = _parse_medicine_name(item["Product_name"])
 
+            # Prefer the authoritative enriched fields from the DRAP JSON;
+            # fall back to the parsed heuristics if a row lacks them.
             medicine = Medicine(
                 id=med_id,
                 brand_name=parsed["brand_name"],
-                generic_name=parsed["generic_name"],
-                dosage_form=parsed["dosage_form"],
-                strength=parsed["strength"],
+                generic_name=item.get("Generic") or parsed["generic_name"],
+                dosage_form=item.get("Form") or parsed["dosage_form"],
+                strength=item.get("Strength") or parsed["strength"],
                 manufacturer=item.get("Manufacturer", ""),
                 registration_info=item.get("Registration_No", ""),
+                drap_reg_no=str(item.get("Registration_No", "")).strip() or None,
                 aliases=[parsed["generic_name"], item["Product_name"]],
                 category=item.get("Category", ""),
             )

@@ -35,6 +35,9 @@ class Medicine(Base):
     strength = Column(String(100), nullable=False)
     manufacturer = Column(String(255))
     registration_info = Column(String(255))
+    # Canonical DRAP Registration_No key (added by alembic revision 0001,
+    # additive only; unique index uq_medicines_drap_reg_no).
+    drap_reg_no = Column(String(64), nullable=True)
     aliases = Column(JSON, default=list)
     category = Column(String(100))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
