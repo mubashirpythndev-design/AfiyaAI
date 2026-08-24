@@ -1,0 +1,1 @@
+"""Afiya AI Backend Application."""

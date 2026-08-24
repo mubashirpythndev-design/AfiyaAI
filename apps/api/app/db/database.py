@@ -1,0 +1,123 @@
+"""Database connection and SQLAlchemy ORM models.
+
+Supports both PostgreSQL (production) and SQLite (local testing).
+The DATABASE_URL in .env controls which backend is used.
+"""
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from sqlalchemy import (
+    Column, String, Text, DateTime, Numeric, ForeignKey, Index, text, JSON
+)
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase, relationship
+
+from app.config import settings
+
+# Detect if we're using SQLite
+is_sqlite = "sqlite" in settings.database_url
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Medicine(Base):
+    __tablename__ = "medicines"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    brand_name = Column(String(255), nullable=False)
+    generic_name = Column(String(255), nullable=False)
+    dosage_form = Column(String(100), nullable=False)
+    strength = Column(String(100), nullable=False)
+    manufacturer = Column(String(255))
+    registration_info = Column(String(255))
+    aliases = Column(JSON, default=list)
+    category = Column(String(100))
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    verified_at = Column(DateTime(timezone=True))
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    prices = relationship("MedicinePrice", back_populates="medicine")
+    knowledge_chunks = relationship("KnowledgeChunk", back_populates="medicine")
+
+
+class Source(Base):
+    __tablename__ = "sources"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(255), nullable=False)
+    url = Column(Text)
+    source_type = Column(String(50), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class MedicinePrice(Base):
+    __tablename__ = "medicine_prices"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False)
+    price = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String(10), default="PKR")
+    package_size = Column(String(100))
+    package_description = Column(String(255))
+    source_id = Column(String(36), ForeignKey("sources.id", ondelete="CASCADE"), nullable=False)
+    collected_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine", back_populates="prices")
+    source = relationship("Source")
+
+
+class KnowledgeChunk(Base):
+    __tablename__ = "knowledge_chunks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    source_id = Column(String(36), ForeignKey("sources.id", ondelete="CASCADE"), nullable=False)
+    chunk_type = Column(String(50), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine", back_populates="knowledge_chunks")
+    source = relationship("Source")
+    embedding_record = relationship("Embedding", back_populates="chunk", uselist=False)
+
+
+class Embedding(Base):
+    __tablename__ = "embeddings"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    chunk_id = Column(String(36), ForeignKey("knowledge_chunks.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    chunk = relationship("KnowledgeChunk", back_populates="embedding_record")
+
+
+# Engine and session
+connect_args = {}
+if is_sqlite:
+    connect_args["check_same_thread"] = False
+
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+    connect_args=connect_args,
+    **({"pool_size": 5, "max_overflow": 10} if not is_sqlite else {}),
+)
+async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def init_db():
+    """Create all tables. Called on app startup."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db() -> AsyncSession:
+    async with async_session() as session:
+        yield session
