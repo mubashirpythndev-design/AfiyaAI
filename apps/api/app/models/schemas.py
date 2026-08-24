@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SourceSchema(BaseModel):
@@ -126,6 +126,39 @@ class ChatResponse(BaseModel):
     sources: list[SourceSchema]
     disclaimer: str
     medicine: Optional[MedicineSchema] = None
+
+
+class PriceCheckRequest(BaseModel):
+    """Phase-1 Feature A request (spec 09 §7.3)."""
+    medicine_query: str
+    pack_size: Optional[str] = None
+    price_paid: float = Field(gt=0)  # what the user paid (or was quoted) for the pack
+    currency: str = "PKR"
+    lang: str = "en"
+
+
+class PriceCheckResponse(BaseModel):
+    """Phase-1 Feature A response (spec 09 §7.3).
+
+    Every number/status comes from the DB (mrp_reference) — never the LLM.
+    ``status`` is None when the match itself needs confirmation.
+    """
+    status: Optional[str] = None  # OVERCHARGED | OK_AT_MRP | BELOW_MRP | NO_DATA
+    medicine_id: Optional[str] = None
+    matched_name: Optional[str] = None
+    match_confidence: float = 0.0
+    needs_confirmation: bool = False
+    candidates: list[MedicineSchema] = []
+    price_paid: Optional[float] = None
+    mrp: Optional[float] = None
+    currency: str = "PKR"
+    overcharge_amount: Optional[float] = None
+    pack_size: Optional[str] = None
+    sro_ref: Optional[str] = None
+    effective_date: Optional[str] = None
+    source: Optional[SourceSchema] = None
+    message: str
+    disclaimer: str
 
 
 class HealthResponse(BaseModel):

@@ -53,14 +53,25 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
         logger.info(f"Exact brand match: '{candidate}' -> {med.brand_name}")
         return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
 
-    # 2. Exact match on generic_name
+    # 2. Exact match on generic_name. Several brands can share one generic
+    # (e.g. Omeprazole -> Losec + Risek): never silently pick one — return
+    # the candidates for user confirmation (spec 04 §10).
     result = await db.execute(
         select(Medicine).where(func.lower(Medicine.generic_name) == normalized)
     )
-    med = result.scalar_one_or_none()
-    if med:
+    generic_meds = result.scalars().all()
+    if len(generic_meds) == 1:
+        med = generic_meds[0]
         logger.info(f"Exact generic match: '{candidate}' -> {med.brand_name}")
         return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
+    if generic_meds:
+        logger.info(f"Ambiguous generic match: '{candidate}' -> {len(generic_meds)} brands")
+        return {
+            "medicine": None,
+            "confidence": 1.0,
+            "needs_confirmation": True,
+            "alternatives": [medicine_to_schema(m) for m in generic_meds][:5],
+        }
 
     # 3. Alias match (check JSONB aliases)
     all_medicines = await db.execute(select(Medicine))

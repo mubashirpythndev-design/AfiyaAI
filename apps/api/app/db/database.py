@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, Numeric, ForeignKey, Index, text, JSON
+    Column, String, Text, DateTime, Date, Numeric, ForeignKey, Index, text, JSON
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -99,6 +99,30 @@ class Embedding(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     chunk = relationship("KnowledgeChunk", back_populates="embedding_record")
+
+
+class MrpReference(Base):
+    """Versioned DRAP-notified MRP per medicine + pack size (Phase-1 Feature A).
+
+    Created by alembic revision 0002 (spec 09 §7.2). Rows are never
+    overwritten: a new SRO/MRP is inserted as a new row with a newer
+    ``effective_date``. Every row carries a ``source_id`` for provenance.
+    """
+    __tablename__ = "mrp_reference"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False)
+    pack_size = Column(Text, nullable=False)
+    notified_mrp = Column(Numeric(10, 2), nullable=False)  # whole-pack PKR
+    currency = Column(Text, nullable=False, default="PKR")
+    sro_ref = Column(Text, nullable=True)
+    effective_date = Column(Date, nullable=True)
+    source_id = Column(String(36), ForeignKey("sources.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    source = relationship("Source")
 
 
 # Engine and session

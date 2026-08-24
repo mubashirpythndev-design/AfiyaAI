@@ -25,6 +25,7 @@ sys.path.insert(0, str(API_DIR))
 
 from app.db.seed_data import _parse_medicine_name  # noqa: E402
 from app.db.backfill_enriched import backfill_enriched_data  # noqa: E402
+from app.db.seed_mrp import seed_mrp_reference  # noqa: E402
 
 DRAP_DATA_PATH = PROJECT_ROOT / "DRAP_40_Medicines_data.json"
 SOURCE_DRAP_ID = "a0000001-0000-0000-0000-000000000001"
@@ -170,4 +171,17 @@ async def backfilled_db(migrated_db):
     async with factory() as db:
         await backfill_enriched_data(db)
         await backfill_enriched_data(db)  # second run must change nothing
+    return db_file, factory
+
+
+@pytest_asyncio.fixture
+async def phase1_db(backfilled_db):
+    """Phase-0 DB + Phase-1 mrp_reference seeded from the DRAP JSON.
+
+    The mrp_reference table comes from alembic revision 0002 (included in
+    'head'); the seeder is run twice to prove idempotency."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        await seed_mrp_reference(db)
+        await seed_mrp_reference(db)  # second run must insert nothing
     return db_file, factory

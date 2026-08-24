@@ -7,9 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import ocr, medicines, chat
+from app.routers import ocr, medicines, chat, price_check
 from app.models.schemas import HealthResponse
-from app.db.database import init_db, is_sqlite
+from app.db.database import init_db, is_sqlite, async_session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -25,6 +25,10 @@ async def lifespan(app: FastAPI):
     if is_sqlite:
         from app.db.seed_data import seed_if_empty
         await seed_if_empty()
+        # Phase-1 Feature A: DRAP-notified MRP baseline (idempotent).
+        from app.db.seed_mrp import seed_mrp_reference
+        async with async_session() as db:
+            await seed_mrp_reference(db)
     logger.info("Database initialized.")
     yield
     logger.info("Afiya AI Backend shutting down.")
@@ -50,6 +54,7 @@ app.add_middleware(
 app.include_router(ocr.router)
 app.include_router(medicines.router)
 app.include_router(chat.router)
+app.include_router(price_check.router)  # Phase-1 Feature A: MRP checker
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
