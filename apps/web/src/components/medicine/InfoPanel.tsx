@@ -1,13 +1,25 @@
 "use client";
 
-import type { MedicineInfo } from "@/lib/types";
+import type { MedicineInfo, Language } from "@/lib/types";
+import { t } from "@/lib/i18n";
 
 interface InfoPanelProps {
   info: MedicineInfo;
+  language?: Language;
 }
 
-export default function InfoPanel({ info }: InfoPanelProps) {
-  const { medicine, knowledge_chunks, sources } = info;
+/** Trim trailing zeros from a display number (59.99 -> "59.99", 60 -> "60"). */
+function fmtNum(value: number, maxDecimals = 2): string {
+  return parseFloat(value.toFixed(maxDecimals)).toString();
+}
+
+export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
+  const { medicine, knowledge_chunks, sources, cheapest_brands } = info;
+
+  // Show the block only when a real alternative exists (>= 2 brands in the
+  // same (generic, strength) group). No empty "alternatives" box.
+  const showCheapest =
+    !!cheapest_brands && cheapest_brands.options.length > 1;
 
   const grouped = knowledge_chunks.reduce((acc, chunk) => {
     if (!acc[chunk.chunk_type]) acc[chunk.chunk_type] = [];
@@ -38,6 +50,99 @@ export default function InfoPanel({ info }: InfoPanelProps) {
         <p className="text-sm text-muted">{medicine.generic_name} &bull; {medicine.strength} &bull; {medicine.dosage_form}</p>
         <p className="text-xs text-muted mt-1">by {medicine.manufacturer}</p>
       </div>
+
+      {/* Cheapest brands in the same (generic, strength) group.
+          All prices/per-unit come from the verified DB - never the LLM. */}
+      {showCheapest && cheapest_brands && (
+        <div className="bg-surface rounded-xl border border-border overflow-hidden">
+          <div className="px-4 py-3 bg-surface-hover border-b border-border">
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
+                <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h4 className="text-sm font-semibold text-foreground">
+                {t(language, "info.cheapestTitle")}
+              </h4>
+            </div>
+            <p className="text-xs text-muted mt-1">
+              {t(language, "info.cheapestSubtitle")} — {cheapest_brands.generic} {cheapest_brands.strength}
+            </p>
+          </div>
+
+          <div className="p-4 space-y-3">
+            {cheapest_brands.options.map((opt, idx) => {
+              const isCheapest = idx === 0;
+              const isQueried = opt.medicine_id === medicine.id;
+              const saving = opt.saving_percent_vs_queried;
+              return (
+                <div
+                  key={opt.medicine_id}
+                  className={`rounded-xl border p-3.5 transition-colors ${
+                    isCheapest
+                      ? "border-success/40 bg-success/5"
+                      : "border-border bg-background/50"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-foreground">{opt.brand_name}</span>
+                        {isCheapest && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success text-white">
+                            {t(language, "info.cheapestBadge")}
+                          </span>
+                        )}
+                        {isQueried && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            {t(language, "info.yourMedicine")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted mt-0.5">{opt.manufacturer}</p>
+                    </div>
+                    <div className="text-end shrink-0">
+                      <p className="text-sm font-bold text-foreground">
+                        Rs {fmtNum(opt.per_unit)}
+                        <span className="text-[10px] font-medium text-muted"> {t(language, "info.perUnit")}</span>
+                      </p>
+                      {!isQueried && saving > 0 && (
+                        <p className="text-xs font-semibold text-success">
+                          {t(language, "info.save")} {fmtNum(saving)}% {t(language, "info.vsYours")}
+                        </p>
+                      )}
+                      {!isQueried && saving < 0 && (
+                        <p className="text-xs font-semibold text-danger">
+                          +{fmtNum(Math.abs(saving))}% {t(language, "info.vsYours")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted">
+                    <span>
+                      {t(language, "info.packPrice")}: <span className="font-medium text-foreground">Rs {opt.price.toLocaleString()}</span>
+                    </span>
+                    <span>
+                      {t(language, "info.packSize")}: <span className="font-medium text-foreground">{opt.package_size}</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Safety guard (spec 08): NTI / modified-release / biologics */}
+            {cheapest_brands.consult_pharmacist_before_switching && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning/30 bg-warning/10 p-3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-warning mt-0.5 shrink-0">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <p className="text-xs font-medium text-foreground/90">
+                  {t(language, "info.consultPharmacist")}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Knowledge chunks */}
       <div className="space-y-3 stagger-children">

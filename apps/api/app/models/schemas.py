@@ -75,11 +75,38 @@ class KnowledgeChunkSchema(BaseModel):
     source: SourceSchema
 
 
+class CheapestBrandOptionSchema(BaseModel):
+    medicine_id: str
+    brand_name: str
+    manufacturer: str
+    price: float                # pack price from the DB (never LLM-generated)
+    currency: str = "PKR"
+    package_size: str
+    units: int
+    per_unit: float             # price / units, sorted ascending by the service
+    saving_percent_vs_queried: float  # positive = cheaper than queried brand
+
+
+class CheapestBrandsSchema(BaseModel):
+    """Same-(generic, strength) brand group for a verified medicine.
+
+    Grouping is strictly (generic, strength) - never generic alone, never
+    Category. Present only when at least one alternative brand exists.
+    """
+    generic: str
+    strength: str
+    cheapest_brand: str
+    options: list[CheapestBrandOptionSchema]
+    consult_pharmacist_before_switching: bool = False
+    safety_reasons: list[str] = []
+
+
 class MedicineInfo(BaseModel):
     medicine: MedicineSchema
     knowledge_chunks: list[KnowledgeChunkSchema]
     prices: list[PriceEntry]
     sources: list[SourceSchema]
+    cheapest_brands: Optional[CheapestBrandsSchema] = None
 
 
 class ChatMessage(BaseModel):

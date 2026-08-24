@@ -450,7 +450,7 @@ export default function Home() {
                 </svg>
                 {t(language, "results.backResults")}
               </button>
-              <InfoPanel info={selectedInfo} />
+              <InfoPanel info={selectedInfo} language={language} />
               <div className="mt-6">
                 <Disclaimer language={language} />
               </div>

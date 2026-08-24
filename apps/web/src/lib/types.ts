@@ -46,11 +46,33 @@ export interface PriceComparison {
   savings: number;
 }
 
+export interface CheapestBrandOption {
+  medicine_id: string;
+  brand_name: string;
+  manufacturer: string;
+  price: number;
+  currency: string;
+  package_size: string;
+  units: number;
+  per_unit: number;
+  saving_percent_vs_queried: number;
+}
+
+export interface CheapestBrands {
+  generic: string;
+  strength: string;
+  cheapest_brand: string;
+  options: CheapestBrandOption[];
+  consult_pharmacist_before_switching: boolean;
+  safety_reasons: string[];
+}
+
 export interface MedicineInfo {
   medicine: MedicineDetail;
   knowledge_chunks: KnowledgeChunk[];
   prices: PriceEntry[];
   sources: Source[];
+  cheapest_brands?: CheapestBrands | null;
 }
 
 export interface KnowledgeChunk {

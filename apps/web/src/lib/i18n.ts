@@ -75,7 +75,17 @@ export type TranslationKey =
   | "error.noMatch"
   | "error.searchFailed"
   | "error.loadInfo"
-  | "error.loadPrices";
+  | "error.loadPrices"
+  | "info.cheapestTitle"
+  | "info.cheapestSubtitle"
+  | "info.cheapestBadge"
+  | "info.yourMedicine"
+  | "info.packPrice"
+  | "info.packSize"
+  | "info.perUnit"
+  | "info.save"
+  | "info.vsYours"
+  | "info.consultPharmacist";
 
 type TranslationMap = Record<TranslationKey, string>;
 
@@ -154,6 +164,16 @@ const en: TranslationMap = {
   "error.searchFailed": "Search failed",
   "error.loadInfo": "Failed to load info",
   "error.loadPrices": "Failed to load prices",
+  "info.cheapestTitle": "Cheaper Brands of This Medicine",
+  "info.cheapestSubtitle": "Same active ingredient & strength, compared per unit",
+  "info.cheapestBadge": "Cheapest",
+  "info.yourMedicine": "Your medicine",
+  "info.packPrice": "Pack price",
+  "info.packSize": "Pack size",
+  "info.perUnit": "per unit",
+  "info.save": "Save",
+  "info.vsYours": "vs your medicine",
+  "info.consultPharmacist": "Consult a pharmacist before switching brands.",
 };
 
 const ur: TranslationMap = {
@@ -231,6 +251,16 @@ const ur: TranslationMap = {
   "error.searchFailed": "\u062A\u0644\u0627\u0634 \u0646\u0627\u06A9\u0627\u0645",
   "error.loadInfo": "\u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0644\u0648\u0688 \u0646\u06C1 \u06C1\u0648 \u0633\u06A9\u06CC\u06BA",
   "error.loadPrices": "\u0642\u06CC\u0645\u062A\u06CC\u06BA \u0644\u0648\u0688 \u0646\u06C1 \u06C1\u0648 \u0633\u06A9\u06CC\u06BA",
+  "info.cheapestTitle": "\u0627\u0633 \u062F\u0648\u0627 \u06A9\u06D2 \u0633\u0633\u062A\u06D2 \u0628\u0631\u0627\u0646\u0688\u0632",
+  "info.cheapestSubtitle": "\u0627\u06CC\u06A9 \u06C1\u06CC \u062C\u0646\u0631\u06A9 \u0627\u0648\u0631 \u0637\u0627\u0642\u062A\u060C \u0641\u06CC \u06CC\u0648\u0646\u0679 \u0642\u06CC\u0645\u062A \u06A9\u0627 \u0645\u0648\u0627\u0632\u0646\u06C1",
+  "info.cheapestBadge": "\u0633\u0628 \u0633\u06D2 \u0633\u0633\u062A\u0627",
+  "info.yourMedicine": "\u0622\u067E \u06A9\u06CC \u062F\u0648\u0627",
+  "info.packPrice": "\u067E\u06CC\u06A9 \u0642\u06CC\u0645\u062A",
+  "info.packSize": "\u067E\u06CC\u06A9 \u0633\u0627\u0626\u0632",
+  "info.perUnit": "\u0641\u06CC \u06CC\u0648\u0646\u0679",
+  "info.save": "\u0628\u0686\u062A",
+  "info.vsYours": "\u0622\u067E \u06A9\u06CC \u062F\u0648\u0627 \u06A9\u06D2 \u0645\u0642\u0627\u0628\u0644\u06D2",
+  "info.consultPharmacist": "\u0628\u0631\u0627\u0646\u0688 \u0628\u062F\u0644\u0646\u06D2 \u0633\u06D2 \u067E\u06C1\u0644\u06D2 \u0641\u0627\u0631\u0645\u0627\u0633\u0679 \u0633\u06D2 \u0645\u0634\u0648\u0631\u06C1 \u06A9\u0631\u06CC\u06BA\u06D4",
 };
 
 const romanUr: TranslationMap = {
@@ -308,6 +338,16 @@ const romanUr: TranslationMap = {
   "error.searchFailed": "Talash nakaam",
   "error.loadInfo": "Maloomat load nahin ho saken",
   "error.loadPrices": "Qeematein load nahin ho saken",
+  "info.cheapestTitle": "Is dawai ke saste brands",
+  "info.cheapestSubtitle": "Ek hi generic aur taqat, fi unit qeemat ka muqabla",
+  "info.cheapestBadge": "Sab se sasta",
+  "info.yourMedicine": "Aap ki dawai",
+  "info.packPrice": "Pack qeemat",
+  "info.packSize": "Pack size",
+  "info.perUnit": "fi unit",
+  "info.save": "Bachat",
+  "info.vsYours": "aap ki dawai ke muqable",
+  "info.consultPharmacist": "Brand badalne se pehle pharmacist se mashwara karein.",
 };
 
 export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {
