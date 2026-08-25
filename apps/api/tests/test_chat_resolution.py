@@ -85,4 +85,8 @@ async def test_emergency_gate_intact_no_llm(backfilled_db):
         )
         low = resp.message.lower()
         assert "emergency" in low or "hospital" in low or "immediately" in low
+        assert "encountered an error" not in low, (
+            "must be gated before the LLM — never pass-by-LLM-luck or "
+            "fail on quota"
+        )
         assert resp.disclaimer

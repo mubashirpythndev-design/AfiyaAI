@@ -23,6 +23,7 @@ from app.services.chat_service import generate_chat_response
         "shortness of breath since morning",
         "I think he is having a heart attack",
         "she passed out in the kitchen",
+        "my child swallowed a whole bottle of pills",
     ],
 )
 def test_english_emergency_phrasings_caught(message):
@@ -41,6 +42,7 @@ def test_english_emergency_phrasings_caught(message):
         "chaati mein dard",
         "aba ko dil ka daura para hai",
         "wo behosh ho gaya",
+        "bachay ne poori bottle goliyan kha li",
     ],
 )
 def test_roman_urdu_emergency_phrasings_caught(message):
@@ -54,6 +56,7 @@ def test_roman_urdu_emergency_phrasings_caught(message):
         "Tell me about Panadol",
         "Augmentin kis liye hai",
         "is Rigix cheaper than Zyrtec?",
+        "I drink a whole bottle of water every day",
     ],
 )
 def test_normal_messages_not_flagged(message):
