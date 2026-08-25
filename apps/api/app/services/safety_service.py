@@ -34,6 +34,17 @@ EMERGENCY_KEYWORDS = [
     "saans band", "saans ruk",
     "seenay mein dard", "seene mein dard", "seene me dard", "chaati mein dard",
     "dil ka daura", "behosh", "behoshi",
+    # Descriptive ingestion phrasings (medicine-specific, high precision;
+    # bare "swallowed" / "whole bottle" are deliberately NOT gated)
+    "swallowed a whole bottle", "swallowed the whole bottle",
+    "swallowed a bottle of pills", "swallowed a bottle of tablets",
+    "swallowed too many", "whole bottle of pills", "whole bottle of tablets",
+    "whole bottle of medicine", "ate a whole bottle", "took all the pills",
+    "took all the tablets", "took too many pills", "took too many tablets",
+    # Roman-Urdu ingestion equivalents
+    "poori bottle goliyan kha li", "saari goliyan kha li",
+    "bahut si goliyan kha li", "zyada goliyan kha li",
+    "bachay ne goliyan kha li", "goliyon ki poori bottle kha li",
 ]
 
 
