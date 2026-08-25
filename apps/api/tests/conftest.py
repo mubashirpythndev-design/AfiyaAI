@@ -26,6 +26,7 @@ sys.path.insert(0, str(API_DIR))
 from app.db.seed_data import _parse_medicine_name  # noqa: E402
 from app.db.backfill_enriched import backfill_enriched_data  # noqa: E402
 from app.db.seed_mrp import seed_mrp_reference  # noqa: E402
+from app.db.seed_alerts import seed_drap_alerts  # noqa: E402
 
 DRAP_DATA_PATH = PROJECT_ROOT / "DRAP_40_Medicines_data.json"
 SOURCE_DRAP_ID = "a0000001-0000-0000-0000-000000000001"
@@ -184,4 +185,17 @@ async def phase1_db(backfilled_db):
     async with factory() as db:
         await seed_mrp_reference(db)
         await seed_mrp_reference(db)  # second run must insert nothing
+    return db_file, factory
+
+
+@pytest_asyncio.fixture
+async def phase1b_db(phase1_db):
+    """Phase-1 DB + Feature B drap_alerts seeded from the demo CSV.
+
+    The drap_alerts table comes from alembic revision 0003 (included in
+    'head'); the seeder is run twice to prove idempotency."""
+    db_file, factory = phase1_db
+    async with factory() as db:
+        await seed_drap_alerts(db)
+        await seed_drap_alerts(db)  # second run must insert nothing
     return db_file, factory

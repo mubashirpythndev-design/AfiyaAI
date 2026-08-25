@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, Date, Numeric, ForeignKey, Index, text, JSON
+    Column, String, Text, DateTime, Date, Numeric, Boolean, ForeignKey, Index, text, JSON
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -118,6 +118,34 @@ class MrpReference(Base):
     sro_ref = Column(Text, nullable=True)
     effective_date = Column(Date, nullable=True)
     source_id = Column(String(36), ForeignKey("sources.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    source = relationship("Source")
+
+
+class DrapAlert(Base):
+    """DRAP recall / spurious / substandard / quality alerts (Phase-1 Feature B).
+
+    Created by alembic revision 0003 (spec 09 §7.2). ``medicine_id`` is
+    nullable for name-only alerts. ``is_demo`` is TRUE for every seeded row:
+    all current alerts are DEMO DATA — never fabricated claims about real
+    batches or invented DRAP notice IDs. Real ingestion must explicitly set
+    ``is_demo=False``.
+    """
+    __tablename__ = "drap_alerts"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=True)
+    medicine_name_raw = Column(Text, nullable=True)
+    batch_no = Column(Text, nullable=True)
+    alert_type = Column(Text, nullable=False)  # recall | spurious | substandard | quality
+    description = Column(Text, nullable=True)
+    is_demo = Column(Boolean, nullable=False, default=True)
+    source_id = Column(String(36), ForeignKey("sources.id", ondelete="SET NULL"), nullable=True)
+    issued_at = Column(Date, nullable=True)
+    resolved = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 

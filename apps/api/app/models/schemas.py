@@ -161,6 +161,42 @@ class PriceCheckResponse(BaseModel):
     disclaimer: str
 
 
+class AlertCheckRequest(BaseModel):
+    """Phase-1 Feature B request (spec 09 §7.3)."""
+    medicine_query: str
+    batch_no: Optional[str] = None
+    lang: str = "en"
+
+
+class AlertSchema(BaseModel):
+    """One drap_alerts row as returned by alert-check (DB-only facts)."""
+    alert_type: str
+    description: Optional[str] = None
+    batch_no: Optional[str] = None
+    issued_at: Optional[str] = None
+    match_basis: str = "name_only"  # batch_no (exact) | name_only (verify)
+    is_demo: bool = False
+    source: Optional[SourceSchema] = None
+
+
+class AlertCheckResponse(BaseModel):
+    """Phase-1 Feature B response (spec 09 §7.3).
+
+    Status/alerts come only from the drap_alerts table — never the LLM.
+    ``status`` is None when the match itself needs confirmation.
+    """
+    status: Optional[str] = None  # ALERT_FOUND | NO_ALERT
+    medicine_id: Optional[str] = None
+    matched_name: Optional[str] = None
+    match_confidence: float = 0.0
+    needs_confirmation: bool = False
+    candidates: list[MedicineSchema] = []
+    alerts: list[AlertSchema] = []
+    match_basis: Optional[str] = None  # batch_no | name_only
+    message: str
+    disclaimer: str
+
+
 class HealthResponse(BaseModel):
     status: str
     version: str = "1.0.0"
