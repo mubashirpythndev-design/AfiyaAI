@@ -100,7 +100,22 @@ export type TranslationKey =
   | "mrp.overchargeLabel"
   | "mrp.effectiveLabel"
   | "mrp.packLabel"
-  | "mrp.sourceLabel";
+  | "mrp.sourceLabel"
+    // Phase-1 Feature B: Authenticity / Alert checker (spec 09 §7.3)
+    | "alert.title"
+    | "alert.subtitle"
+    | "alert.inputLabel"
+    | "alert.placeholder"
+    | "alert.checkBtn"
+    | "alert.checking"
+    | "alert.error"
+    | "alert.confirmPrompt"
+    | "alert.matchedByBatch"
+    | "alert.possibleMatch"
+    | "alert.demoBadge"
+    | "alert.batchLabel"
+    | "alert.issuedLabel"
+    | "alert.sourceLabel";
 
 type TranslationMap = Record<TranslationKey, string>;
 
@@ -204,6 +219,21 @@ const en: TranslationMap = {
   "mrp.effectiveLabel": "MRP effective from",
   "mrp.packLabel": "Pack size",
   "mrp.sourceLabel": "Source",
+  // Phase-1 Feature B: Authenticity / Alert checker
+  "alert.title": "Authenticity / Alert check",
+  "alert.subtitle": "Check this medicine against active DRAP recall and quality alerts",
+  "alert.inputLabel": "Batch number (optional)",
+  "alert.placeholder": "e.g. DEMO-BATCH-001",
+  "alert.checkBtn": "Check for alerts",
+  "alert.checking": "Checking...",
+  "alert.error": "Alert check failed. Please try again.",
+  "alert.confirmPrompt": "Please confirm which medicine you mean:",
+  "alert.matchedByBatch": "Matched by batch number",
+  "alert.possibleMatch": "Possible match — please verify the batch",
+  "alert.demoBadge": "DEMO DATA",
+  "alert.batchLabel": "Batch",
+  "alert.issuedLabel": "Issued",
+  "alert.sourceLabel": "Source",
 };
 
 const ur: TranslationMap = {
@@ -306,6 +336,21 @@ const ur: TranslationMap = {
   "mrp.effectiveLabel": "\u0627\u06CC\u0645 \u0622\u0631 \u067E\u06CC \u0646\u0627\u0641\u0630 \u0627\u0644\u0639\u0645\u0644 \u062A\u0627\u0631\u06CC\u062E",
   "mrp.packLabel": "\u067E\u06CC\u06A9 \u0633\u0627\u0626\u0632",
   "mrp.sourceLabel": "\u0630\u0631\u06CC\u0639\u06C1",
+  // Phase-1 Feature B: Authenticity / Alert checker
+  "alert.title": "\u0627\u0635\u0627\u0644\u062A / \u0627\u0644\u0631\u0679 \u0686\u06CC\u06A9",
+  "alert.subtitle": "\u0627\u0633 \u062F\u0648\u0627 \u06A9\u0648 DRAP \u06A9\u06D2 \u0641\u0639\u0627\u0644 \u0631\u06CC \u06A9\u0627\u0644 \u0627\u0648\u0631 \u06A9\u0648\u0627\u0644\u0679\u06CC \u0627\u0644\u0631\u0679\u0633 \u06A9\u06D2 \u062E\u0644\u0627\u0641 \u0686\u06CC\u06A9 \u06A9\u0631\u06CC\u06BA",
+  "alert.inputLabel": "\u0628\u06CC\u0686 \u0646\u0645\u0628\u0631 (\u0627\u062E\u062A\u06CC\u0627\u0631\u06CC)",
+  "alert.placeholder": "\u0645\u062B\u0644\u0627\u064B DEMO-BATCH-001",
+  "alert.checkBtn": "\u0627\u0644\u0631\u0679\u0633 \u0686\u06CC\u06A9 \u06A9\u0631\u06CC\u06BA",
+  "alert.checking": "\u0686\u06CC\u06A9 \u06C1\u0648 \u0631\u06C1\u0627 \u06C1\u06D2...",
+  "alert.error": "\u0627\u0644\u0631\u0679 \u0686\u06CC\u06A9 \u0646\u0627\u06A9\u0627\u0645 \u06C1\u0648 \u06AF\u06CC\u0627\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u06A9\u0648\u0634\u0634 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "alert.confirmPrompt": "\u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062A\u0635\u062F\u06CC\u0642 \u06A9\u0631\u06CC\u06BA \u06A9\u06C1 \u0622\u067E \u06A9\u06CC \u0645\u0631\u0627\u062F \u06A9\u0648\u0646 \u0633\u06CC \u062F\u0648\u0627 \u06C1\u06D2:",
+  "alert.matchedByBatch": "\u0628\u06CC\u0686 \u0646\u0645\u0628\u0631 \u0633\u06D2 \u0645\u06CC\u0686 \u06C1\u0648\u0627",
+  "alert.possibleMatch": "\u0645\u0645\u06A9\u0646\u06C1 \u0645\u06CC\u0686 \u2014 \u0628\u0631\u0627\u06C1 \u06A9\u0631\u0645 \u0628\u06CC\u0686 \u06A9\u06CC \u062A\u0635\u062F\u06CC\u0642 \u06A9\u0631\u06CC\u06BA",
+  "alert.demoBadge": "\u0688\u06CC\u0645\u0648 \u0688\u06CC\u0679\u0627",
+  "alert.batchLabel": "\u0628\u06CC\u0686",
+  "alert.issuedLabel": "\u062C\u0627\u0631\u06CC \u0634\u062F\u06C1",
+  "alert.sourceLabel": "\u0630\u0631\u06CC\u0639\u06C1",
 };
 
 const romanUr: TranslationMap = {
@@ -408,6 +453,21 @@ const romanUr: TranslationMap = {
   "mrp.effectiveLabel": "MRP naafiz hone ki tareekh",
   "mrp.packLabel": "Pack size",
   "mrp.sourceLabel": "Source",
+  // Phase-1 Feature B: Authenticity / Alert checker
+  "alert.title": "Asliyat / Alert check",
+  "alert.subtitle": "Is dawai ko DRAP ke active recall aur quality alerts ke khilaf check karein",
+  "alert.inputLabel": "Batch number (ikhtiyari)",
+  "alert.placeholder": "Masalan DEMO-BATCH-001",
+  "alert.checkBtn": "Alerts check karein",
+  "alert.checking": "Check ho raha hai...",
+  "alert.error": "Alert check nakaam ho gaya. Barah-e-mehrabani dobara koshish karein.",
+  "alert.confirmPrompt": "Barah-e-meharbani confirm karein ke aap ki murad kaun si dawai hai:",
+  "alert.matchedByBatch": "Batch number se match hua",
+  "alert.possibleMatch": "Possible match hai — barah-e-meharbani batch verify karein",
+  "alert.demoBadge": "DEMO DATA",
+  "alert.batchLabel": "Batch",
+  "alert.issuedLabel": "Jaari shuda",
+  "alert.sourceLabel": "Source",
 };
 
 export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {

@@ -12,6 +12,8 @@ import type {
   Language,
   PriceCheckRequest,
   PriceCheckResponse,
+  AlertCheckRequest,
+  AlertCheckResponse,
 } from "./types";
 
 async function apiFetch<T>(
@@ -95,6 +97,16 @@ export async function checkPrice(
   req: PriceCheckRequest
 ): Promise<PriceCheckResponse> {
   return apiFetch<PriceCheckResponse>("/api/v1/price-check", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// Phase-1 Feature B: check a medicine (and optional batch) against active alerts
+export async function checkAlerts(
+  req: AlertCheckRequest
+): Promise<AlertCheckResponse> {
+  return apiFetch<AlertCheckResponse>("/api/v1/alert-check", {
     method: "POST",
     body: JSON.stringify(req),
   });

@@ -153,6 +153,41 @@ export interface PriceCheckResponse {
   disclaimer: string;
 }
 
+// ---- Phase-1 Feature B: Authenticity / Alert Checker (spec 09 §7.3) ----
+
+export interface AlertCheckRequest {
+  medicine_query: string;
+  batch_no?: string; // optional: empty batch = name-only check
+  lang?: string;
+}
+
+export type AlertCheckStatus = "ALERT_FOUND" | "NO_ALERT";
+
+/** One active drap_alerts row as returned by the API (DB-only facts). */
+export interface AlertEntry {
+  alert_type: string;
+  description: string | null;
+  batch_no: string | null;
+  issued_at: string | null;
+  match_basis: string; // batch_no (exact) | name_only (possible — verify)
+  is_demo: boolean;
+  source: Source | null;
+}
+
+/** Verbatim API response - the client never decides authenticity itself. */
+export interface AlertCheckResponse {
+  status: AlertCheckStatus | null;
+  medicine_id: string | null;
+  matched_name: string | null;
+  match_confidence: number;
+  needs_confirmation: boolean;
+  candidates: MedicineDetail[];
+  alerts: AlertEntry[];
+  match_basis: "batch_no" | "name_only" | null;
+  message: string;
+  disclaimer: string;
+}
+
 export interface ApiError {
   detail: string;
   status_code: number;
