@@ -24,6 +24,16 @@ UNSAFE_PATTERNS = [
 EMERGENCY_KEYWORDS = [
     "suicide", "self-harm", "self harm", "overdose", "poison",
     "unconscious", "not breathing", "severe bleeding", "chest pain emergency",
+    # Common English emergency phrasings (safety gate: plain, high-precision)
+    "chest pain", "can't breathe", "cant breathe", "cannot breathe",
+    "can't breath", "difficulty breathing", "trouble breathing",
+    "hard to breathe", "shortness of breath", "short of breath",
+    "heart attack", "stroke", "passed out",
+    # Roman-Urdu equivalents (the app's working languages)
+    "saans nahi aa rahi", "saans nahi aa raha", "saans nai aa rahi",
+    "saans band", "saans ruk",
+    "seenay mein dard", "seene mein dard", "seene me dard", "chaati mein dard",
+    "dil ka daura", "behosh", "behoshi",
 ]
 
 
