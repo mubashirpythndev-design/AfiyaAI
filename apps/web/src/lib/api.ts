@@ -10,6 +10,8 @@ import type {
   ChatResponse,
   ChatRequest,
   Language,
+  PriceCheckRequest,
+  PriceCheckResponse,
 } from "./types";
 
 async function apiFetch<T>(
@@ -83,6 +85,16 @@ export async function getMedicineInfo(
 // Chat
 export async function sendMessage(req: ChatRequest): Promise<ChatResponse> {
   return apiFetch<ChatResponse>("/api/chat", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// Phase-1 Feature A: check a paid price against the DRAP-notified MRP
+export async function checkPrice(
+  req: PriceCheckRequest
+): Promise<PriceCheckResponse> {
+  return apiFetch<PriceCheckResponse>("/api/v1/price-check", {
     method: "POST",
     body: JSON.stringify(req),
   });

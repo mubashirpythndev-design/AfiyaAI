@@ -85,7 +85,22 @@ export type TranslationKey =
   | "info.perUnit"
   | "info.save"
   | "info.vsYours"
-  | "info.consultPharmacist";
+  | "info.consultPharmacist"
+  | "mrp.title"
+  | "mrp.subtitle"
+  | "mrp.inputLabel"
+  | "mrp.placeholder"
+  | "mrp.invalidPrice"
+  | "mrp.checkBtn"
+  | "mrp.checking"
+  | "mrp.error"
+  | "mrp.confirmPrompt"
+  | "mrp.paidLabel"
+  | "mrp.mrpLabel"
+  | "mrp.overchargeLabel"
+  | "mrp.effectiveLabel"
+  | "mrp.packLabel"
+  | "mrp.sourceLabel";
 
 type TranslationMap = Record<TranslationKey, string>;
 
@@ -174,6 +189,21 @@ const en: TranslationMap = {
   "info.save": "Save",
   "info.vsYours": "vs your medicine",
   "info.consultPharmacist": "Consult a pharmacist before switching brands.",
+  "mrp.title": "Check price vs official MRP",
+  "mrp.subtitle": "Compare the price you paid with the DRAP-notified Maximum Retail Price",
+  "mrp.inputLabel": "Price you paid (PKR)",
+  "mrp.placeholder": "e.g. 250",
+  "mrp.invalidPrice": "Please enter a price greater than 0.",
+  "mrp.checkBtn": "Check price",
+  "mrp.checking": "Checking...",
+  "mrp.error": "Price check failed. Please try again.",
+  "mrp.confirmPrompt": "Please confirm which medicine you mean:",
+  "mrp.paidLabel": "You paid",
+  "mrp.mrpLabel": "Official MRP",
+  "mrp.overchargeLabel": "Overcharge amount",
+  "mrp.effectiveLabel": "MRP effective from",
+  "mrp.packLabel": "Pack size",
+  "mrp.sourceLabel": "Source",
 };
 
 const ur: TranslationMap = {
@@ -261,6 +291,21 @@ const ur: TranslationMap = {
   "info.save": "\u0628\u0686\u062A",
   "info.vsYours": "\u0622\u067E \u06A9\u06CC \u062F\u0648\u0627 \u06A9\u06D2 \u0645\u0642\u0627\u0628\u0644\u06D2",
   "info.consultPharmacist": "\u0628\u0631\u0627\u0646\u0688 \u0628\u062F\u0644\u0646\u06D2 \u0633\u06D2 \u067E\u06C1\u0644\u06D2 \u0641\u0627\u0631\u0645\u0627\u0633\u0679 \u0633\u06D2 \u0645\u0634\u0648\u0631\u06C1 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "mrp.title": "\u0633\u0631\u06A9\u0627\u0631\u06CC \u0627\u06CC\u0645 \u0622\u0631 \u067E\u06CC \u0633\u06D2 \u0642\u06CC\u0645\u062A \u0686\u06CC\u06A9 \u06A9\u0631\u06CC\u06BA",
+  "mrp.subtitle": "\u0622\u067E \u0646\u06D2 \u062C\u0648 \u0642\u06CC\u0645\u062A \u0627\u062F\u0627 \u06A9\u06CC \u0627\u0633 \u06A9\u0627 DRAP \u06A9\u06CC \u0645\u0642\u0631\u0631\u06C1 \u0632\u06CC\u0627\u062F\u06C1 \u0633\u06D2 \u0632\u06CC\u0627\u062F\u06C1 \u067E\u0631\u0686\u0648\u0646 \u0642\u06CC\u0645\u062A \u0633\u06D2 \u0645\u0648\u0627\u0632\u0646\u06C1 \u06A9\u0631\u06CC\u06BA",
+  "mrp.inputLabel": "\u0622\u067E \u0646\u06D2 \u062C\u0648 \u0642\u06CC\u0645\u062A \u0627\u062F\u0627 \u06A9\u06CC (\u0631\u0648\u067E\u06D2)",
+  "mrp.placeholder": "\u0645\u062B\u0644\u0627\u064B 250",
+  "mrp.invalidPrice": "\u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC 0 \u0633\u06D2 \u0632\u06CC\u0627\u062F\u06C1 \u0642\u06CC\u0645\u062A \u062F\u0631\u062C \u06A9\u0631\u06CC\u06BA\u06D4",
+  "mrp.checkBtn": "\u0642\u06CC\u0645\u062A \u0686\u06CC\u06A9 \u06A9\u0631\u06CC\u06BA",
+  "mrp.checking": "\u0686\u06CC\u06A9 \u06C1\u0648 \u0631\u06C1\u0627 \u06C1\u06D2...",
+  "mrp.error": "\u0642\u06CC\u0645\u062A \u06A9\u06CC \u062C\u0627\u0646\u0686 \u0646\u0627\u06A9\u0627\u0645 \u06C1\u0648 \u06AF\u0626\u06CC\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u06A9\u0648\u0634\u0634 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "mrp.confirmPrompt": "\u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062A\u0635\u062F\u06CC\u0642 \u06A9\u0631\u06CC\u06BA \u06A9\u06C1 \u0622\u067E \u06A9\u06CC \u0645\u0631\u0627\u062F \u06A9\u0648\u0646 \u0633\u06CC \u062F\u0648\u0627 \u06C1\u06D2:",
+  "mrp.paidLabel": "\u0622\u067E \u0646\u06D2 \u0627\u062F\u0627 \u06A9\u06CC\u06D2",
+  "mrp.mrpLabel": "\u0633\u0631\u06A9\u0627\u0631\u06CC \u0627\u06CC\u0645 \u0622\u0631 \u067E\u06CC",
+  "mrp.overchargeLabel": "\u0632\u06CC\u0627\u062F\u06C1 \u0644\u06CC \u06AF\u0626\u06CC \u0631\u0642\u0645",
+  "mrp.effectiveLabel": "\u0627\u06CC\u0645 \u0622\u0631 \u067E\u06CC \u0646\u0627\u0641\u0630 \u0627\u0644\u0639\u0645\u0644 \u062A\u0627\u0631\u06CC\u062E",
+  "mrp.packLabel": "\u067E\u06CC\u06A9 \u0633\u0627\u0626\u0632",
+  "mrp.sourceLabel": "\u0630\u0631\u06CC\u0639\u06C1",
 };
 
 const romanUr: TranslationMap = {
@@ -348,6 +393,21 @@ const romanUr: TranslationMap = {
   "info.save": "Bachat",
   "info.vsYours": "aap ki dawai ke muqable",
   "info.consultPharmacist": "Brand badalne se pehle pharmacist se mashwara karein.",
+  "mrp.title": "Sarkari MRP se qeemat check karein",
+  "mrp.subtitle": "Aap ne jo qeemat di us ka DRAP ki muqarrara MRP se muqabla karein",
+  "mrp.inputLabel": "Aap ne jo qeemat di (PKR)",
+  "mrp.placeholder": "Masalan 250",
+  "mrp.invalidPrice": "Barah-e-meharbani 0 se zyada qeemat darj karein.",
+  "mrp.checkBtn": "Qeemat check karein",
+  "mrp.checking": "Check ho raha hai...",
+  "mrp.error": "Qeemat ki jaanch nakaam ho gayi. Barah-e-meharbani dobara koshish karein.",
+  "mrp.confirmPrompt": "Barah-e-meharbani confirm karein ke aap ki murad kaun si dawai hai:",
+  "mrp.paidLabel": "Aap ne diye",
+  "mrp.mrpLabel": "Sarkari MRP",
+  "mrp.overchargeLabel": "Zyada li gayi raqam",
+  "mrp.effectiveLabel": "MRP naafiz hone ki tareekh",
+  "mrp.packLabel": "Pack size",
+  "mrp.sourceLabel": "Source",
 };
 
 export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {

@@ -8,6 +8,7 @@ import ImageUploader from "@/components/upload/ImageUploader";
 import OCRResults from "@/components/upload/OCRResults";
 import MedicineCard from "@/components/medicine/MedicineCard";
 import PriceTable from "@/components/medicine/PriceTable";
+import MrpChecker from "@/components/medicine/MrpChecker";
 import InfoPanel from "@/components/medicine/InfoPanel";
 import ChatInterface from "@/components/chat/ChatInterface";
 import Disclaimer from "@/components/shared/Disclaimer";
@@ -472,6 +473,8 @@ export default function Home() {
                 {t(language, "results.backResults")}
               </button>
               <PriceTable comparison={selectedPrices} />
+              {/* Phase-1 Feature A: check the paid price vs the DRAP MRP */}
+              <MrpChecker medicine={selectedPrices.medicine} language={language} />
               <div className="mt-6">
                 <Disclaimer language={language} />
               </div>
