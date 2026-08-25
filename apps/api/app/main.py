@@ -33,6 +33,14 @@ async def lifespan(app: FastAPI):
         from app.db.seed_alerts import seed_drap_alerts
         async with async_session() as db:
             await seed_drap_alerts(db)
+        # Chat RAG step 1: verified-profile knowledge chunks (idempotent).
+        # Non-fatal by design: a seeding failure must never block app boot.
+        from app.db.seed_knowledge import seed_knowledge_chunks
+        try:
+            async with async_session() as db:
+                await seed_knowledge_chunks(db)
+        except Exception as exc:
+            logger.warning("Knowledge seeding failed (non-fatal): %s", exc)
     logger.info("Database initialized.")
     yield
     logger.info("Afiya AI Backend shutting down.")
