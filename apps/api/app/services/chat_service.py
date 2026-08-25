@@ -14,6 +14,8 @@ from app.services.safety_service import (
     DISCLAIMER,
 )
 from app.services.rag_service import retrieve_context
+from app.services.chat_resolution import resolve_medicine_from_message
+from app.services.price_check_messages import localize
 from app.models.schemas import ChatResponse, SourceSchema
 
 logger = logging.getLogger(__name__)
@@ -53,6 +55,27 @@ async def generate_chat_response(
         rag_result = await retrieve_context(medicine_id, message, db)
         context = rag_result["context"]
         sources = [SourceSchema(**s) for s in rag_result["sources"]]
+    else:
+        # No explicit medicine context: try to resolve a medicine mention
+        # from the message itself via the spec-04 matcher. Never guess:
+        # ambiguous mentions ask the user to pick; no mention falls through
+        # to the honest "no specific medicine context" prompt below.
+        resolved = await resolve_medicine_from_message(message, db)
+        if resolved is not None:
+            if resolved["medicine"] and not resolved["needs_confirmation"]:
+                medicine_id = resolved["medicine"].id
+                rag_result = await retrieve_context(medicine_id, message, db)
+                context = rag_result["context"]
+                sources = [SourceSchema(**s) for s in rag_result["sources"]]
+            elif resolved["needs_confirmation"] and resolved["alternatives"]:
+                names = ", ".join(
+                    f"{a.brand_name} {a.strength}" for a in resolved["alternatives"]
+                )
+                return ChatResponse(
+                    message=f"{localize(language, 'needs_confirmation')} ({names})",
+                    sources=[],
+                    disclaimer=DISCLAIMER,
+                )
 
     # Detect meta-questions about Afiya AI itself
     meta_keywords = ["what is afiya", "who are you", "about afiya", "afiya ai", "what can you do", "your name"]
@@ -78,7 +101,8 @@ async def generate_chat_response(
 
 User question: {message}
 
-Provide a helpful, grounded response based ONLY on the context provided. If you don't have enough information, say so."""
+Provide a helpful, grounded response based ONLY on the context provided. If you don't have enough information, say so.
+If the question asks for details not present in the context (such as exact doses, side effects, or interactions), state that this information is not in our verified DRAP dataset and advise consulting a doctor or pharmacist."""
 
     # Call Gemini
     genai.configure(api_key=settings.gemini_api_key)

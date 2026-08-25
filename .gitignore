@@ -64,3 +64,9 @@ desktop.ini
 # ---------- Misc ----------
 *.pem
 *.key
+
+# Test artifacts (screenshots / synthetic inputs) — never commit to repo root
+/e2e_test_*.png
+/test1_*.png
+/chat_meta_question_*.png
+/alert_check_swagger_final.png
