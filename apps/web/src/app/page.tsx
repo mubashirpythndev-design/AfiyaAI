@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -12,6 +12,7 @@ import MrpChecker from "@/components/medicine/MrpChecker";
 import AlertChecker from "@/components/medicine/AlertChecker";
 import InfoPanel from "@/components/medicine/InfoPanel";
 import ChatInterface from "@/components/chat/ChatInterface";
+import AuthModal from "@/components/auth/AuthModal";
 import Disclaimer from "@/components/shared/Disclaimer";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type {
@@ -21,12 +22,17 @@ import type {
   PriceComparison,
   MedicineInfo,
   OCRResponse,
+  AuthUser,
 } from "@/lib/types";
-import { extractFromImage, matchMedicine, getPrices, getMedicineInfo, getMedicinesByCategory } from "@/lib/api";
+import { extractFromImage, matchMedicine, getPrices, getMedicineInfo, getMedicinesByCategory, setOnUnauthorized } from "@/lib/api";
+import { isLoggedIn, getCurrentUser, clearSession } from "@/lib/auth";
 import { CATEGORY_ICONS } from "@/lib/constants";
 import { t } from "@/lib/i18n";
 
 type View = "home" | "results" | "info" | "prices";
+
+/** A gated action remembered while the guest signs in. */
+type PendingAction = { kind: "info" | "prices"; id: string };
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
@@ -38,6 +44,40 @@ export default function Home() {
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // === Auth state (single centralized guard — a future whole-app login gate
+  // can move these two pieces to one entry point) ===
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authModal, setAuthModal] = useState<{ pending?: PendingAction } | null>(null);
+
+  // Hydrate the session from localStorage after mount (avoids SSR mismatch).
+  useEffect(() => {
+    setAuthUser(getCurrentUser());
+  }, []);
+
+  // Any 401 (expired token) drops the session and opens the modal. Guarded so
+  // a failed login attempt (also 401) inside an already-open modal keeps its
+  // pending action intact.
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      setAuthUser(null);
+      setAuthModal((prev) => (prev !== null ? prev : {}));
+    });
+  }, []);
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setAuthUser(user);
+    const pending = authModal?.pending;
+    setAuthModal(null);
+    // Replay the action the guest clicked before signing in.
+    if (pending?.kind === "info") void handleViewDetails(pending.id);
+    if (pending?.kind === "prices") void handleViewPrices(pending.id);
+  };
+
+  const handleSignOut = () => {
+    clearSession();
+    setAuthUser(null);
+  };
 
   const handleImageSelected = async (file: File) => {
     setIsProcessing(true);
@@ -82,6 +122,10 @@ export default function Home() {
   };
 
   const handleViewDetails = async (id: string) => {
+    if (!isLoggedIn()) {
+      setAuthModal({ pending: { kind: "info", id } });
+      return;
+    }
     setIsProcessing(true);
     try {
       const info = await getMedicineInfo(id, language);
@@ -95,6 +139,10 @@ export default function Home() {
   };
 
   const handleViewPrices = async (id: string) => {
+    if (!isLoggedIn()) {
+      setAuthModal({ pending: { kind: "prices", id } });
+      return;
+    }
     setIsProcessing(true);
     try {
       const prices = await getPrices(id);
@@ -127,7 +175,13 @@ export default function Home() {
 
   return (
     <div dir={language === "ur" ? "rtl" : "ltr"}>
-      <Header language={language} onLanguageChange={setLanguage} />
+      <Header
+        language={language}
+        onLanguageChange={setLanguage}
+        user={authUser}
+        onSignIn={() => setAuthModal({})}
+        onSignOut={handleSignOut}
+      />
 
       <main className="flex-1">
         {/* ====== HERO SECTION ====== */}
@@ -512,6 +566,14 @@ export default function Home() {
       </main>
 
       <Footer language={language} />
+
+      {authModal !== null && (
+        <AuthModal
+          language={language}
+          onClose={() => setAuthModal(null)}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
     </div>
   );
 }

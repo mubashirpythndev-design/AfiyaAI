@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import ocr, medicines, chat, price_check, alert_check
+from app.routers import ocr, medicines, chat, price_check, alert_check, auth
 from app.models.schemas import HealthResponse
 from app.db.database import init_db, is_sqlite, async_session
 
@@ -63,6 +63,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(auth.router)  # email + password auth (JWT bearer tokens)
 app.include_router(ocr.router)
 app.include_router(medicines.router)
 app.include_router(chat.router)

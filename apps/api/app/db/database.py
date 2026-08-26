@@ -153,6 +153,26 @@ class DrapAlert(Base):
     source = relationship("Source")
 
 
+class User(Base):
+    """App user (email + password auth).
+
+    Created by alembic revision 0005 (and by create_all in SQLite dev).
+    ``password_hash`` is NULLABLE to leave room for future OAuth providers
+    (e.g. Google sign-in via a future additive auth_accounts table).
+    ``is_verified`` is reserved for future email verification and is not
+    enforced anywhere yet.
+    """
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    is_verified = Column(Boolean, nullable=False, default=False)
+
+
 # Engine and session
 connect_args = {}
 if is_sqlite:
