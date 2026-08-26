@@ -20,10 +20,11 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.database import get_db, MrpReference
+from app.db.database import get_db, MrpReference, User
 from app.models.schemas import (
     MedicineSchema, PriceCheckRequest, PriceCheckResponse, SourceSchema,
 )
+from app.services.auth_dependency import get_current_user
 from app.services.matching_service import match_medicine
 from app.services.price_check_messages import localize, normalize_lang
 from app.services.price_check_service import compare, STATUS_NO_DATA
@@ -133,8 +134,17 @@ def _fmt_amount(value: float) -> str:
 
 
 @router.post("/price-check", response_model=PriceCheckResponse)
-async def price_check(req: PriceCheckRequest, db: AsyncSession = Depends(get_db)):
-    """Check a paid/quoted price against the DRAP-notified MRP."""
+async def price_check(
+    req: PriceCheckRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # auth gate only - business logic is user-independent
+):
+    """Check a paid/quoted price against the DRAP-notified MRP.
+
+    Requires login. ``current_user`` is intentionally unused in the body:
+    every number/status comes from the DB (spec 09), and the existing
+    direct-call tests invoke this handler without a user.
+    """
     lang = normalize_lang(req.lang)
     disclaimer = localize(lang, "disclaimer")
 

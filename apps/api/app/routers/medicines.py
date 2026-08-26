@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import get_db, Medicine, MedicinePrice, KnowledgeChunk, Source
+from app.db.database import get_db, Medicine, MedicinePrice, KnowledgeChunk, Source, User
+from app.services.auth_dependency import get_current_user
 from app.services.matching_service import match_medicine, medicine_to_schema
 from app.services.price_service import get_price_comparison
 from app.services.rag_service import retrieve_context
@@ -57,8 +58,12 @@ async def get_medicine(medicine_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{medicine_id}/prices", response_model=PriceComparison)
-async def get_prices(medicine_id: str, db: AsyncSession = Depends(get_db)):
-    """Get price comparison for a verified medicine."""
+async def get_prices(
+    medicine_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get price comparison for a verified medicine (requires login)."""
     comparison = await get_price_comparison(medicine_id, db)
     if not comparison:
         raise HTTPException(status_code=404, detail="Medicine or prices not found")
@@ -70,8 +75,9 @@ async def get_medicine_info(
     medicine_id: str,
     language: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Get RAG-powered medicine information with knowledge chunks and prices."""
+    """Get RAG-powered medicine information (requires login)."""
     # Get medicine
     result = await db.execute(
         select(Medicine).where(Medicine.id == medicine_id)

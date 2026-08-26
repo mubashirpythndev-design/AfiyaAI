@@ -23,13 +23,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.database import DrapAlert, get_db
+from app.db.database import DrapAlert, get_db, User
 from app.models.schemas import (
     AlertCheckRequest, AlertCheckResponse, AlertSchema, MedicineSchema,
     SourceSchema,
 )
 from app.routers.price_check import _resolve_medicine  # spec-04 matcher reuse
 from app.services.alert_check_messages import localize, normalize_lang
+from app.services.auth_dependency import get_current_user
 
 router = APIRouter(prefix="/api/v1", tags=["Alert Check"])
 
@@ -79,8 +80,17 @@ def _to_schema(alert: DrapAlert, basis: str) -> AlertSchema:
 
 
 @router.post("/alert-check", response_model=AlertCheckResponse)
-async def alert_check(req: AlertCheckRequest, db: AsyncSession = Depends(get_db)):
-    """Check a medicine (and optional batch) against active DRAP alerts."""
+async def alert_check(
+    req: AlertCheckRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # auth gate only - business logic is user-independent
+):
+    """Check a medicine (and optional batch) against active DRAP alerts.
+
+    Requires login. ``current_user`` is intentionally unused in the body:
+    status/alert facts come only from the drap_alerts table (spec 09), and
+    the existing direct-call tests invoke this handler without a user.
+    """
     lang = normalize_lang(req.lang)
     disclaimer = localize(lang, "disclaimer")  # ALWAYS attached (spec 09 §10)
 
