@@ -192,3 +192,16 @@ export interface ApiError {
   detail: string;
   status_code: number;
 }
+
+/** Auth (email + password, JWT bearer tokens). */
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface AuthSession {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}

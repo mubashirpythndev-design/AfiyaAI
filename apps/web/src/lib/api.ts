@@ -1,6 +1,7 @@
 // Typed API client for Afiya AI backend
 
 import { API_BASE_URL } from "./constants";
+import { clearSession, getToken } from "./auth";
 import type {
   OCRResponse,
   MatchResponse,
@@ -14,7 +15,26 @@ import type {
   PriceCheckResponse,
   AlertCheckRequest,
   AlertCheckResponse,
+  AuthSession,
+  AuthUser,
 } from "./types";
+
+// Invoked once a request comes back 401 (expired/invalid token): the app
+// clears the session and opens the sign-in modal from ONE place.
+let onUnauthorized: (() => void) | null = null;
+export function setOnUnauthorized(cb: () => void): void {
+  onUnauthorized = cb;
+}
+
+function handleUnauthorized(): void {
+  clearSession();
+  onUnauthorized?.();
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function apiFetch<T>(
   path: string,
@@ -22,11 +42,16 @@ async function apiFetch<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
   const res = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Unknown error" }));
+    if (res.status === 401) handleUnauthorized();
     throw new Error(error.detail || `API error: ${res.status}`);
   }
   return res.json();
@@ -38,10 +63,12 @@ export async function extractFromImage(file: File): Promise<OCRResponse> {
   formData.append("image", file);
   const res = await fetch(`${API_BASE_URL}/api/ocr/extract`, {
     method: "POST",
+    headers: { ...authHeaders() },
     body: formData,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Upload failed" }));
+    if (res.status === 401) handleUnauthorized();
     throw new Error(error.detail || "OCR extraction failed");
   }
   return res.json();
@@ -115,4 +142,30 @@ export async function checkAlerts(
 // Health check
 export async function healthCheck(): Promise<{ status: string }> {
   return apiFetch<{ status: string }>("/api/health");
+}
+
+// Auth: email + password sign-up / sign-in (JWT bearer tokens)
+export async function registerUser(req: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<AuthSession> {
+  return apiFetch<AuthSession>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function loginUser(req: {
+  email: string;
+  password: string;
+}): Promise<AuthSession> {
+  return apiFetch<AuthSession>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function fetchMe(): Promise<AuthUser> {
+  return apiFetch<AuthUser>("/api/auth/me");
 }

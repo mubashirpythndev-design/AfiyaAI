@@ -115,7 +115,28 @@ export type TranslationKey =
     | "alert.demoBadge"
     | "alert.batchLabel"
     | "alert.issuedLabel"
-    | "alert.sourceLabel";
+    | "alert.sourceLabel"
+    // Auth: email + password sign-up / sign-in
+    | "nav.signIn"
+    | "nav.signOut"
+    | "auth.title"
+    | "auth.subtitle"
+    | "auth.signInTab"
+    | "auth.signUpTab"
+    | "auth.nameLabel"
+    | "auth.namePlaceholder"
+    | "auth.emailLabel"
+    | "auth.emailPlaceholder"
+    | "auth.passwordLabel"
+    | "auth.passwordHint"
+    | "auth.signInBtn"
+    | "auth.signUpBtn"
+    | "auth.signingIn"
+    | "auth.creating"
+    | "auth.switchToSignUp"
+    | "auth.switchToSignIn"
+    | "auth.errorGeneric"
+    | "auth.sessionExpired";
 
 type TranslationMap = Record<TranslationKey, string>;
 
@@ -234,6 +255,27 @@ const en: TranslationMap = {
   "alert.batchLabel": "Batch",
   "alert.issuedLabel": "Issued",
   "alert.sourceLabel": "Source",
+  // Auth: email + password sign-up / sign-in
+  "nav.signIn": "Sign in",
+  "nav.signOut": "Sign out",
+  "auth.title": "Sign in to continue",
+  "auth.subtitle": "Viewing medicine info and comparing prices requires a free account.",
+  "auth.signInTab": "Sign in",
+  "auth.signUpTab": "Sign up",
+  "auth.nameLabel": "Name",
+  "auth.namePlaceholder": "Your full name",
+  "auth.emailLabel": "Email",
+  "auth.emailPlaceholder": "you@example.com",
+  "auth.passwordLabel": "Password",
+  "auth.passwordHint": "At least 8 characters",
+  "auth.signInBtn": "Sign in",
+  "auth.signUpBtn": "Create account",
+  "auth.signingIn": "Signing in...",
+  "auth.creating": "Creating account...",
+  "auth.switchToSignUp": "New here? Create an account",
+  "auth.switchToSignIn": "Already have an account? Sign in",
+  "auth.errorGeneric": "Something went wrong. Please try again.",
+  "auth.sessionExpired": "Your session expired. Please sign in again.",
 };
 
 const ur: TranslationMap = {
@@ -351,6 +393,27 @@ const ur: TranslationMap = {
   "alert.batchLabel": "\u0628\u06CC\u0686",
   "alert.issuedLabel": "\u062C\u0627\u0631\u06CC \u0634\u062F\u06C1",
   "alert.sourceLabel": "\u0630\u0631\u06CC\u0639\u06C1",
+  // Auth: email + password sign-up / sign-in
+  "nav.signIn": "\u0644\u0627\u06AF \u0627\u06CC\u0646",
+  "nav.signOut": "\u0644\u0627\u06AF \u0622\u0624\u0679",
+  "auth.title": "\u062C\u0627\u0631\u06CC \u0631\u06A9\u06BE\u0646\u06D2 \u06A9\u06D2 \u0644\u06CC\u06D2 \u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA",
+  "auth.subtitle": "\u062F\u0648\u0627 \u06A9\u06CC \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u062F\u06CC\u06A9\u06BE\u0646\u06D2 \u0627\u0648\u0631 \u0642\u06CC\u0645\u062A\u0648\u06BA \u06A9\u06D2 \u0645\u0648\u0627\u0632\u0646\u06D2 \u06A9\u06D2 \u0644\u06CC\u06D2 \u0645\u0641\u062A \u0627\u06A9\u0627\u0624\u0646\u0679 \u062F\u0631\u06A9\u0627\u0631 \u06C1\u06D2\u06D4",
+  "auth.signInTab": "\u0644\u0627\u06AF \u0627\u06CC\u0646",
+  "auth.signUpTab": "\u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+  "auth.nameLabel": "\u0646\u0627\u0645",
+  "auth.namePlaceholder": "\u0622\u067E \u06A9\u0627 \u067E\u0648\u0631\u0627 \u0646\u0627\u0645",
+  "auth.emailLabel": "\u0627\u06CC \u0645\u06CC\u0644",
+  "auth.emailPlaceholder": "you@example.com",
+  "auth.passwordLabel": "\u067E\u0627\u0633 \u0648\u0631\u0688",
+  "auth.passwordHint": "\u06A9\u0645 \u0627\u0632 \u06A9\u0645 8 \u062D\u0631\u0648\u0641",
+  "auth.signInBtn": "\u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA",
+  "auth.signUpBtn": "\u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+  "auth.signingIn": "\u0644\u0627\u06AF \u0627\u06CC\u0646 \u06C1\u0648 \u0631\u06C1\u0627 \u06C1\u06D2...",
+  "auth.creating": "\u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646 \u0631\u06C1\u0627 \u06C1\u06D2...",
+  "auth.switchToSignUp": "\u0646\u0626\u06D2 \u06C1\u06CC\u06BA\u061F \u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646\u0627\u0626\u06CC\u06BA",
+  "auth.switchToSignIn": "\u067E\u06C1\u0644\u06D2 \u0633\u06D2 \u0627\u06A9\u0627\u0624\u0646\u0679 \u06C1\u06D2\u061F \u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA",
+  "auth.errorGeneric": "\u06A9\u0686\u06BE \u063A\u0644\u0637 \u06C1\u0648 \u06AF\u06CC\u0627\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u06A9\u0648\u0634\u0634 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "auth.sessionExpired": "\u0622\u067E \u06A9\u0627 \u0633\u06CC\u0634\u0646 \u062E\u062A\u0645 \u06C1\u0648 \u06AF\u06CC\u0627 \u06C1\u06D2\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA\u06D4",
 };
 
 const romanUr: TranslationMap = {
@@ -468,6 +531,27 @@ const romanUr: TranslationMap = {
   "alert.batchLabel": "Batch",
   "alert.issuedLabel": "Jaari shuda",
   "alert.sourceLabel": "Source",
+  // Auth: email + password sign-up / sign-in
+  "nav.signIn": "Sign in",
+  "nav.signOut": "Sign out",
+  "auth.title": "Aagay barhne ke liye sign in karein",
+  "auth.subtitle": "Dawai ki maloomat dekhne aur qeematon ka muqabla karne ke liye muft account zaroori hai.",
+  "auth.signInTab": "Sign in",
+  "auth.signUpTab": "Account banayein",
+  "auth.nameLabel": "Naam",
+  "auth.namePlaceholder": "Aap ka poora naam",
+  "auth.emailLabel": "Email",
+  "auth.emailPlaceholder": "you@example.com",
+  "auth.passwordLabel": "Password",
+  "auth.passwordHint": "Kam az kam 8 huroof",
+  "auth.signInBtn": "Sign in karein",
+  "auth.signUpBtn": "Account banayein",
+  "auth.signingIn": "Sign in ho raha hai...",
+  "auth.creating": "Account ban raha hai...",
+  "auth.switchToSignUp": "Naye hain? Account banayein",
+  "auth.switchToSignIn": "Pehle se account hai? Sign in karein",
+  "auth.errorGeneric": "Kuch ghalat ho gaya. Barah-e-meharbani dobara koshish karein.",
+  "auth.sessionExpired": "Aap ka session khatam ho gaya hai. Barah-e-meharbani dobara sign in karein.",
 };
 
 export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {

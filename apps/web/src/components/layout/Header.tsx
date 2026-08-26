@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Language } from "@/lib/types";
+import type { Language, AuthUser } from "@/lib/types";
 import { LANGUAGES } from "@/lib/constants";
 import { t } from "@/lib/i18n";
 import ThemeToggle from "@/components/shared/ThemeToggle";
@@ -9,10 +9,14 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 interface HeaderProps {
   language: Language;
   onLanguageChange: (lang: Language) => void;
+  user: AuthUser | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
 }
 
-export default function Header({ language, onLanguageChange }: HeaderProps) {
+export default function Header({ language, onLanguageChange, user, onSignIn, onSignOut }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 glass">
@@ -46,8 +50,47 @@ export default function Header({ language, onLanguageChange }: HeaderProps) {
             </a>
           </nav>
 
-          {/* Language Selector + Theme Toggle + Mobile Menu */}
+          {/* Auth + Language Selector + Theme Toggle + Mobile Menu */}
           <div className="flex items-center gap-2">
+            {/* Auth: sign-in button when logged out; name + sign-out menu when logged in */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 bg-surface rounded-xl border border-border px-3 py-1.5 text-sm font-semibold text-foreground hover:border-primary/30 transition-all"
+                >
+                  <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                    {user.name.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="hidden sm:inline max-w-[120px] truncate">{user.name}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface rounded-xl border border-border shadow-xl p-2 animate-fade-in z-50">
+                    <div className="px-3 py-2 border-b border-border mb-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{user.name}</p>
+                      <p className="text-xs text-muted truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { setUserMenuOpen(false); onSignOut(); }}
+                      className="w-full text-left px-3 py-2 text-sm font-medium text-danger hover:bg-surface-hover rounded-lg transition-all"
+                    >
+                      {t(language, "nav.signOut")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={onSignIn}
+                className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 hover:shadow-md hover:shadow-primary/20"
+              >
+                {t(language, "nav.signIn")}
+              </button>
+            )}
+
             {/* Theme toggle */}
             <ThemeToggle />
 
