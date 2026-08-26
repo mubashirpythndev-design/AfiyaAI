@@ -169,3 +169,31 @@ export async function loginUser(req: {
 export async function fetchMe(): Promise<AuthUser> {
   return apiFetch<AuthUser>("/api/auth/me");
 }
+
+// ---- Admin: registered users list (admin-only, RBAC-gated) ----
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string | null;
+  last_login_at: string | null;
+  is_admin: boolean;
+}
+
+export interface AdminUsersResponse {
+  total: number;
+  users: AdminUser[];
+}
+
+export async function fetchAdminUsers(opts?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AdminUsersResponse> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  if (opts?.offset != null) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  return apiFetch<AdminUsersResponse>(`/api/admin/users${qs ? `?${qs}` : ""}`);
+}
+

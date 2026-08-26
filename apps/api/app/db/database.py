@@ -161,6 +161,9 @@ class User(Base):
     (e.g. Google sign-in via a future additive auth_accounts table).
     ``is_verified`` is reserved for future email verification and is not
     enforced anywhere yet.
+    ``is_admin`` (alembic revision 0006) is the RBAC flag for admin-only
+    views; it is synced from the ADMIN_EMAILS env var on register/login —
+    never trusted from client input.
     """
     __tablename__ = "users"
 
@@ -171,6 +174,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     is_verified = Column(Boolean, nullable=False, default=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
 
 
 # Engine and session

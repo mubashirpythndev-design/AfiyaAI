@@ -17,6 +17,9 @@ EXPECTED_COLUMNS = {
     "created_at",
     "last_login_at",
     "is_verified",
+    # Added by alembic revision 0006 (is_admin RBAC flag); upgrade head now
+    # includes 0006, so the users snapshot at head carries it.
+    "is_admin",
 }
 
 # Tables that MUST survive upgrade and downgrade untouched.
@@ -54,7 +57,10 @@ def test_upgrade_head_creates_users_table(migrated_db):
 
 def test_downgrade_drops_only_users(migrated_db):
     db_file, _factory = migrated_db
-    run_alembic(db_file, "downgrade", "-1")
+    # head is now 0006 (is_admin column); drop that first, then drop the
+    # users table itself (0005). Both downgrades together must remove
+    # nothing else.
+    run_alembic(db_file, "downgrade", "0004")
 
     import sqlite3
 
@@ -72,7 +78,7 @@ def test_downgrade_drops_only_users(migrated_db):
     finally:
         conn.close()
 
-    # back to head: re-upgrade must be clean and re-create users
+    # back to head: re-upgrade must be clean and re-create users + is_admin
     run_alembic(db_file, "upgrade", "head")
     conn = sqlite3.connect(db_file)
     try:
@@ -80,5 +86,7 @@ def test_downgrade_drops_only_users(migrated_db):
             "SELECT name FROM sqlite_master WHERE type='table'"
         )}
         assert "users" in tables
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
+        assert cols == EXPECTED_COLUMNS
     finally:
         conn.close()
