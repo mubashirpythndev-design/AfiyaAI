@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class SourceSchema(BaseModel):
@@ -200,3 +200,38 @@ class AlertCheckResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str = "1.0.0"
+
+
+class RegisterRequest(BaseModel):
+    """Email + password sign-up (no email verification in this build)."""
+    name: str = Field(min_length=1)
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+    @field_validator("name")
+    @classmethod
+    def name_not_blank(cls, v: str) -> str:
+        trimmed = v.strip()
+        if not trimmed:
+            raise ValueError("name must not be blank")
+        return trimmed
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserSchema(BaseModel):
+    """Public user view — NEVER includes password_hash."""
+    id: str
+    name: str
+    email: str
+    created_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserSchema
