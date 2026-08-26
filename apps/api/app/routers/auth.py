@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import User, get_db
+from app.config import get_admin_emails_set
 from app.models.schemas import (
     AuthResponse,
     LoginRequest,
@@ -50,6 +51,8 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         name=req.name,
         email=email,
         password_hash=hash_password(req.password),
+        # RBAC: ADMIN_EMAILS is the single source of truth for is_admin.
+        is_admin=email in get_admin_emails_set(),
     )
     db.add(user)
     await db.commit()
@@ -71,6 +74,9 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     user.last_login_at = datetime.now(timezone.utc)
+    # RBAC: re-sync is_admin from ADMIN_EMAILS on every login so adding or
+    # removing an email promotes/demotes the user on their next sign-in.
+    user.is_admin = email in get_admin_emails_set()
     await db.commit()
     await db.refresh(user)
     return AuthResponse(access_token=create_access_token(user.id), user=user_to_schema(user))

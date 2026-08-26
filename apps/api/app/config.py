@@ -27,10 +27,28 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 10080  # 7 days
 
+    # RBAC: comma-separated admin emails (ADMIN_EMAILS). Single source of
+    # truth for User.is_admin — synced on register/login. Default empty =
+    # no admins.
+    admin_emails: str = ""
+
     model_config = {"env_file": [".env", "../../.env"], "env_file_encoding": "utf-8"}
 
 
 settings = Settings()
+
+
+def get_admin_emails_set() -> set[str]:
+    """Normalized, lowercased set of admin emails from ADMIN_EMAILS.
+
+    Read at call time (not import time) so the value always reflects the
+    current setting; blank entries are ignored.
+    """
+    return {
+        entry.strip().lower()
+        for entry in settings.admin_emails.split(",")
+        if entry.strip()
+    }
 
 if settings.jwt_secret == INSECURE_DEV_JWT_SECRET:
     logging.warning(
