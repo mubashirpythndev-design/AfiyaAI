@@ -235,3 +235,19 @@ class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserSchema
+
+
+class AdminUserSchema(BaseModel):
+    """Admin view of a user — adds is_admin but NEVER includes password_hash."""
+    id: str
+    name: str
+    email: str
+    created_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
+    is_admin: bool = False
+
+
+class AdminUsersResponse(BaseModel):
+    """Paginated list of all registered users (admin-only)."""
+    total: int
+    users: list[AdminUserSchema]
