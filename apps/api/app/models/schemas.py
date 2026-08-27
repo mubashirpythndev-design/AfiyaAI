@@ -251,3 +251,53 @@ class AdminUsersResponse(BaseModel):
     """Paginated list of all registered users (admin-only)."""
     total: int
     users: list[AdminUserSchema]
+
+
+class OverchargeReportCreate(BaseModel):
+    """Client request to log a price gouging overcharge report."""
+    medicine_id: str
+    pharmacy_name: str = Field(min_length=1)
+    city: str = Field(min_length=1)
+    price_paid: Decimal = Field(gt=0)
+    pack_size: Optional[str] = None
+    note: Optional[str] = None
+
+    @field_validator("pharmacy_name", "city")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        trimmed = v.strip()
+        if not trimmed:
+            raise ValueError("Field must not be blank")
+        return trimmed
+
+
+class OverchargeReportSchema(BaseModel):
+    """Detailed view of an overcharge report."""
+    id: str
+    medicine_id: str
+    medicine_name: Optional[str] = None
+    reported_by_user_id: Optional[str] = None
+    reporter_name: Optional[str] = None
+    reporter_email: Optional[str] = None
+    pharmacy_name: str
+    city: str
+    price_paid: Decimal
+    notified_mrp: Decimal
+    mrp_effective_date: Optional[str] = None
+    overcharge_amount: Decimal
+    currency: str = "PKR"
+    note: Optional[str] = None
+    status: str = "pending"
+    created_at: Optional[datetime] = None
+
+
+class AdminOverchargeReportsSummary(BaseModel):
+    total_reports: int
+    total_overcharge_amount: Decimal
+    top_cities: list[dict] = []
+
+
+class AdminOverchargeReportsResponse(BaseModel):
+    summary: AdminOverchargeReportsSummary
+    reports: list[OverchargeReportSchema]
+

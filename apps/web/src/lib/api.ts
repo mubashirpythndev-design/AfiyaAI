@@ -17,7 +17,16 @@ import type {
   AlertCheckResponse,
   AuthSession,
   AuthUser,
+  OverchargeReportRequest,
+  OverchargeReportResponse,
+  AdminOverchargeReportsResponse,
 } from "./types";
+
+export type {
+  OverchargeReportRequest,
+  OverchargeReportResponse,
+  AdminOverchargeReportsResponse,
+};
 
 // Invoked once a request comes back 401 (expired/invalid token): the app
 // clears the session and opens the sign-in modal from ONE place.
@@ -196,4 +205,28 @@ export async function fetchAdminUsers(opts?: {
   const qs = params.toString();
   return apiFetch<AdminUsersResponse>(`/api/admin/users${qs ? `?${qs}` : ""}`);
 }
+
+// Overcharge reporting
+export async function createOverchargeReport(
+  req: OverchargeReportRequest
+): Promise<OverchargeReportResponse> {
+  return apiFetch<OverchargeReportResponse>("/api/v1/overcharge-reports", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export async function fetchAdminOverchargeReports(opts?: {
+  limit?: number;
+  offset?: number;
+}): Promise<AdminOverchargeReportsResponse> {
+  const params = new URLSearchParams();
+  if (opts?.limit != null) params.set("limit", String(opts.limit));
+  if (opts?.offset != null) params.set("offset", String(opts.offset));
+  const qs = params.toString();
+  return apiFetch<AdminOverchargeReportsResponse>(
+    `/api/admin/overcharge-reports${qs ? `?${qs}` : ""}`
+  );
+}
+
 
