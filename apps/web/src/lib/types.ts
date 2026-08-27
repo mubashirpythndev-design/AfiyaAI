@@ -205,3 +205,43 @@ export interface AuthSession {
   token_type: string;
   user: AuthUser;
 }
+
+// ---- Overcharge Reports ----
+
+export interface OverchargeReportRequest {
+  medicine_id: string;
+  pharmacy_name: string;
+  city: string;
+  price_paid: number;
+  pack_size?: string | null;
+  note?: string | null;
+}
+
+export interface OverchargeReportResponse {
+  id: string;
+  medicine_id: string;
+  medicine_name: string | null;
+  reported_by_user_id: string | null;
+  reporter_name: string | null;
+  reporter_email: string | null;
+  pharmacy_name: string;
+  city: string;
+  price_paid: number;
+  notified_mrp: number;
+  mrp_effective_date: string | null;
+  overcharge_amount: number;
+  currency: string;
+  note: string | null;
+  status: string;
+  created_at: string | null;
+}
+
+export interface AdminOverchargeReportsResponse {
+  summary: {
+    total_reports: number;
+    total_overcharge_amount: number;
+    top_cities: { city: string; count: number }[];
+  };
+  reports: OverchargeReportResponse[];
+}
+

@@ -12,19 +12,23 @@ import { useCallback, useEffect, useState } from "react";
 import { isLoggedIn } from "@/lib/auth";
 import {
   fetchAdminUsers,
+  fetchAdminOverchargeReports,
   type AdminUser,
   type AdminUsersResponse,
+  type AdminOverchargeReportsResponse,
 } from "@/lib/api";
 
 // Lazy-import AuthModal only when needed (keeps the initial bundle small).
 import AuthModal from "@/components/auth/AuthModal";
 
 export default function AdminUsersPage() {
+  const [activeTab, setActiveTab] = useState<"users" | "overcharge">("users");
   const [loggedIn, setLoggedIn] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdminUsersResponse | null>(null);
+  const [reportsData, setReportsData] = useState<AdminOverchargeReportsResponse | null>(null);
   const [search, setSearch] = useState("");
 
   // Check auth on mount (client-only).
@@ -44,7 +48,6 @@ export default function AdminUsersPage() {
       if (msg.includes("Admin access required") || msg.includes("403")) {
         setError("You do not have admin access.");
       } else if (msg.includes("Not authenticated") || msg.includes("401")) {
-        // Token expired/cleared — show sign-in prompt again
         setLoggedIn(false);
         setError(null);
       } else {
@@ -55,12 +58,35 @@ export default function AdminUsersPage() {
     }
   }, []);
 
-  // Auto-load on login state change
+  const loadReports = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchAdminOverchargeReports({ limit: 1000 });
+      setReportsData(res);
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Failed to fetch overcharge reports";
+      if (msg.includes("Admin access required") || msg.includes("403")) {
+        setError("You do not have admin access.");
+      } else if (msg.includes("Not authenticated") || msg.includes("401")) {
+        setLoggedIn(false);
+        setError(null);
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Auto-load on login state change or tab change
   useEffect(() => {
     if (loggedIn) {
-      loadUsers();
+      if (activeTab === "users") loadUsers();
+      else loadReports();
     }
-  }, [loggedIn, loadUsers]);
+  }, [loggedIn, activeTab, loadUsers, loadReports]);
 
   // ── Not logged in: show sign-in card ──
   if (!loggedIn) {
@@ -213,7 +239,7 @@ export default function AdminUsersPage() {
     <div className="min-h-screen bg-background">
       {/* Header bar */}
       <header className="bg-surface border-b border-border px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
               <svg
@@ -226,21 +252,46 @@ export default function AdminUsersPage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                 />
               </svg>
             </div>
             <div>
               <h1 className="text-lg font-bold text-foreground">
-                Registered Users
+                Afiya Admin Portal
               </h1>
               <p className="text-xs text-muted">
-                {data ? `${data.total} total` : ""}
+                System Oversight & DRAP Market Compliance
               </p>
             </div>
           </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-2 bg-background p-1 border border-border rounded-xl">
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === "users"
+                  ? "bg-surface text-primary shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              Registered Users ({data?.total ?? 0})
+            </button>
+            <button
+              onClick={() => setActiveTab("overcharge")}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === "overcharge"
+                  ? "bg-surface text-danger shadow-sm"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              🚩 Price Gouging Reports ({reportsData?.summary.total_reports ?? 0})
+            </button>
+          </div>
+
           <button
-            onClick={loadUsers}
+            onClick={() => (activeTab === "users" ? loadUsers() : loadReports())}
             disabled={loading}
             className="flex items-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
           >
@@ -263,106 +314,154 @@ export default function AdminUsersPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-6">
-        {/* Search box */}
-        <div className="mb-4">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or email…"
-            className="w-full max-w-md bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-          />
-          {search.trim() && (
-            <p className="text-xs text-muted mt-1">
-              Showing {filtered.length} of {users.length} users
-            </p>
-          )}
-        </div>
+        {activeTab === "users" ? (
+          <>
+            {/* Search box */}
+            <div className="mb-4">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or email…"
+                className="w-full max-w-md bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+              {search.trim() && (
+                <p className="text-xs text-muted mt-1">
+                  Showing {filtered.length} of {users.length} users
+                </p>
+              )}
+            </div>
 
-        {/* Table */}
-        <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-background/50">
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    #
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    Joined
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    Last login
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
-                    Admin
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center py-12 text-muted"
-                    >
-                      {search.trim()
-                        ? "No users match your search."
-                        : "No users registered yet."}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((user, idx) => (
-                    <tr
-                      key={user.id}
-                      className="border-b border-border/50 hover:bg-surface-hover transition-colors"
-                    >
-                      <td className="px-4 py-3 text-muted">{idx + 1}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {user.name}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {user.email}
-                      </td>
-                      <td className="px-4 py-3 text-muted">
-                        {formatDate(user.created_at)}
-                      </td>
-                      <td className="px-4 py-3 text-muted">
-                        {formatDate(user.last_login_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.is_admin ? (
-                          <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-semibold">
-                            <svg
-                              className="w-3 h-3"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Yes
-                          </span>
-                        ) : (
-                          <span className="text-muted text-xs">No</span>
-                        )}
-                      </td>
+            {/* Users Table */}
+            <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-background/50">
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        #
+                      </th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        Joined
+                      </th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        Last login
+                      </th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">
+                        Admin
+                      </th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-muted">
+                          {search.trim() ? "No users match your search." : "No users registered yet."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filtered.map((user, idx) => (
+                        <tr
+                          key={user.id}
+                          className="border-b border-border/50 hover:bg-surface-hover transition-colors"
+                        >
+                          <td className="px-4 py-3 text-muted">{idx + 1}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{user.name}</td>
+                          <td className="px-4 py-3 text-foreground">{user.email}</td>
+                          <td className="px-4 py-3 text-muted">{formatDate(user.created_at)}</td>
+                          <td className="px-4 py-3 text-muted">{formatDate(user.last_login_at)}</td>
+                          <td className="px-4 py-3">
+                            {user.is_admin ? (
+                              <span className="inline-flex items-center gap-1 bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs font-semibold">
+                                ✓ Yes
+                              </span>
+                            ) : (
+                              <span className="text-muted text-xs">No</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Summary metrics cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-surface rounded-xl border border-border p-4">
+                <p className="text-xs text-muted mb-1 font-medium">Total Violation Reports</p>
+                <p className="text-2xl font-bold text-foreground">{reportsData?.summary.total_reports ?? 0}</p>
+              </div>
+              <div className="bg-surface rounded-xl border border-border p-4">
+                <p className="text-xs text-muted mb-1 font-medium font-medium">Total Overcharged Sum</p>
+                <p className="text-2xl font-bold text-danger">
+                  PKR {reportsData?.summary.total_overcharge_amount ?? 0}
+                </p>
+              </div>
+              <div className="bg-surface rounded-xl border border-border p-4">
+                <p className="text-xs text-muted mb-1 font-medium">Top High-Risk Cities</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {reportsData?.summary.top_cities.length
+                    ? reportsData.summary.top_cities.map((c) => `${c.city} (${c.count})`).join(", ")
+                    : "No city reports yet"}
+                </p>
+              </div>
+            </div>
+
+            {/* Reports Table */}
+            <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-background/50">
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">#</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Medicine</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Pharmacy</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">City</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Price Paid</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Official MRP</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Overcharge</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Reporter</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted text-xs uppercase tracking-wider">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!reportsData || reportsData.reports.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="text-center py-12 text-muted">
+                          No price gouging overcharge reports logged yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      reportsData.reports.map((report, idx) => (
+                        <tr key={report.id} className="border-b border-border/50 hover:bg-surface-hover transition-colors">
+                          <td className="px-4 py-3 text-muted">{idx + 1}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{report.medicine_name}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{report.pharmacy_name}</td>
+                          <td className="px-4 py-3 text-foreground">{report.city}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">PKR {report.price_paid}</td>
+                          <td className="px-4 py-3 text-muted">PKR {report.notified_mrp}</td>
+                          <td className="px-4 py-3 font-bold text-danger">+PKR {report.overcharge_amount}</td>
+                          <td className="px-4 py-3 text-muted">{report.reporter_email ?? "Anonymous"}</td>
+                          <td className="px-4 py-3 text-muted">{formatDate(report.created_at)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );

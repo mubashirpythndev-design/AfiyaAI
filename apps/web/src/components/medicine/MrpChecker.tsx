@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { checkPrice } from "@/lib/api";
+import { checkPrice, createOverchargeReport } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Language, MedicineDetail, PriceCheckResponse } from "@/lib/types";
 
@@ -56,6 +56,15 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
   const [loading, setLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [result, setResult] = useState<PriceCheckResponse | null>(null);
+
+  // Optional Overcharge Report State
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [pharmacyName, setPharmacyName] = useState("");
+  const [city, setCity] = useState("");
+  const [reportNote, setReportNote] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSuccess, setReportSuccess] = useState(false);
 
   // The backend re-resolves the query via the spec-04 matcher; the
   // brand+strength form is the exact key the matcher resolves on.
@@ -288,6 +297,112 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
               <p className="text-xs text-muted border-t border-border/60 pt-2.5 leading-relaxed">
                 {result.disclaimer}
               </p>
+
+              {/* Optional Report Overcharge Action — strictly shown on OVERCHARGED status */}
+              {result.status === "OVERCHARGED" && result.medicine_id && (
+                <div className="border-t border-border/60 pt-3">
+                  {!showReportForm && !reportSuccess ? (
+                    <button
+                      onClick={() => setShowReportForm(true)}
+                      className="w-full flex items-center justify-center gap-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all duration-300"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" y1="22" x2="4" y2="15" />
+                      </svg>
+                      🚩 Report Pharmacy Overcharge (Optional)
+                    </button>
+                  ) : reportSuccess ? (
+                    <div className="bg-success/10 border border-success/30 rounded-xl p-3 text-center text-xs font-semibold text-success">
+                      ✓ Thank you! Overcharge report logged for DRAP compliance audit.
+                    </div>
+                  ) : (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!pharmacyName.trim() || !city.trim()) return;
+                        setReportSubmitting(true);
+                        setReportError(null);
+                        try {
+                          await createOverchargeReport({
+                            medicine_id: result.medicine_id!,
+                            pharmacy_name: pharmacyName,
+                            city: city,
+                            price_paid: Number(priceInput),
+                            note: reportNote || undefined,
+                          });
+                          setReportSuccess(true);
+                          setShowReportForm(false);
+                        } catch (err: any) {
+                          setReportError(err.message || "Failed to log report. Please sign in.");
+                        } finally {
+                          setReportSubmitting(false);
+                        }
+                      }}
+                      className="bg-surface-hover border border-border rounded-xl p-3.5 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-foreground">Report Overcharge Violation</h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowReportForm(false)}
+                          className="text-xs text-muted hover:text-foreground"
+                        >
+                          ✕ Cancel
+                        </button>
+                      </div>
+
+                      {reportError && (
+                        <p className="text-xs text-danger font-medium">{reportError}</p>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-medium text-muted mb-1">Pharmacy Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. City Pharmacy"
+                            value={pharmacyName}
+                            onChange={(e) => setPharmacyName(e.target.value)}
+                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-medium text-muted mb-1">City *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Lahore, Karachi"
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-medium text-muted mb-1">Additional Note (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Refused receipt"
+                          value={reportNote}
+                          onChange={(e) => setReportNote(e.target.value)}
+                          className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={reportSubmitting}
+                        className="w-full bg-danger hover:bg-danger/90 disabled:opacity-50 text-white font-semibold text-xs py-2 rounded-lg transition-colors"
+                      >
+                        {reportSubmitting ? "Submitting Report..." : "Submit Overcharge Report"}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

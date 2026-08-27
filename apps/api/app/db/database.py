@@ -177,6 +177,34 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
 
 
+class OverchargeReport(Base):
+    """User report of a pharmacy overcharging above official DRAP MRP.
+
+    Created by alembic revision 0007.
+    Stores user submission details alongside snapshot audit fields
+    (notified_mrp, mrp_effective_date, overcharge_amount) to ensure
+    report auditability even if MRP references are updated later.
+    """
+    __tablename__ = "overcharge_reports"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False, index=True)
+    reported_by_user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    pharmacy_name = Column(String(255), nullable=False)
+    city = Column(String(100), nullable=False, index=True)
+    price_paid = Column(Numeric(10, 2), nullable=False)
+    notified_mrp = Column(Numeric(10, 2), nullable=False)
+    mrp_effective_date = Column(Date, nullable=True)
+    overcharge_amount = Column(Numeric(10, 2), nullable=False)
+    currency = Column(String(10), nullable=False, default="PKR")
+    note = Column(Text, nullable=True)
+    status = Column(String(50), nullable=False, default="pending")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    reported_by_user = relationship("User")
+
+
 # Engine and session
 connect_args = {}
 if is_sqlite:
