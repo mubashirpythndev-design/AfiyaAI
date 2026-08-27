@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { MedicineDetail } from "@/lib/types";
 import type { Language } from "@/lib/types";
 import { CATEGORY_ICONS } from "@/lib/constants";
 import { t } from "@/lib/i18n";
+import { addToCabinet, removeFromCabinet, checkCabinetStatus } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 
 interface MedicineCardProps {
   medicine: MedicineDetail;
@@ -14,6 +17,37 @@ interface MedicineCardProps {
 
 export default function MedicineCard({ medicine, onViewDetails, onViewPrices, language = "en" }: MedicineCardProps) {
   const icon = CATEGORY_ICONS[medicine.category] || "💊";
+  const [inCabinet, setInCabinet] = useState(false);
+  const [cabinetLoading, setCabinetLoading] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn()) {
+      checkCabinetStatus(medicine.id)
+        .then((res) => setInCabinet(res.in_cabinet))
+        .catch(() => setInCabinet(false));
+    }
+  }, [medicine.id]);
+
+  const toggleCabinet = async () => {
+    if (!isLoggedIn()) {
+      onViewDetails(medicine.id);
+      return;
+    }
+    setCabinetLoading(true);
+    try {
+      if (inCabinet) {
+        await removeFromCabinet(medicine.id);
+        setInCabinet(false);
+      } else {
+        await addToCabinet(medicine.id);
+        setInCabinet(true);
+      }
+    } catch (e) {
+      console.error("Cabinet toggle error", e);
+    } finally {
+      setCabinetLoading(false);
+    }
+  };
 
   return (
     <div className="bg-surface rounded-2xl border border-border hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 overflow-hidden group animate-fade-in card-hover">
@@ -32,9 +66,22 @@ export default function MedicineCard({ medicine, onViewDetails, onViewPrices, la
               <p className="text-sm text-muted">{medicine.generic_name}</p>
             </div>
           </div>
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
-            {medicine.strength}
-          </span>
+          <div className="flex flex-col items-end gap-1.5">
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+              {medicine.strength}
+            </span>
+            <button
+              onClick={toggleCabinet}
+              disabled={cabinetLoading}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
+                inCabinet
+                  ? "bg-success/10 border-success/30 text-success"
+                  : "bg-surface border-border text-muted hover:text-foreground hover:border-primary/30"
+              }`}
+            >
+              {inCabinet ? "✓ Saved" : "⭐ Save"}
+            </button>
+          </div>
         </div>
 
         {/* Details grid */}
@@ -72,3 +119,4 @@ export default function MedicineCard({ medicine, onViewDetails, onViewPrices, la
     </div>
   );
 }
+

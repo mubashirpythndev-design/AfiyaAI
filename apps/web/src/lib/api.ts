@@ -20,12 +20,16 @@ import type {
   OverchargeReportRequest,
   OverchargeReportResponse,
   AdminOverchargeReportsResponse,
+  CabinetItem,
+  CabinetResponse,
 } from "./types";
 
 export type {
   OverchargeReportRequest,
   OverchargeReportResponse,
   AdminOverchargeReportsResponse,
+  CabinetItem,
+  CabinetResponse,
 };
 
 // Invoked once a request comes back 401 (expired/invalid token): the app
@@ -228,5 +232,38 @@ export async function fetchAdminOverchargeReports(opts?: {
     `/api/admin/overcharge-reports${qs ? `?${qs}` : ""}`
   );
 }
+
+// Digital Medicine Cabinet & Recall Watchdog
+export async function addToCabinet(
+  medicineId: string
+): Promise<CabinetItem> {
+  return apiFetch<CabinetItem>("/api/v1/cabinet", {
+    method: "POST",
+    body: JSON.stringify({ medicine_id: medicineId }),
+  });
+}
+
+export async function removeFromCabinet(medicineId: string): Promise<void> {
+  const url = `${API_BASE_URL}/api/v1/cabinet/${medicineId}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok && res.status !== 204) {
+    if (res.status === 401) handleUnauthorized();
+    throw new Error("Failed to remove medicine from cabinet.");
+  }
+}
+
+export async function fetchCabinet(): Promise<CabinetResponse> {
+  return apiFetch<CabinetResponse>("/api/v1/cabinet");
+}
+
+export async function checkCabinetStatus(
+  medicineId: string
+): Promise<{ in_cabinet: boolean }> {
+  return apiFetch<{ in_cabinet: boolean }>(`/api/v1/cabinet/check/${medicineId}`);
+}
+
 
 

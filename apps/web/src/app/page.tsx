@@ -13,6 +13,7 @@ import AlertChecker from "@/components/medicine/AlertChecker";
 import InfoPanel from "@/components/medicine/InfoPanel";
 import ChatInterface from "@/components/chat/ChatInterface";
 import AuthModal from "@/components/auth/AuthModal";
+import CabinetModal from "@/components/medicine/CabinetModal";
 import Disclaimer from "@/components/shared/Disclaimer";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type {
@@ -44,6 +45,9 @@ export default function Home() {
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Cabinet Modal State
+  const [showCabinetModal, setShowCabinetModal] = useState(false);
 
   // === Auth state (single centralized guard — a future whole-app login gate
   // can move these two pieces to one entry point) ===
@@ -181,6 +185,7 @@ export default function Home() {
         user={authUser}
         onSignIn={() => setAuthModal({})}
         onSignOut={handleSignOut}
+        onOpenCabinet={() => setShowCabinetModal(true)}
       />
 
       <main className="flex-1">
@@ -574,6 +579,12 @@ export default function Home() {
           onSuccess={handleAuthSuccess}
         />
       )}
+
+      <CabinetModal
+        isOpen={showCabinetModal}
+        onClose={() => setShowCabinetModal(false)}
+        language={language}
+      />
     </div>
   );
 }
