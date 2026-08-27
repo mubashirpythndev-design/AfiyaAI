@@ -301,3 +301,27 @@ class AdminOverchargeReportsResponse(BaseModel):
     summary: AdminOverchargeReportsSummary
     reports: list[OverchargeReportSchema]
 
+
+class CabinetAddRequest(BaseModel):
+    """Request to save a medicine to the user's digital cabinet."""
+    medicine_id: str
+
+
+class CabinetItemSchema(BaseModel):
+    """Cabinet item detailed view, including medicine metadata and active DRAP recall alerts."""
+    id: str
+    medicine_id: str
+    medicine: MedicineSchema
+    notified_mrp: Optional[Decimal] = None
+    active_alerts: list[AlertSchema] = []
+    has_recall_alert: bool = False
+    created_at: Optional[datetime] = None
+
+
+class CabinetResponse(BaseModel):
+    """Full digital medicine cabinet response with recall watchdog metrics."""
+    total_items: int
+    recalled_items_count: int
+    items: list[CabinetItemSchema]
+
+

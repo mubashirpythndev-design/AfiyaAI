@@ -245,3 +245,26 @@ export interface AdminOverchargeReportsResponse {
   reports: OverchargeReportResponse[];
 }
 
+// ---- Digital Medicine Cabinet & Recall Watchdog ----
+
+export interface CabinetAddRequest {
+  medicine_id: string;
+}
+
+export interface CabinetItem {
+  id: string;
+  medicine_id: string;
+  medicine: MedicineDetail;
+  notified_mrp?: number | null;
+  active_alerts: AlertEntry[];
+  has_recall_alert: boolean;
+  created_at?: string | null;
+}
+
+export interface CabinetResponse {
+  total_items: number;
+  recalled_items_count: number;
+  items: CabinetItem[];
+}
+
+

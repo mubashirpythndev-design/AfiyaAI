@@ -205,6 +205,24 @@ class OverchargeReport(Base):
     reported_by_user = relationship("User")
 
 
+class UserCabinet(Base):
+    """User's digital medicine cabinet (saved active medications).
+
+    Created by alembic revision 0008.
+    Unique constraint `uq_user_medicine` on (user_id, medicine_id) prevents duplicates.
+    Joined with `drap_alerts` for automated recall watchdog alerts.
+    """
+    __tablename__ = "user_cabinet"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    user = relationship("User")
+
+
 # Engine and session
 connect_args = {}
 if is_sqlite:

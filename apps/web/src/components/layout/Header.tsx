@@ -12,9 +12,10 @@ interface HeaderProps {
   user: AuthUser | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  onOpenCabinet?: () => void;
 }
 
-export default function Header({ language, onLanguageChange, user, onSignIn, onSignOut }: HeaderProps) {
+export default function Header({ language, onLanguageChange, user, onSignIn, onSignOut, onOpenCabinet }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -52,13 +53,23 @@ export default function Header({ language, onLanguageChange, user, onSignIn, onS
 
           {/* Auth + Language Selector + Theme Toggle + Mobile Menu */}
           <div className="flex items-center gap-2">
-            {/* Auth: sign-in button when logged out; name + sign-out menu when logged in */}
+            {/* Auth: sign-in button when logged out; cabinet + name + sign-out menu when logged in */}
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 bg-surface rounded-xl border border-border px-3 py-1.5 text-sm font-semibold text-foreground hover:border-primary/30 transition-all"
-                >
+              <div className="flex items-center gap-2">
+                {onOpenCabinet && (
+                  <button
+                    onClick={onOpenCabinet}
+                    className="flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all"
+                  >
+                    <span>⭐</span>
+                    <span className="hidden sm:inline">My Cabinet</span>
+                  </button>
+                )}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 bg-surface rounded-xl border border-border px-3 py-1.5 text-sm font-semibold text-foreground hover:border-primary/30 transition-all"
+                  >
                   <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
@@ -82,6 +93,7 @@ export default function Header({ language, onLanguageChange, user, onSignIn, onS
                   </div>
                 )}
               </div>
+            </div>
             ) : (
               <button
                 onClick={onSignIn}
