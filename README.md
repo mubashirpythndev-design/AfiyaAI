@@ -248,11 +248,12 @@ npm run dev
 
 ## 🚀 Deployment & Live Links
 
-| Component            | Platform                                                        | Configuration / Build Command                                                                                                                               | Live URL                                |
-| :------------------- | :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------- |
-| **Frontend Web App** | [Vercel](https://vercel.com/)                                   | Root Directory: `apps/web`<br>Env: `NEXT_PUBLIC_API_URL`                                                                                                    | _`https://your-afiya-app.vercel.app`_   |
-| **Backend REST API** | [Render](https://render.com/) / [Railway](https://railway.app/) | Root Directory: `apps/api`<br>Build: `pip install -r requirements.txt && alembic upgrade head`<br>Start: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` | _`https://your-afiya-api.onrender.com`_ |
-| **Vector Database**  | [Neon](https://neon.tech/)                                      | PostgreSQL 18.6 + `pgvector` 0.8.6 (768-dim)                                                                                                                | _Managed Cloud_                         |
+| Component | Platform | Configuration / Build Command | Live URL |
+| :--- | :--- | :--- | :--- |
+| **Frontend Web App** | [Vercel](https://vercel.com/) | Next.js 15 App (`apps/web`) | [**`https://afiya-ai.vercel.app`**](https://afiya-ai.vercel.app) |
+| **Backend REST API** | [Railway](https://railway.app/) | FastAPI Python 3.12 (`apps/api`) | [**`https://afiyaai-production.up.railway.app`**](https://afiyaai-production.up.railway.app) |
+| **Interactive API Docs** | [Swagger UI](https://swagger.io/) | Auto-generated OpenAPI 3.1 | [**`https://afiyaai-production.up.railway.app/docs`**](https://afiyaai-production.up.railway.app/docs) |
+| **Vector Database** | [Neon](https://neon.tech/) | PostgreSQL 18.6 + `pgvector` 0.8.6 (768-dim) | *Managed Cloud (Live)* |
 
 ---
 
