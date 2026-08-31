@@ -54,20 +54,22 @@ def test_parse_pack_units_unknown_format_flagged():
 
 # --- Cheapest-brand groups ------------------------------------------------------
 
-async def test_omeprazole_20mg_cheapest_is_risek(backfilled_db):
+async def test_omeprazole_20mg_cheapest_is_omidar(backfilled_db):
     _, factory = backfilled_db
     async with factory() as db:
         result = await get_cheapest_brands(db, await _med_id(db, "Losec"))
 
     assert result.generic == "Omeprazole"
     assert result.strength == "20mg"
-    assert result.cheapest.brand_name == "Risek"
-    assert [o.brand_name for o in result.options] == ["Risek", "Losec"]
-    assert result.options[0].per_unit == Decimal("43.57")  # 610 / 14
-    assert result.options[1].per_unit == Decimal("67.86")  # 950 / 14
+    assert result.cheapest.brand_name == "Omidar"
+    assert [o.brand_name for o in result.options] == ["Omidar", "Risek", "Losec"]
+    assert result.options[0].per_unit == Decimal("30.00")  # 420 / 14
+    assert result.options[1].per_unit == Decimal("43.57")  # 610 / 14
+    assert result.options[2].per_unit == Decimal("67.86")  # 950 / 14
     # Saving of the cheapest brand vs the queried brand (Losec):
-    assert result.options[0].saving_percent_vs_queried == Decimal("35.79")
-    assert result.options[1].saving_percent_vs_queried == Decimal("0.00")
+    assert result.options[0].saving_percent_vs_queried == Decimal("55.79")
+    assert result.options[1].saving_percent_vs_queried == Decimal("35.79")
+    assert result.options[2].saving_percent_vs_queried == Decimal("0.00")
 
 
 async def test_cetirizine_10mg_cheapest_is_softin(backfilled_db):
@@ -88,11 +90,11 @@ async def test_rosuvastatin_10mg_cheapest_is_xplendid(backfilled_db):
 
     assert [o.brand_name for o in result.options] == [
         "Xplendid",
-        "Crestor",
         "Rovista",
+        "Crestor",
     ]
     per_units = [o.per_unit for o in result.options]
-    assert per_units == [Decimal("47.70"), Decimal("97.14"), Decimal("136.00")]
+    assert per_units == [Decimal("34.07"), Decimal("82.14"), Decimal("97.14")]
     assert result.cheapest.brand_name == "Xplendid"
 
 
@@ -105,10 +107,10 @@ async def test_ciprofloxacin_strengths_are_not_grouped(backfilled_db):
         novidat = await get_cheapest_brands(db, await _med_id(db, "Novidat"))
         ciproxin = await get_cheapest_brands(db, await _med_id(db, "Ciproxin"))
 
-    # 250mg and 500mg must each form their own single-brand group.
+    # 250mg and 500mg must each form their own groups.
     assert [o.brand_name for o in novidat.options] == ["Novidat"]
     assert novidat.strength == "250mg"
-    assert [o.brand_name for o in ciproxin.options] == ["Ciproxin"]
+    assert [o.brand_name for o in ciproxin.options] == ["Ciprokem", "Ciproxin"]
     assert ciproxin.strength == "500mg"
 
 

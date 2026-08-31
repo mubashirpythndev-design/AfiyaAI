@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
         # Tables may not exist yet on clean DB
         med_count = 0
 
-    if med_count >= 40:
+    if med_count >= 102:
         logger.info(f"Live database verified with {med_count} medicines. Ready immediately.")
     else:
         logger.info(f"Database contains {med_count} medicines. Initializing schemas & seeding...")

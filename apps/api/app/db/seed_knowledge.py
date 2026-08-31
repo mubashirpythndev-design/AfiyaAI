@@ -122,10 +122,10 @@ def _load_drap_medical_info() -> dict[str, dict]:
             data = json.load(f)
         indexed = {}
         for item in data:
-            reg = str(item.get("Registration_No", "")).strip()
+            reg = str(item.get("registration_no") or item.get("Registration_No") or "").strip()
             if reg:
                 indexed[reg] = item
-            name = item.get("Product_name", "").strip().split()[0].lower()
+            name = (item.get("brand_name") or item.get("product_name") or item.get("Product_name", "")).strip().split()[0].lower()
             if name and name not in indexed:
                 indexed[name] = item
         return indexed

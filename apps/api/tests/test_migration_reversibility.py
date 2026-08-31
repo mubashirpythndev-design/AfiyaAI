@@ -84,6 +84,6 @@ def test_upgrade_downgrade_returns_schema_to_prior_state(tmp_path):
             text("SELECT COUNT(*) FROM medicine_prices")
         ).scalar()
     assert row.brand_name == "Canary"  # data survives downgrade
-    assert price_count == 40  # prices untouched
+    assert price_count == 102  # prices untouched
 
     engine.dispose()

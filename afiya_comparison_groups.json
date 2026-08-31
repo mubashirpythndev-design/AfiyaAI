@@ -1,0 +1,1448 @@
+[
+  {
+    "comparison_key": "paracetamol|500mg|tablet",
+    "generic_name": "Paracetamol",
+    "strength": "500mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-003",
+        "brand_name": "Febrol",
+        "product_name": "Febrol 500mg Tablet",
+        "manufacturer": "Barrett Hodgson Pakistan",
+        "registration_no": "91968",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 58.5,
+        "units_per_pack": 10,
+        "unit_price_pkr": 5.85
+      },
+      {
+        "id": "afiya-002",
+        "brand_name": "Calpol",
+        "product_name": "Calpol 500mg Tablet",
+        "manufacturer": "GSK Pakistan Limited",
+        "registration_no": "13901",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 65,
+        "units_per_pack": 10,
+        "unit_price_pkr": 6.5
+      },
+      {
+        "id": "afiya-001",
+        "brand_name": "Panadol",
+        "product_name": "Panadol 500mg Tablet",
+        "manufacturer": "GSK Pakistan Limited",
+        "registration_no": "93601",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 72.7,
+        "units_per_pack": 10,
+        "unit_price_pkr": 7.27
+      }
+    ]
+  },
+  {
+    "comparison_key": "ibuprofen|400mg|tablet",
+    "generic_name": "Ibuprofen",
+    "strength": "400mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-005",
+        "brand_name": "Profen",
+        "product_name": "Profen 400mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "31932",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 15,
+        "units_per_pack": 10,
+        "unit_price_pkr": 1.5
+      },
+      {
+        "id": "afiya-004",
+        "brand_name": "Brufen",
+        "product_name": "Brufen 400mg Tablet",
+        "manufacturer": "Abbott Laboratories (Pakistan)",
+        "registration_no": "79403",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 17.44,
+        "units_per_pack": 10,
+        "unit_price_pkr": 1.74
+      },
+      {
+        "id": "afiya-006",
+        "brand_name": "Inflam",
+        "product_name": "Inflam 400mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "72152",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 18.5,
+        "units_per_pack": 10,
+        "unit_price_pkr": 1.85
+      }
+    ]
+  },
+  {
+    "comparison_key": "mefenamic acid|250mg|tablet",
+    "generic_name": "Mefenamic acid",
+    "strength": "250mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-008",
+        "brand_name": "Mefnac",
+        "product_name": "Mefnac 250mg Tablet",
+        "manufacturer": "AGP Limited",
+        "registration_no": "19913",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 180,
+        "units_per_pack": 10,
+        "unit_price_pkr": 18
+      },
+      {
+        "id": "afiya-009",
+        "brand_name": "Dolotram",
+        "product_name": "Dolotram 250mg Tablet",
+        "manufacturer": "Hilton Pharma",
+        "registration_no": "83535",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 195,
+        "units_per_pack": 10,
+        "unit_price_pkr": 19.5
+      },
+      {
+        "id": "afiya-007",
+        "brand_name": "Ponstan",
+        "product_name": "Ponstan 250mg Tablet",
+        "manufacturer": "Pfizer Pakistan Limited",
+        "registration_no": "54424",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 210.8,
+        "units_per_pack": 10,
+        "unit_price_pkr": 21.08
+      }
+    ]
+  },
+  {
+    "comparison_key": "aspirin (acetylsalicylic acid)|300mg|tablet",
+    "generic_name": "Aspirin (Acetylsalicylic acid)",
+    "strength": "300mg",
+    "dosage_form": "Tablet",
+    "product_count": 1,
+    "products": [
+      {
+        "id": "afiya-010",
+        "brand_name": "Disprin",
+        "product_name": "Disprin 300mg Tablet",
+        "manufacturer": "Reckitt Benckiser Pakistan",
+        "registration_no": "51226",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 30.2,
+        "units_per_pack": 10,
+        "unit_price_pkr": 3.02
+      }
+    ]
+  },
+  {
+    "comparison_key": "aspirin (acetylsalicylic acid)|75mg|tablet",
+    "generic_name": "Aspirin (Acetylsalicylic acid)",
+    "strength": "75mg",
+    "dosage_form": "Tablet",
+    "product_count": 2,
+    "products": [
+      {
+        "id": "afiya-012",
+        "brand_name": "Loprin",
+        "product_name": "Loprin 75mg Tablet",
+        "manufacturer": "Highnoon Laboratories",
+        "registration_no": "42851",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 42,
+        "units_per_pack": 10,
+        "unit_price_pkr": 4.2
+      },
+      {
+        "id": "afiya-011",
+        "brand_name": "Ascard",
+        "product_name": "Ascard 75mg Tablet",
+        "manufacturer": "Atco Laboratories",
+        "registration_no": "70769",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 45,
+        "units_per_pack": 10,
+        "unit_price_pkr": 4.5
+      }
+    ]
+  },
+  {
+    "comparison_key": "amoxicillin + clavulanic acid|625mg|tablet",
+    "generic_name": "Amoxicillin + Clavulanic acid",
+    "strength": "625mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-015",
+        "brand_name": "Clavidar",
+        "product_name": "Clavidar 625mg Tablet",
+        "manufacturer": "Bosal Pharma",
+        "registration_no": "49364",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 480,
+        "units_per_pack": 6,
+        "unit_price_pkr": 80
+      },
+      {
+        "id": "afiya-014",
+        "brand_name": "Amclaf",
+        "product_name": "Amclaf 625mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "18585",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 495,
+        "units_per_pack": 6,
+        "unit_price_pkr": 82.5
+      },
+      {
+        "id": "afiya-013",
+        "brand_name": "Augmentin",
+        "product_name": "Augmentin 625mg Tablet",
+        "manufacturer": "GSK Pakistan Limited",
+        "registration_no": "64573",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 563,
+        "units_per_pack": 6,
+        "unit_price_pkr": 93.83
+      }
+    ]
+  },
+  {
+    "comparison_key": "amoxicillin|500mg|capsule",
+    "generic_name": "Amoxicillin",
+    "strength": "500mg",
+    "dosage_form": "Capsule",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-017",
+        "brand_name": "Moxypen",
+        "product_name": "Moxypen 500mg Capsule",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "62684",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 165,
+        "units_per_pack": 10,
+        "unit_price_pkr": 16.5
+      },
+      {
+        "id": "afiya-018",
+        "brand_name": "Ospamox",
+        "product_name": "Ospamox 500mg Capsule",
+        "manufacturer": "Sandoz",
+        "registration_no": "55442",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 175,
+        "units_per_pack": 10,
+        "unit_price_pkr": 17.5
+      },
+      {
+        "id": "afiya-016",
+        "brand_name": "Amoxil",
+        "product_name": "Amoxil 500mg Capsule",
+        "manufacturer": "GSK Pakistan Limited",
+        "registration_no": "54571",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 190.1,
+        "units_per_pack": 10,
+        "unit_price_pkr": 19.01
+      }
+    ]
+  },
+  {
+    "comparison_key": "azithromycin|500mg|capsule",
+    "generic_name": "Azithromycin",
+    "strength": "500mg",
+    "dosage_form": "Capsule",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-021",
+        "brand_name": "Aziwok",
+        "product_name": "Aziwok 500mg Capsule",
+        "manufacturer": "Wockhardt",
+        "registration_no": "19420",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 490,
+        "units_per_pack": 6,
+        "unit_price_pkr": 81.67
+      },
+      {
+        "id": "afiya-019",
+        "brand_name": "Azomax",
+        "product_name": "Azomax 500mg Capsule",
+        "manufacturer": "Pfizer Pakistan Limited",
+        "registration_no": "77307",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 548,
+        "units_per_pack": 6,
+        "unit_price_pkr": 91.33
+      },
+      {
+        "id": "afiya-020",
+        "brand_name": "Zithromax",
+        "product_name": "Zithromax 500mg Capsule",
+        "manufacturer": "Pfizer Pakistan Limited",
+        "registration_no": "35438",
+        "pack_size": "1x6's",
+        "pack_price_pkr": 580,
+        "units_per_pack": 6,
+        "unit_price_pkr": 96.67
+      }
+    ]
+  },
+  {
+    "comparison_key": "clarithromycin|250mg|tablet",
+    "generic_name": "Clarithromycin",
+    "strength": "250mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-024",
+        "brand_name": "Rithmo",
+        "product_name": "Rithmo 250mg Tablet",
+        "manufacturer": "Bosal Pharma",
+        "registration_no": "72839",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 450,
+        "units_per_pack": 10,
+        "unit_price_pkr": 45
+      },
+      {
+        "id": "afiya-023",
+        "brand_name": "Claritek",
+        "product_name": "Claritek 250mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "59928",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 480,
+        "units_per_pack": 10,
+        "unit_price_pkr": 48
+      },
+      {
+        "id": "afiya-022",
+        "brand_name": "Klaricid",
+        "product_name": "Klaricid 250mg Tablet",
+        "manufacturer": "Abbott Laboratories (Pakistan)",
+        "registration_no": "73120",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 546,
+        "units_per_pack": 10,
+        "unit_price_pkr": 54.6
+      }
+    ]
+  },
+  {
+    "comparison_key": "ciprofloxacin|500mg|tablet",
+    "generic_name": "Ciprofloxacin",
+    "strength": "500mg",
+    "dosage_form": "Tablet",
+    "product_count": 2,
+    "products": [
+      {
+        "id": "afiya-027",
+        "brand_name": "Ciprokem",
+        "product_name": "Ciprokem 500mg Tablet",
+        "manufacturer": "Kemiko Pharma",
+        "registration_no": "45864",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 310,
+        "units_per_pack": 10,
+        "unit_price_pkr": 31
+      },
+      {
+        "id": "afiya-025",
+        "brand_name": "Ciproxin",
+        "product_name": "Ciproxin 500mg Tablet",
+        "manufacturer": "Bayer Pakistan",
+        "registration_no": "76752",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 726,
+        "units_per_pack": 10,
+        "unit_price_pkr": 72.6
+      }
+    ]
+  },
+  {
+    "comparison_key": "ciprofloxacin|250mg|tablet",
+    "generic_name": "Ciprofloxacin",
+    "strength": "250mg",
+    "dosage_form": "Tablet",
+    "product_count": 1,
+    "products": [
+      {
+        "id": "afiya-026",
+        "brand_name": "Novidat",
+        "product_name": "Novidat 250mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "35253",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 275,
+        "units_per_pack": 10,
+        "unit_price_pkr": 27.5
+      }
+    ]
+  },
+  {
+    "comparison_key": "levofloxacin|500mg|tablet",
+    "generic_name": "Levofloxacin",
+    "strength": "500mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-030",
+        "brand_name": "Evo",
+        "product_name": "Evo 500mg Tablet",
+        "manufacturer": "PharmEvo",
+        "registration_no": "95065",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 620,
+        "units_per_pack": 10,
+        "unit_price_pkr": 62
+      },
+      {
+        "id": "afiya-028",
+        "brand_name": "Leflox",
+        "product_name": "Leflox 500mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "73975",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 680,
+        "units_per_pack": 10,
+        "unit_price_pkr": 68
+      },
+      {
+        "id": "afiya-029",
+        "brand_name": "Cravit",
+        "product_name": "Cravit 500mg Tablet",
+        "manufacturer": "Hilton Pharma",
+        "registration_no": "70672",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 750,
+        "units_per_pack": 10,
+        "unit_price_pkr": 75
+      }
+    ]
+  },
+  {
+    "comparison_key": "cefixime|400mg|capsule",
+    "generic_name": "Cefixime",
+    "strength": "400mg",
+    "dosage_form": "Capsule",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-032",
+        "brand_name": "Caricef",
+        "product_name": "Caricef 400mg Capsule",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "78387",
+        "pack_size": "1x5's",
+        "pack_price_pkr": 650,
+        "units_per_pack": 5,
+        "unit_price_pkr": 130
+      },
+      {
+        "id": "afiya-033",
+        "brand_name": "Cefget",
+        "product_name": "Cefget 400mg Capsule",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "77765",
+        "pack_size": "1x5's",
+        "pack_price_pkr": 690,
+        "units_per_pack": 5,
+        "unit_price_pkr": 138
+      },
+      {
+        "id": "afiya-031",
+        "brand_name": "Cefspan",
+        "product_name": "Cefspan 400mg Capsule",
+        "manufacturer": "Martin Dow Limited",
+        "registration_no": "42171",
+        "pack_size": "1x5's",
+        "pack_price_pkr": 730,
+        "units_per_pack": 5,
+        "unit_price_pkr": 146
+      }
+    ]
+  },
+  {
+    "comparison_key": "omeprazole|20mg|capsule",
+    "generic_name": "Omeprazole",
+    "strength": "20mg",
+    "dosage_form": "Capsule",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-036",
+        "brand_name": "Omidar",
+        "product_name": "Omidar 20mg Capsule",
+        "manufacturer": "Bosal Pharma",
+        "registration_no": "12469",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 420,
+        "units_per_pack": 14,
+        "unit_price_pkr": 30
+      },
+      {
+        "id": "afiya-034",
+        "brand_name": "Risek",
+        "product_name": "Risek 20mg Capsule",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "22183",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 610,
+        "units_per_pack": 14,
+        "unit_price_pkr": 43.57
+      },
+      {
+        "id": "afiya-035",
+        "brand_name": "Losec",
+        "product_name": "Losec 20mg Capsule",
+        "manufacturer": "AstraZeneca",
+        "registration_no": "83388",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 950,
+        "units_per_pack": 14,
+        "unit_price_pkr": 67.86
+      }
+    ]
+  },
+  {
+    "comparison_key": "esomeprazole|40mg|capsule",
+    "generic_name": "Esomeprazole",
+    "strength": "40mg",
+    "dosage_form": "Capsule",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-038",
+        "brand_name": "Ezium",
+        "product_name": "Ezium 40mg Capsule",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "76800",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 580,
+        "units_per_pack": 14,
+        "unit_price_pkr": 41.43
+      },
+      {
+        "id": "afiya-039",
+        "brand_name": "Eso",
+        "product_name": "Eso 40mg Capsule",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "72717",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 595,
+        "units_per_pack": 14,
+        "unit_price_pkr": 42.5
+      },
+      {
+        "id": "afiya-037",
+        "brand_name": "Nexum",
+        "product_name": "Nexum 40mg Capsule",
+        "manufacturer": "AstraZeneca",
+        "registration_no": "69888",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 644,
+        "units_per_pack": 14,
+        "unit_price_pkr": 46
+      }
+    ]
+  },
+  {
+    "comparison_key": "pantoprazole|40mg|tablet",
+    "generic_name": "Pantoprazole",
+    "strength": "40mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-041",
+        "brand_name": "Zopent",
+        "product_name": "Zopent 40mg Tablet",
+        "manufacturer": "PharmEvo",
+        "registration_no": "41596",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 410,
+        "units_per_pack": 14,
+        "unit_price_pkr": 29.29
+      },
+      {
+        "id": "afiya-042",
+        "brand_name": "Pantag",
+        "product_name": "Pantag 40mg Tablet",
+        "manufacturer": "Searle",
+        "registration_no": "57434",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 430,
+        "units_per_pack": 14,
+        "unit_price_pkr": 30.71
+      },
+      {
+        "id": "afiya-040",
+        "brand_name": "Pantium",
+        "product_name": "Pantium 40mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "54438",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 450,
+        "units_per_pack": 14,
+        "unit_price_pkr": 32.14
+      }
+    ]
+  },
+  {
+    "comparison_key": "cetirizine|10mg|tablet",
+    "generic_name": "Cetirizine",
+    "strength": "10mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-045",
+        "brand_name": "Softin",
+        "product_name": "Softin 10mg Tablet",
+        "manufacturer": "PharmEvo",
+        "registration_no": "69806",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 302,
+        "units_per_pack": 10,
+        "unit_price_pkr": 30.2
+      },
+      {
+        "id": "afiya-043",
+        "brand_name": "Rigix",
+        "product_name": "Rigix 10mg Tablet",
+        "manufacturer": "AGP Limited",
+        "registration_no": "20264",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 390,
+        "units_per_pack": 10,
+        "unit_price_pkr": 39
+      },
+      {
+        "id": "afiya-044",
+        "brand_name": "Zyrtec",
+        "product_name": "Zyrtec 10mg Tablet",
+        "manufacturer": "GSK Pakistan",
+        "registration_no": "85042",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 390,
+        "units_per_pack": 10,
+        "unit_price_pkr": 39
+      }
+    ]
+  },
+  {
+    "comparison_key": "fexofenadine|120mg|tablet",
+    "generic_name": "Fexofenadine",
+    "strength": "120mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-048",
+        "brand_name": "Allerfex",
+        "product_name": "Allerfex 120mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "55620",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 450,
+        "units_per_pack": 10,
+        "unit_price_pkr": 45
+      },
+      {
+        "id": "afiya-047",
+        "brand_name": "Fexet",
+        "product_name": "Fexet 120mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "67634",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 480,
+        "units_per_pack": 10,
+        "unit_price_pkr": 48
+      },
+      {
+        "id": "afiya-046",
+        "brand_name": "Telfast",
+        "product_name": "Telfast 120mg Tablet",
+        "manufacturer": "Sanofi-Aventis",
+        "registration_no": "86020",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 560,
+        "units_per_pack": 10,
+        "unit_price_pkr": 56
+      }
+    ]
+  },
+  {
+    "comparison_key": "metformin|500mg|tablet",
+    "generic_name": "Metformin",
+    "strength": "500mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-051",
+        "brand_name": "Metaphage",
+        "product_name": "Metaphage 500mg Tablet",
+        "manufacturer": "Bosal Pharma",
+        "registration_no": "39085",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 35,
+        "units_per_pack": 10,
+        "unit_price_pkr": 3.5
+      },
+      {
+        "id": "afiya-050",
+        "brand_name": "Neophage",
+        "product_name": "Neophage 500mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "26088",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 38,
+        "units_per_pack": 10,
+        "unit_price_pkr": 3.8
+      },
+      {
+        "id": "afiya-049",
+        "brand_name": "Glucophage",
+        "product_name": "Glucophage 500mg Tablet",
+        "manufacturer": "Martin Dow Limited",
+        "registration_no": "63231",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 42.4,
+        "units_per_pack": 10,
+        "unit_price_pkr": 4.24
+      }
+    ]
+  },
+  {
+    "comparison_key": "glimepiride|2mg|tablet",
+    "generic_name": "Glimepiride",
+    "strength": "2mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-053",
+        "brand_name": "Getryl",
+        "product_name": "Getryl 2mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "59477",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 210,
+        "units_per_pack": 10,
+        "unit_price_pkr": 21
+      },
+      {
+        "id": "afiya-054",
+        "brand_name": "Evopride",
+        "product_name": "Evopride 2mg Tablet",
+        "manufacturer": "PharmEvo",
+        "registration_no": "29719",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 225,
+        "units_per_pack": 10,
+        "unit_price_pkr": 22.5
+      },
+      {
+        "id": "afiya-052",
+        "brand_name": "Amaryl",
+        "product_name": "Amaryl 2mg Tablet",
+        "manufacturer": "Sanofi-Aventis",
+        "registration_no": "48864",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 253.3,
+        "units_per_pack": 10,
+        "unit_price_pkr": 25.33
+      }
+    ]
+  },
+  {
+    "comparison_key": "gliclazide|30mg|tablet (modified-release)",
+    "generic_name": "Gliclazide",
+    "strength": "30mg",
+    "dosage_form": "Tablet (Modified-release)",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-056",
+        "brand_name": "Glyzid",
+        "product_name": "Glyzid 30mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "50297",
+        "pack_size": "1x30's",
+        "pack_price_pkr": 380,
+        "units_per_pack": 30,
+        "unit_price_pkr": 12.67
+      },
+      {
+        "id": "afiya-057",
+        "brand_name": "Diarot",
+        "product_name": "Diarot 30mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "88787",
+        "pack_size": "1x30's",
+        "pack_price_pkr": 395,
+        "units_per_pack": 30,
+        "unit_price_pkr": 13.17
+      },
+      {
+        "id": "afiya-055",
+        "brand_name": "Diamicron MR",
+        "product_name": "Diamicron MR 30mg Tablet",
+        "manufacturer": "Servier Research",
+        "registration_no": "34175",
+        "pack_size": "1x30's",
+        "pack_price_pkr": 438,
+        "units_per_pack": 30,
+        "unit_price_pkr": 14.6
+      }
+    ]
+  },
+  {
+    "comparison_key": "sitagliptin + metformin|50/500mg|tablet",
+    "generic_name": "Sitagliptin + Metformin",
+    "strength": "50/500mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-059",
+        "brand_name": "Sitamet",
+        "product_name": "Sitamet 50/500mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "54881",
+        "pack_size": "1x56's",
+        "pack_price_pkr": 1250,
+        "units_per_pack": 56,
+        "unit_price_pkr": 22.32
+      },
+      {
+        "id": "afiya-060",
+        "brand_name": "Trevia Met",
+        "product_name": "Trevia Met 50/500mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "96241",
+        "pack_size": "1x56's",
+        "pack_price_pkr": 1300,
+        "units_per_pack": 56,
+        "unit_price_pkr": 23.21
+      },
+      {
+        "id": "afiya-058",
+        "brand_name": "Janumet",
+        "product_name": "Janumet 50/500mg Tablet",
+        "manufacturer": "Organon Pakistan",
+        "registration_no": "74096",
+        "pack_size": "1x56's",
+        "pack_price_pkr": 1550,
+        "units_per_pack": 56,
+        "unit_price_pkr": 27.68
+      }
+    ]
+  },
+  {
+    "comparison_key": "bisoprolol|5mg|tablet",
+    "generic_name": "Bisoprolol",
+    "strength": "5mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-062",
+        "brand_name": "Biso",
+        "product_name": "Biso 5mg Tablet",
+        "manufacturer": "Searle",
+        "registration_no": "31028",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 290,
+        "units_per_pack": 14,
+        "unit_price_pkr": 20.71
+      },
+      {
+        "id": "afiya-063",
+        "brand_name": "Biprol",
+        "product_name": "Biprol 5mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "38845",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 310,
+        "units_per_pack": 14,
+        "unit_price_pkr": 22.14
+      },
+      {
+        "id": "afiya-061",
+        "brand_name": "Concor",
+        "product_name": "Concor 5mg Tablet",
+        "manufacturer": "Merck",
+        "registration_no": "12523",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 348,
+        "units_per_pack": 14,
+        "unit_price_pkr": 24.86
+      }
+    ]
+  },
+  {
+    "comparison_key": "amlodipine|5mg|tablet",
+    "generic_name": "Amlodipine",
+    "strength": "5mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-065",
+        "brand_name": "Amcard",
+        "product_name": "Amcard 5mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "78479",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 145,
+        "units_per_pack": 10,
+        "unit_price_pkr": 14.5
+      },
+      {
+        "id": "afiya-066",
+        "brand_name": "Amlod",
+        "product_name": "Amlod 5mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "99217",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 155,
+        "units_per_pack": 10,
+        "unit_price_pkr": 15.5
+      },
+      {
+        "id": "afiya-064",
+        "brand_name": "Norvasc",
+        "product_name": "Norvasc 5mg Tablet",
+        "manufacturer": "Pfizer Pakistan",
+        "registration_no": "41863",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 172.3,
+        "units_per_pack": 10,
+        "unit_price_pkr": 17.23
+      }
+    ]
+  },
+  {
+    "comparison_key": "losartan potassium|50mg|tablet",
+    "generic_name": "Losartan potassium",
+    "strength": "50mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-069",
+        "brand_name": "Zortan",
+        "product_name": "Zortan 50mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "62637",
+        "pack_size": "1x20's",
+        "pack_price_pkr": 420,
+        "units_per_pack": 20,
+        "unit_price_pkr": 21
+      },
+      {
+        "id": "afiya-067",
+        "brand_name": "Eziday",
+        "product_name": "Eziday 50mg Tablet",
+        "manufacturer": "Werrick Pharmaceuticals",
+        "registration_no": "75207",
+        "pack_size": "1x20's",
+        "pack_price_pkr": 478,
+        "units_per_pack": 20,
+        "unit_price_pkr": 23.9
+      },
+      {
+        "id": "afiya-068",
+        "brand_name": "Cozaar",
+        "product_name": "Cozaar 50mg Tablet",
+        "manufacturer": "Organon",
+        "registration_no": "42167",
+        "pack_size": "1x20's",
+        "pack_price_pkr": 550,
+        "units_per_pack": 20,
+        "unit_price_pkr": 27.5
+      }
+    ]
+  },
+  {
+    "comparison_key": "atenolol|50mg|tablet",
+    "generic_name": "Atenolol",
+    "strength": "50mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-071",
+        "brand_name": "Cardinol",
+        "product_name": "Cardinol 50mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "53417",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 175,
+        "units_per_pack": 14,
+        "unit_price_pkr": 12.5
+      },
+      {
+        "id": "afiya-072",
+        "brand_name": "Atecard",
+        "product_name": "Atecard 50mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "41678",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 185,
+        "units_per_pack": 14,
+        "unit_price_pkr": 13.21
+      },
+      {
+        "id": "afiya-070",
+        "brand_name": "Tenormin",
+        "product_name": "Tenormin 50mg Tablet",
+        "manufacturer": "Martin Dow Limited",
+        "registration_no": "23546",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 208,
+        "units_per_pack": 14,
+        "unit_price_pkr": 14.86
+      }
+    ]
+  },
+  {
+    "comparison_key": "domperidone|10mg|tablet",
+    "generic_name": "Domperidone",
+    "strength": "10mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-074",
+        "brand_name": "Dom-DT",
+        "product_name": "Dom-DT 10mg Tablet",
+        "manufacturer": "PharmEvo",
+        "registration_no": "50369",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 95,
+        "units_per_pack": 10,
+        "unit_price_pkr": 9.5
+      },
+      {
+        "id": "afiya-075",
+        "brand_name": "Pelton",
+        "product_name": "Pelton 10mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "62479",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 105,
+        "units_per_pack": 10,
+        "unit_price_pkr": 10.5
+      },
+      {
+        "id": "afiya-073",
+        "brand_name": "Motilium",
+        "product_name": "Motilium 10mg Tablet",
+        "manufacturer": "Janssen",
+        "registration_no": "51689",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 119.8,
+        "units_per_pack": 10,
+        "unit_price_pkr": 11.98
+      }
+    ]
+  },
+  {
+    "comparison_key": "dimenhydrinate|50mg|tablet",
+    "generic_name": "Dimenhydrinate",
+    "strength": "50mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-078",
+        "brand_name": "Novomin",
+        "product_name": "Novomin 50mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "32298",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 30,
+        "units_per_pack": 10,
+        "unit_price_pkr": 3
+      },
+      {
+        "id": "afiya-076",
+        "brand_name": "Gravinate",
+        "product_name": "Gravinate 50mg Tablet",
+        "manufacturer": "Searle",
+        "registration_no": "74972",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 35,
+        "units_per_pack": 10,
+        "unit_price_pkr": 3.5
+      },
+      {
+        "id": "afiya-077",
+        "brand_name": "Dramamine",
+        "product_name": "Dramamine 50mg Tablet",
+        "manufacturer": "Searle",
+        "registration_no": "21360",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 40,
+        "units_per_pack": 10,
+        "unit_price_pkr": 4
+      }
+    ]
+  },
+  {
+    "comparison_key": "metronidazole|400mg|tablet",
+    "generic_name": "Metronidazole",
+    "strength": "400mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-081",
+        "brand_name": "Protogyl",
+        "product_name": "Protogyl 400mg Tablet",
+        "manufacturer": "Bosal Pharma",
+        "registration_no": "74309",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 80,
+        "units_per_pack": 10,
+        "unit_price_pkr": 8
+      },
+      {
+        "id": "afiya-080",
+        "brand_name": "Metro",
+        "product_name": "Metro 400mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "59864",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 85,
+        "units_per_pack": 10,
+        "unit_price_pkr": 8.5
+      },
+      {
+        "id": "afiya-079",
+        "brand_name": "Flagyl",
+        "product_name": "Flagyl 400mg Tablet",
+        "manufacturer": "Sanofi-Aventis",
+        "registration_no": "30683",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 100,
+        "units_per_pack": 10,
+        "unit_price_pkr": 10
+      }
+    ]
+  },
+  {
+    "comparison_key": "metronidazole + diloxanide furoate|250/200mg|tablet",
+    "generic_name": "Metronidazole + Diloxanide furoate",
+    "strength": "250/200mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-084",
+        "brand_name": "Amebiaz",
+        "product_name": "Amebiaz 250/200mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "41187",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 17.5,
+        "units_per_pack": 10,
+        "unit_price_pkr": 1.75
+      },
+      {
+        "id": "afiya-083",
+        "brand_name": "Dysentyl",
+        "product_name": "Dysentyl 250/200mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "90757",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 18,
+        "units_per_pack": 10,
+        "unit_price_pkr": 1.8
+      },
+      {
+        "id": "afiya-082",
+        "brand_name": "Entamizole",
+        "product_name": "Entamizole 250/200mg Tablet",
+        "manufacturer": "Abbott Laboratories",
+        "registration_no": "29046",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 20,
+        "units_per_pack": 10,
+        "unit_price_pkr": 2
+      }
+    ]
+  },
+  {
+    "comparison_key": "atorvastatin|20mg|tablet",
+    "generic_name": "Atorvastatin",
+    "strength": "20mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-087",
+        "brand_name": "Atorva",
+        "product_name": "Atorva 20mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "99549",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 1450,
+        "units_per_pack": 10,
+        "unit_price_pkr": 145
+      },
+      {
+        "id": "afiya-085",
+        "brand_name": "Lipget",
+        "product_name": "Lipget 20mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "48235",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 1640,
+        "units_per_pack": 10,
+        "unit_price_pkr": 164
+      },
+      {
+        "id": "afiya-086",
+        "brand_name": "Lipitor",
+        "product_name": "Lipitor 20mg Tablet",
+        "manufacturer": "Pfizer Pakistan",
+        "registration_no": "84879",
+        "pack_size": "1x10's",
+        "pack_price_pkr": 1950,
+        "units_per_pack": 10,
+        "unit_price_pkr": 195
+      }
+    ]
+  },
+  {
+    "comparison_key": "rosuvastatin|10mg|tablet",
+    "generic_name": "Rosuvastatin",
+    "strength": "10mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-090",
+        "brand_name": "Xplendid",
+        "product_name": "Xplendid 10mg Tablet",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "71184",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 477,
+        "units_per_pack": 14,
+        "unit_price_pkr": 34.07
+      },
+      {
+        "id": "afiya-089",
+        "brand_name": "Rovista",
+        "product_name": "Rovista 10mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "79724",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 1150,
+        "units_per_pack": 14,
+        "unit_price_pkr": 82.14
+      },
+      {
+        "id": "afiya-088",
+        "brand_name": "Crestor",
+        "product_name": "Crestor 10mg Tablet",
+        "manufacturer": "AstraZeneca",
+        "registration_no": "10968",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 1360,
+        "units_per_pack": 14,
+        "unit_price_pkr": 97.14
+      }
+    ]
+  },
+  {
+    "comparison_key": "salbutamol|100mcg|inhaler",
+    "generic_name": "Salbutamol",
+    "strength": "100mcg",
+    "dosage_form": "Inhaler",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-092",
+        "brand_name": "Salbo",
+        "product_name": "Salbo 100mcg Inhaler",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "40439",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 350,
+        "units_per_pack": 1,
+        "unit_price_pkr": 350
+      },
+      {
+        "id": "afiya-093",
+        "brand_name": "Aerolin",
+        "product_name": "Aerolin 100mcg Inhaler",
+        "manufacturer": "Searle",
+        "registration_no": "54705",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 370,
+        "units_per_pack": 1,
+        "unit_price_pkr": 370
+      },
+      {
+        "id": "afiya-091",
+        "brand_name": "Ventolin",
+        "product_name": "Ventolin 100mcg Inhaler",
+        "manufacturer": "GSK Pakistan",
+        "registration_no": "26184",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 395,
+        "units_per_pack": 1,
+        "unit_price_pkr": 395
+      }
+    ]
+  },
+  {
+    "comparison_key": "budesonide + formoterol|160/4.5mcg|inhaler",
+    "generic_name": "Budesonide + Formoterol",
+    "strength": "160/4.5mcg",
+    "dosage_form": "Inhaler",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-095",
+        "brand_name": "Foracort",
+        "product_name": "Foracort 160/4.5mcg Inhaler",
+        "manufacturer": "Cipla/Getz",
+        "registration_no": "50513",
+        "pack_size": "60 doses",
+        "pack_price_pkr": 1550,
+        "units_per_pack": 1,
+        "unit_price_pkr": 1550
+      },
+      {
+        "id": "afiya-096",
+        "brand_name": "Vaniar",
+        "product_name": "Vaniar 160/4.5mcg Inhaler",
+        "manufacturer": "Sami Pharma",
+        "registration_no": "40240",
+        "pack_size": "60 doses",
+        "pack_price_pkr": 1600,
+        "units_per_pack": 1,
+        "unit_price_pkr": 1600
+      },
+      {
+        "id": "afiya-094",
+        "brand_name": "Symbicort",
+        "product_name": "Symbicort 160/4.5mcg Inhaler",
+        "manufacturer": "AstraZeneca",
+        "registration_no": "76376",
+        "pack_size": "60 doses",
+        "pack_price_pkr": 1800,
+        "units_per_pack": 1,
+        "unit_price_pkr": 1800
+      }
+    ]
+  },
+  {
+    "comparison_key": "montelukast|10mg|tablet",
+    "generic_name": "Montelukast",
+    "strength": "10mg",
+    "dosage_form": "Tablet",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-099",
+        "brand_name": "Montiget",
+        "product_name": "Montiget 10mg Tablet",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "88328",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 495,
+        "units_per_pack": 14,
+        "unit_price_pkr": 35.36
+      },
+      {
+        "id": "afiya-097",
+        "brand_name": "Myteka",
+        "product_name": "Myteka 10mg Tablet",
+        "manufacturer": "Hilton Pharma",
+        "registration_no": "97358",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 528,
+        "units_per_pack": 14,
+        "unit_price_pkr": 37.71
+      },
+      {
+        "id": "afiya-098",
+        "brand_name": "Singulair",
+        "product_name": "Singulair 10mg Tablet",
+        "manufacturer": "Organon",
+        "registration_no": "91825",
+        "pack_size": "1x14's",
+        "pack_price_pkr": 750,
+        "units_per_pack": 14,
+        "unit_price_pkr": 53.57
+      }
+    ]
+  },
+  {
+    "comparison_key": "beclometasone dipropionate|250mcg|inhaler",
+    "generic_name": "Beclometasone dipropionate",
+    "strength": "250mcg",
+    "dosage_form": "Inhaler",
+    "product_count": 3,
+    "products": [
+      {
+        "id": "afiya-101",
+        "brand_name": "Beclazone",
+        "product_name": "Beclazone 250mcg Inhaler",
+        "manufacturer": "Getz Pharma",
+        "registration_no": "91370",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 950,
+        "units_per_pack": 1,
+        "unit_price_pkr": 950
+      },
+      {
+        "id": "afiya-102",
+        "brand_name": "Becotide",
+        "product_name": "Becotide 250mcg Inhaler",
+        "manufacturer": "GSK Pakistan",
+        "registration_no": "95038",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 1050,
+        "units_per_pack": 1,
+        "unit_price_pkr": 1050
+      },
+      {
+        "id": "afiya-100",
+        "brand_name": "Clenil",
+        "product_name": "Clenil 250mcg Inhaler",
+        "manufacturer": "Chiesi Pharmaceuticals",
+        "registration_no": "63250",
+        "pack_size": "200 doses",
+        "pack_price_pkr": 1180,
+        "units_per_pack": 1,
+        "unit_price_pkr": 1180
+      }
+    ]
+  }
+]

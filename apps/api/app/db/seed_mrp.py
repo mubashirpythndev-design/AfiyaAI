@@ -111,7 +111,7 @@ async def seed_mrp_reference(
     source: Optional[Source] = None
 
     for row in rows:
-        reg_no = str(row.get("Registration_No", "")).strip()
+        reg_no = str(row.get("registration_no") or row.get("Registration_No") or "").strip()
         if not reg_no:
             report.skipped_no_key += 1
             continue
@@ -122,20 +122,23 @@ async def seed_mrp_reference(
             continue
 
         if source is None:
+            src_url = row.get("source")
+            if isinstance(src_url, dict):
+                src_url = src_url.get("official_url")
             source = await ensure_price_portal_source(
-                db, str(row.get("source") or "").strip() or None
+                db, str(src_url or "").strip() or None
             )
 
-        pack_size = str(row.get("Packsize", "")).strip()
-        effective = parse_effective_date(row.get("effective from"))
+        pack_size = str(row.get("pack_size") or row.get("Packsize") or "").strip()
+        effective = parse_effective_date(row.get("effective_from") or row.get("effective from") or "2026-08-01")
 
-        price_val = row.get("Price", 0)
+        price_val = row.get("pack_price_pkr") if row.get("pack_price_pkr") is not None else row.get("Price", 0)
         if isinstance(price_val, str):
             try:
                 price_val = float(price_val.replace(",", ""))
             except ValueError:
                 logger.warning("Skipping row with unparseable Price %r (%s)",
-                               row.get("Price"), reg_no)
+                               price_val, reg_no)
                 report.skipped_bad_price += 1
                 continue
 

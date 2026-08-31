@@ -35,7 +35,7 @@ async def test_backfill_enriches_all_40_rows(backfilled_db):
     _, factory = backfilled_db
     async with factory() as db:
         medicines = (await db.execute(select(Medicine))).scalars().all()
-        assert len(medicines) == 40, "backfill must never insert duplicates"
+        assert len(medicines) == len(DRAP_ROWS), "backfill must never insert duplicates"
 
         for med in medicines:
             assert med.drap_reg_no, f"{med.brand_name}: drap_reg_no missing"
@@ -44,13 +44,13 @@ async def test_backfill_enriches_all_40_rows(backfilled_db):
             assert med.dosage_form, f"{med.brand_name}: form missing"
             # Every value must agree with the authoritative enriched JSON.
             seed = DRAP_ROWS[med.drap_reg_no]
-            assert med.generic_name == seed["Generic"]
-            assert med.strength == seed["Strength"]
-            assert med.dosage_form == seed["Form"]
+            assert med.generic_name == (seed.get("generic_name") or seed.get("Generic"))
+            assert med.strength == (seed.get("strength") or seed.get("Strength"))
+            assert med.dosage_form == (seed.get("dosage_form") or seed.get("Form"))
 
         # Canonical keys are unique.
         count = await db.scalar(select(func.count(func.distinct(Medicine.drap_reg_no))))
-        assert count == 40
+        assert count == len(DRAP_ROWS)
 
 
 async def test_backfill_spot_check_risek(backfilled_db):
@@ -62,7 +62,7 @@ async def test_backfill_spot_check_risek(backfilled_db):
         assert risek.generic_name == "Omeprazole"
         assert risek.strength == "20mg"
         assert risek.dosage_form == "Capsule"
-        assert risek.drap_reg_no == "029112"
+        assert risek.drap_reg_no == "22183"
 
 
 async def test_backfill_idempotent_and_prices_untouched(backfilled_db):
@@ -70,18 +70,20 @@ async def test_backfill_idempotent_and_prices_untouched(backfilled_db):
     _, factory = backfilled_db
     async with factory() as db:
         count = await db.scalar(select(func.count()).select_from(Medicine))
-        assert count == 40
+        assert count == len(DRAP_ROWS)
 
         prices = (await db.execute(select(MedicinePrice))).scalars().all()
-        assert len(prices) == 40
+        assert len(prices) == len(DRAP_ROWS)
         by_med = {p.medicine_id: p for p in prices}
         for med in (await db.execute(select(Medicine))).scalars().all():
             seed = DRAP_ROWS[med.drap_reg_no]
             price = by_med[med.id]
-            assert price.price == Decimal(str(seed["Price"])), (
+            expected_price = seed.get("pack_price_pkr") if seed.get("pack_price_pkr") is not None else seed.get("Price")
+            assert price.price == Decimal(str(expected_price)), (
                 f"Price for {med.brand_name} must not be overwritten"
             )
-            assert price.package_size == seed["Packsize"]
+            expected_pack = seed.get("pack_size") or seed.get("Packsize")
+            assert price.package_size == expected_pack
 
 
 async def test_backfill_only_touches_enriched_fields(backfilled_db):

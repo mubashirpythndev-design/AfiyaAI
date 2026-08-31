@@ -129,17 +129,19 @@ async def seed_or_sync_drap_data(db: AsyncSession):
     for i, item in enumerate(medicines_data, start=1):
         med_id = f"b0000001-0000-0000-0000-{i:012d}"
         price_id = f"c0000001-0000-0000-0000-{i:012d}"
-        reg_no = str(item.get("Registration_No", "")).strip() or None
-        parsed = _parse_medicine_name(item["Product_name"])
-        brand_name = parsed["brand_name"]
-        generic_name = item.get("Generic") or parsed["generic_name"]
-        dosage_form = item.get("Form") or parsed["dosage_form"]
-        strength = item.get("Strength") or parsed["strength"]
-        manufacturer = item.get("Manufacturer", "")
-        category = item.get("Category", "")
-        pack_size = item.get("Packsize", "")
+        reg_no = str(item.get("registration_no") or item.get("Registration_No") or "").strip() or None
+        
+        parsed = _parse_medicine_name(item.get("product_name") or item.get("Product_name", ""))
+        brand_name = item.get("brand_name") or parsed["brand_name"]
+        generic_name = item.get("generic_name") or item.get("Generic") or parsed["generic_name"]
+        dosage_form = item.get("dosage_form") or item.get("Form") or parsed["dosage_form"]
+        strength = item.get("strength") or item.get("Strength") or parsed["strength"]
+        manufacturer = item.get("manufacturer") or item.get("Manufacturer", "")
+        category = item.get("category") or item.get("Category", "")
+        pack_size = item.get("pack_size") or item.get("Packsize", "")
+        product_name = item.get("product_name") or item.get("Product_name") or f"{brand_name} {strength} {dosage_form}"
 
-        price_val = item.get("Price", 0)
+        price_val = item.get("pack_price_pkr") if item.get("pack_price_pkr") is not None else item.get("Price", 0)
         if isinstance(price_val, str):
             price_val = float(price_val.replace(",", ""))
 
@@ -156,10 +158,10 @@ async def seed_or_sync_drap_data(db: AsyncSession):
             med.dosage_form = dosage_form
             med.strength = strength
             med.manufacturer = manufacturer
-            med.registration_info = item.get("Registration_No", "")
+            med.registration_info = reg_no
             med.drap_reg_no = reg_no
             med.category = category
-            med.aliases = [generic_name, item["Product_name"]]
+            med.aliases = [generic_name, product_name]
 
             price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.id == price_id))
             price_obj = price_res.scalar_one_or_none()
@@ -190,9 +192,9 @@ async def seed_or_sync_drap_data(db: AsyncSession):
                 dosage_form=dosage_form,
                 strength=strength,
                 manufacturer=manufacturer,
-                registration_info=item.get("Registration_No", ""),
+                registration_info=reg_no,
                 drap_reg_no=reg_no,
-                aliases=[generic_name, item["Product_name"]],
+                aliases=[generic_name, product_name],
                 category=category,
             )
             db.add(new_med)

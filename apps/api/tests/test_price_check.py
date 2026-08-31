@@ -77,7 +77,7 @@ async def test_mrp_seed_one_row_per_medicine(phase1_db):
         count = (
             await db.execute(select(func.count()).select_from(MrpReference))
         ).scalar()
-        assert count == 40, "exactly one mrp_reference row per medicine"
+        assert count == 102, "exactly one mrp_reference row per medicine"
 
         source = (
             await db.execute(
@@ -116,7 +116,7 @@ async def test_price_check_overcharged(phase1_db):
     assert resp.mrp == 610.0
     assert resp.overcharge_amount == 90.0
     assert resp.pack_size == "1x14's"
-    assert resp.effective_date == "2026-04-10"  # from JSON "effective from"
+    assert resp.effective_date == "2026-08-01"  # from JSON "effective from"
     assert resp.source is not None
 
     assert resp.source.name == PRICE_PORTAL_SOURCE_NAME
@@ -195,7 +195,7 @@ async def test_price_check_generic_ambiguous_needs_confirmation(phase1_db):
 
     assert resp.status is None
     assert resp.needs_confirmation is True
-    assert {c.brand_name for c in resp.candidates} == {"Losec", "Risek"}
+    assert {c.brand_name for c in resp.candidates} == {"Losec", "Omidar", "Risek"}
 
 
 async def test_price_check_strength_mismatch_needs_confirmation(phase1_db):

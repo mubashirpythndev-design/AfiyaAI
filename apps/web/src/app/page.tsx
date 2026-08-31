@@ -50,7 +50,7 @@ export default function Home() {
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [directTab, setDirectTab] = useState<"prices" | "info">("prices");
+  const [directTab, setDirectTab] = useState<"info" | "prices">("info");
 
   // Cabinet Modal State
 
@@ -679,18 +679,8 @@ export default function Home() {
                   {t(language, "results.backHome")}
                 </button>
 
-                {/* View switcher tabs: 2 Tabs */}
+                {/* View switcher tabs: Medical Info (First) & Compare Prices (Second) */}
                 <div className="flex items-center gap-1.5 bg-surface border border-border p-1 rounded-xl self-start sm:self-auto">
-                  <button
-                    onClick={() => setDirectTab("prices")}
-                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                      directTab === "prices"
-                        ? "bg-primary text-white shadow-sm"
-                        : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    🌟 Overview & Prices
-                  </button>
                   <button
                     onClick={() => setDirectTab("info")}
                     className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
@@ -700,6 +690,16 @@ export default function Home() {
                     }`}
                   >
                     📋 Medical Info
+                  </button>
+                  <button
+                    onClick={() => setDirectTab("prices")}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      directTab === "prices"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    ⚖️ Compare Prices
                   </button>
                 </div>
               </div>

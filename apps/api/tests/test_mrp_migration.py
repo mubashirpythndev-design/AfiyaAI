@@ -101,6 +101,6 @@ def test_mrp_migration_upgrade_downgrade(tmp_path):
         ).scalar()
     assert "drap_reg_no" not in cols  # back to the exact pre-Phase-0 schema
     assert row.brand_name == "Canary"  # data survives full rollback
-    assert price_count == 40  # prices untouched
+    assert price_count == 102  # prices untouched
 
     engine.dispose()

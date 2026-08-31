@@ -105,7 +105,7 @@ async def test_profile_text_only_verified_fields(knowledge_db):
         assert chunk.chunk_type == CHUNK_TYPE
         # Composed strictly from verified fields + class gloss.
         assert "Panadol is a brand of Paracetamol" in chunk.content
-        assert "DRAP registration: 004052" in chunk.content
+        assert f"DRAP registration: {med.drap_reg_no}" in chunk.content
         assert med.manufacturer in chunk.content
         assert CLASS_GLOSS[med.category] in chunk.content
         # Verified profile type
