@@ -15,11 +15,14 @@ Guarantees (same pattern as seed_mrp / seed_alerts):
 Usage:  python -m app.db.seed_knowledge
 """
 
+import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from app.db.database import KnowledgeChunk, Medicine, Source
 
@@ -67,6 +70,9 @@ CLASS_GLOSS_FALLBACK = (
 )
 
 
+DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "DRAP_40_Medicines_data.json"
+
+
 @dataclass
 class KnowledgeSeedReport:
     chunks_inserted: int = 0
@@ -106,38 +112,99 @@ async def ensure_knowledge_source(db: AsyncSession) -> tuple[Source, bool]:
     return source, True
 
 
+def _load_drap_medical_info() -> dict[str, dict]:
+    """Index DRAP json by Registration_No and lower brand name."""
+    if not DRAP_DATA_PATH.exists():
+        logger.warning("DRAP data file not found at %s", DRAP_DATA_PATH)
+        return {}
+    try:
+        with open(DRAP_DATA_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        indexed = {}
+        for item in data:
+            reg = str(item.get("Registration_No", "")).strip()
+            if reg:
+                indexed[reg] = item
+            name = item.get("Product_name", "").strip().split()[0].lower()
+            if name and name not in indexed:
+                indexed[name] = item
+        return indexed
+    except Exception as e:
+        logger.error("Failed to load DRAP JSON for medical info: %s", e)
+        return {}
+
+
 async def seed_knowledge_chunks(db: AsyncSession) -> KnowledgeSeedReport:
-    """Seed one verified_profile chunk per medicine, idempotently."""
+    """Seed verified_profile and authoritative medical_info chunks per medicine, idempotently."""
     report = KnowledgeSeedReport()
     source, created = await ensure_knowledge_source(db)
     report.source_created = created
 
     medicines = (await db.execute(select(Medicine))).scalars().all()
+    drap_data = _load_drap_medical_info()
 
     for med in medicines:
         report.medicines_processed += 1
 
-        # Idempotency key: (medicine_id, chunk_type) — never duplicate,
-        # never update in place.
-        existing = await db.execute(
+        # 1. verified_profile chunk
+        existing_profile = await db.execute(
             select(KnowledgeChunk.id).where(
                 KnowledgeChunk.medicine_id == med.id,
                 KnowledgeChunk.chunk_type == CHUNK_TYPE,
             )
         )
-        if existing.first():
+        if existing_profile.first():
             report.chunks_skipped_existing += 1
-            continue
-
-        db.add(
-            KnowledgeChunk(
-                medicine_id=med.id,
-                content=build_profile_text(med),
-                source_id=source.id,
-                chunk_type=CHUNK_TYPE,
+        else:
+            db.add(
+                KnowledgeChunk(
+                    medicine_id=med.id,
+                    content=build_profile_text(med),
+                    source_id=source.id,
+                    chunk_type=CHUNK_TYPE,
+                )
             )
-        )
-        report.chunks_inserted += 1
+            report.chunks_inserted += 1
+
+        # 2. Medical info chunks from DRAP_40_Medicines_data.json
+        reg_key = str(med.drap_reg_no or "").strip()
+        brand_key = med.brand_name.strip().lower()
+        drap_item = drap_data.get(reg_key) or drap_data.get(brand_key)
+
+        if drap_item and "medical_info" in drap_item:
+            medical_info = drap_item["medical_info"]
+            for chunk_type, val in medical_info.items():
+                if isinstance(val, dict):
+                    en_text = str(val.get("en", "")).strip()
+                    ur_text = str(val.get("roman_urdu", "")).strip()
+                    if en_text and ur_text:
+                        content = f"{en_text} (Roman Urdu: {ur_text})"
+                    else:
+                        content = en_text or ur_text
+                else:
+                    content = str(val).strip()
+
+                if not content:
+                    continue
+
+                existing_chunk = await db.execute(
+                    select(KnowledgeChunk.id).where(
+                        KnowledgeChunk.medicine_id == med.id,
+                        KnowledgeChunk.chunk_type == chunk_type,
+                    )
+                )
+                if existing_chunk.first():
+                    report.chunks_skipped_existing += 1
+                else:
+                    db.add(
+                        KnowledgeChunk(
+                            medicine_id=med.id,
+                            content=content,
+                            source_id=source.id,
+                            chunk_type=chunk_type,
+                        )
+                    )
+                    report.chunks_inserted += 1
 
     await db.commit()
     logger.info(
@@ -148,6 +215,7 @@ async def seed_knowledge_chunks(db: AsyncSession) -> KnowledgeSeedReport:
         report.medicines_processed,
     )
     return report
+
 
 
 async def main() -> None:

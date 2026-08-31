@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * Afiya AI — Main Web Application View Controller
+ * Author / Developer: Mubashir (Lead Developer)
+ */
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Header from "@/components/layout/Header";
@@ -9,8 +14,8 @@ import OCRResults from "@/components/upload/OCRResults";
 import MedicineCard from "@/components/medicine/MedicineCard";
 import PriceTable from "@/components/medicine/PriceTable";
 import MrpChecker from "@/components/medicine/MrpChecker";
-import AlertChecker from "@/components/medicine/AlertChecker";
 import InfoPanel from "@/components/medicine/InfoPanel";
+import SaveToCabinetButton from "@/components/medicine/SaveToCabinetButton";
 import ChatInterface from "@/components/chat/ChatInterface";
 import AuthModal from "@/components/auth/AuthModal";
 import CabinetModal from "@/components/medicine/CabinetModal";
@@ -30,10 +35,10 @@ import { isLoggedIn, getCurrentUser, clearSession } from "@/lib/auth";
 import { CATEGORY_ICONS } from "@/lib/constants";
 import { t } from "@/lib/i18n";
 
-type View = "home" | "results" | "info" | "prices";
+type View = "home" | "results" | "info" | "prices" | "direct_search";
 
 /** A gated action remembered while the guest signs in. */
-type PendingAction = { kind: "info" | "prices"; id: string };
+type PendingAction = { kind: "info" | "prices" | "direct_search"; id: string };
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
@@ -45,8 +50,10 @@ export default function Home() {
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [directTab, setDirectTab] = useState<"prices" | "info">("prices");
 
   // Cabinet Modal State
+
   const [showCabinetModal, setShowCabinetModal] = useState(false);
 
   // === Auth state (single centralized guard — a future whole-app login gate
@@ -59,6 +66,13 @@ export default function Home() {
     setAuthUser(getCurrentUser());
   }, []);
 
+  // Always reset scroll to top when changing views
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [view]);
+
   // Any 401 (expired token) drops the session and opens the modal. Guarded so
   // a failed login attempt (also 401) inside an already-open modal keeps its
   // pending action intact.
@@ -69,6 +83,24 @@ export default function Home() {
     });
   }, []);
 
+  const loadDirectSearchData = async (id: string) => {
+    setIsProcessing(true);
+    try {
+      const [info, prices] = await Promise.all([
+        getMedicineInfo(id, language),
+        getPrices(id),
+      ]);
+      setSelectedInfo(info);
+      setSelectedPrices(prices);
+      setView("direct_search");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t(language, "error.loadInfo"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleAuthSuccess = (user: AuthUser) => {
     setAuthUser(user);
     const pending = authModal?.pending;
@@ -76,6 +108,7 @@ export default function Home() {
     // Replay the action the guest clicked before signing in.
     if (pending?.kind === "info") void handleViewDetails(pending.id);
     if (pending?.kind === "prices") void handleViewPrices(pending.id);
+    if (pending?.kind === "direct_search") void loadDirectSearchData(pending.id);
   };
 
   const handleSignOut = () => {
@@ -88,16 +121,49 @@ export default function Home() {
     setError(null);
     try {
       const result = await extractFromImage(file);
-      setOcrData(result);
       setView("results");
 
+      const seenIds = new Set<string>();
+      const enrichedCandidates: MedicineCandidate[] = [];
       const matched: MedicineDetail[] = [];
+
       for (const candidate of result.candidates) {
         try {
           const match = await matchMedicine(candidate.raw_text);
-          if (match.medicine) matched.push(match.medicine);
-        } catch { /* skip unmatched */ }
+          // Strict accuracy check: only consider available if high confidence match returned
+          const isStrongMatch = Boolean(match.medicine && (!match.needs_confirmation || match.confidence >= 0.8));
+
+          if (isStrongMatch && match.medicine) {
+            if (!seenIds.has(match.medicine.id)) {
+              seenIds.add(match.medicine.id);
+              matched.push(match.medicine);
+            }
+            enrichedCandidates.push({
+              ...candidate,
+              confidence: match.confidence,
+              is_verified: true,
+              matched_medicine: match.medicine,
+            });
+          } else {
+            enrichedCandidates.push({
+              ...candidate,
+              confidence: match.confidence || candidate.confidence,
+              is_verified: false,
+              matched_medicine: null,
+            });
+          }
+        } catch {
+          enrichedCandidates.push({
+            ...candidate,
+            is_verified: false,
+            matched_medicine: null,
+          });
+        }
       }
+      setOcrData({
+        ...result,
+        candidates: enrichedCandidates,
+      });
       setMedicines(matched);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to process image");
@@ -114,7 +180,11 @@ export default function Home() {
       const match = await matchMedicine(searchQuery.trim());
       if (match.medicine) {
         setMedicines([match.medicine]);
-        setView("results");
+        if (!isLoggedIn()) {
+          setAuthModal({ pending: { kind: "direct_search", id: match.medicine.id } });
+          return;
+        }
+        await loadDirectSearchData(match.medicine.id);
       } else {
         setError(t(language, "error.noMatch"));
       }
@@ -135,6 +205,7 @@ export default function Home() {
       const info = await getMedicineInfo(id, language);
       setSelectedInfo(info);
       setView("info");
+      window.scrollTo({ top: 0, behavior: "instant" });
     } catch (e) {
       setError(e instanceof Error ? e.message : t(language, "error.loadInfo"));
     } finally {
@@ -152,6 +223,7 @@ export default function Home() {
       const prices = await getPrices(id);
       setSelectedPrices(prices);
       setView("prices");
+      window.scrollTo({ top: 0, behavior: "instant" });
     } catch (e) {
       setError(e instanceof Error ? e.message : t(language, "error.loadPrices"));
     } finally {
@@ -167,6 +239,7 @@ export default function Home() {
       if (medicines.length > 0) {
         setMedicines(medicines);
         setView("results");
+        window.scrollTo({ top: 0, behavior: "instant" });
       } else {
         setError(t(language, "error.noMatch"));
       }
@@ -177,8 +250,9 @@ export default function Home() {
     }
   };
 
+
   return (
-    <div dir={language === "ur" ? "rtl" : "ltr"}>
+    <div dir={language === "ur" ? "rtl" : "ltr"} suppressHydrationWarning>
       <Header
         language={language}
         onLanguageChange={setLanguage}
@@ -186,17 +260,26 @@ export default function Home() {
         onSignIn={() => setAuthModal({})}
         onSignOut={handleSignOut}
         onOpenCabinet={() => setShowCabinetModal(true)}
+        onNavigateHome={() => {
+          setView("home");
+          setSelectedInfo(null);
+          setSelectedPrices(null);
+          setOcrData(null);
+          setMedicines([]);
+          setSearchQuery("");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
       />
 
       <main className="flex-1">
         {/* ====== HERO SECTION ====== */}
         {view === "home" && (
-          <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+          <section className="relative overflow-hidden min-h-[85vh] flex items-center">
             {/* Animated background */}
             <div className="absolute inset-0 hero-gradient" />
-            <div className="absolute top-20 right-10 w-72 h-72 bg-primary/8 rounded-full blur-3xl animate-float" />
-            <div className="absolute bottom-20 left-10 w-96 h-96 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/3 rounded-full blur-3xl" />
+            <div className="absolute top-10 sm:top-20 right-5 sm:right-10 w-48 sm:w-72 h-48 sm:h-72 bg-primary/8 rounded-full blur-3xl animate-float" />
+            <div className="absolute bottom-10 sm:bottom-20 left-5 sm:left-10 w-64 sm:w-96 h-64 sm:h-96 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[600px] h-[320px] sm:h-[600px] bg-primary/3 rounded-full blur-3xl" />
 
             {/* Grid pattern overlay */}
             <div className="absolute inset-0 opacity-[0.02]" style={{
@@ -204,27 +287,27 @@ export default function Home() {
               backgroundSize: "24px 24px",
             }} />
 
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 w-full">
-              <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24 w-full">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
                 {/* Left: Text + CTA */}
                 <div className="animate-slide-up">
-                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-4 py-2 rounded-full mb-8 border border-primary/10">
+                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full mb-6 sm:mb-8 border border-primary/10">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                     {t(language, "hero.badge")}
                   </div>
 
-                  <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.1] mb-6">
+                  <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.15] mb-4 sm:mb-6 break-words">
                     {t(language, "hero.title1")}{" "}
                     <span className="text-gradient">{t(language, "hero.titleHighlight")}</span>{" "}
                     {t(language, "hero.title2")}
                   </h1>
 
-                  <p className="text-lg text-muted leading-relaxed mb-10 max-w-lg">
+                  <p className="text-sm sm:text-base lg:text-lg text-muted leading-relaxed mb-6 sm:mb-10 max-w-lg">
                     {t(language, "hero.description")}
                   </p>
 
                   {/* Search bar */}
-                  <div className="flex gap-3 max-w-md mb-8">
+                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 max-w-md mb-6 sm:mb-8">
                     <div className="relative flex-1">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
                         <circle cx="11" cy="11" r="8" />
@@ -236,38 +319,38 @@ export default function Home() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                         placeholder={t(language, "hero.searchPlaceholder")}
-                        className="w-full bg-surface/80 backdrop-blur-sm border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                        className="w-full bg-surface/80 backdrop-blur-sm border border-border rounded-2xl pl-11 pr-4 py-3 sm:py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
                       />
                     </div>
                     <button
                       onClick={handleSearch}
                       disabled={isProcessing || !searchQuery.trim()}
-                      className="bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 shrink-0"
+                      className="bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 shrink-0 w-full sm:w-auto"
                     >
                       {t(language, "hero.searchBtn")}
                     </button>
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center gap-8 text-sm">
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-6 text-xs sm:text-sm">
                     {[
                       { num: t(language, "hero.stat1Num"), label: t(language, "hero.stat1Label"), color: "primary" },
                       { num: t(language, "hero.stat2Num"), label: t(language, "hero.stat2Label"), color: "accent" },
                       { num: t(language, "hero.stat3Num"), label: t(language, "hero.stat3Label"), color: "success" },
                     ].map((stat) => (
-                      <div key={stat.label} className="flex items-center gap-2.5">
-                        <div className={`w-9 h-9 rounded-xl bg-${stat.color}/10 flex items-center justify-center`}>
+                      <div key={stat.label} className="flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-2.5 text-center sm:text-left">
+                        <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-${stat.color}/10 flex items-center justify-center shrink-0`}>
                           <span className={`text-${stat.color} font-bold text-xs`}>{stat.num}</span>
                         </div>
-                        <span className="text-muted">{stat.label}</span>
+                        <span className="text-muted text-[11px] sm:text-xs leading-tight">{stat.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Right: Hero image + Upload */}
-                <div className="animate-fade-in space-y-6" style={{ animationDelay: "0.3s" }}>
-                  <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/30 card-hover">
+                <div className="animate-fade-in space-y-4 sm:space-y-6" style={{ animationDelay: "0.3s" }}>
+                  <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/30 card-hover">
                     <Image
                       src="/hero-banner.png"
                       alt="Medical AI visualization"
@@ -278,10 +361,10 @@ export default function Home() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" />
                     {/* Floating badge */}
-                    <div className="absolute bottom-4 left-4 bg-surface/90 backdrop-blur-md rounded-xl px-4 py-2.5 border border-border/30 shadow-lg">
+                    <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-surface/90 backdrop-blur-md rounded-xl px-3 py-1.5 sm:px-4 sm:py-2.5 border border-border/30 shadow-lg">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                        <span className="text-xs font-semibold text-foreground">{t(language, "hero.drapBadge")}</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-foreground">{t(language, "hero.drapBadge")}</span>
                       </div>
                     </div>
                   </div>
@@ -299,20 +382,20 @@ export default function Home() {
 
         {/* ====== BROWSE CATEGORIES ====== */}
         {view === "home" && (
-          <section className="py-20 border-t border-border">
+          <section className="py-12 sm:py-20 border-t border-border">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-14">
-                <h2 className="text-3xl font-bold text-foreground mb-3">{t(language, "category.title")}</h2>
-                <p className="text-muted max-w-lg mx-auto">{t(language, "category.subtitle")}</p>
+              <div className="text-center mb-8 sm:mb-14">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{t(language, "category.title")}</h2>
+                <p className="text-sm sm:text-base text-muted max-w-lg mx-auto">{t(language, "category.subtitle")}</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 stagger-children">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 stagger-children">
                 {Object.entries(CATEGORY_ICONS).map(([cat, icon]) => (
                   <button
                     key={cat}
                     onClick={() => handleCategorySearch(cat)}
-                    className="group bg-surface rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-center card-hover"
+                    className="group bg-surface rounded-2xl border border-border p-3.5 sm:p-5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 text-center card-hover cursor-pointer"
                   >
-                    <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-2xl sm:text-3xl mb-2 sm:mb-3 group-hover:scale-110 transition-transform duration-300">
                       {icon}
                     </div>
                     <p className="text-xs font-semibold text-foreground leading-tight">{cat}</p>
@@ -325,13 +408,13 @@ export default function Home() {
 
         {/* ====== HOW IT WORKS ====== */}
         {view === "home" && (
-          <section id="how-it-works" className="py-24 border-t border-border bg-surface/50">
+          <section id="how-it-works" className="py-14 sm:py-24 border-t border-border bg-surface/50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl font-bold text-foreground mb-3">{t(language, "howItWorks.title")}</h2>
-                <p className="text-muted max-w-lg mx-auto">{t(language, "howItWorks.subtitle")}</p>
+              <div className="text-center mb-10 sm:mb-16">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{t(language, "howItWorks.title")}</h2>
+                <p className="text-sm sm:text-base text-muted max-w-lg mx-auto">{t(language, "howItWorks.subtitle")}</p>
               </div>
-              <div className="grid md:grid-cols-3 gap-8 stagger-children">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 stagger-children">
                 {[
                   {
                     step: "01",
@@ -357,20 +440,20 @@ export default function Home() {
                 ].map((item) => (
                   <div
                     key={item.step}
-                    className="relative bg-surface rounded-2xl border border-border p-8 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group card-hover"
+                    className="relative bg-surface rounded-2xl border border-border p-6 sm:p-8 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group card-hover"
                   >
                     {/* Step number watermark */}
-                    <span className="absolute top-4 right-6 text-7xl font-black text-border/30 group-hover:text-primary/10 transition-colors leading-none select-none">
+                    <span className="absolute top-4 right-6 text-6xl sm:text-7xl font-black text-border/30 group-hover:text-primary/10 transition-colors leading-none select-none">
                       {item.step}
                     </span>
 
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-5 sm:mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="sm:w-6 sm:h-6">
                         <path d={item.icon} />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-bold text-foreground mb-2 relative">{item.title}</h3>
-                    <p className="text-sm text-muted leading-relaxed relative">{item.desc}</p>
+                    <h3 className="text-base sm:text-lg font-bold text-foreground mb-2 relative">{item.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted leading-relaxed relative">{item.desc}</p>
                   </div>
                 ))}
               </div>
@@ -380,13 +463,13 @@ export default function Home() {
 
         {/* ====== FEATURES ====== */}
         {view === "home" && (
-          <section id="features" className="py-24 border-t border-border">
+          <section id="features" className="py-14 sm:py-24 border-t border-border">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-16">
-                <h2 className="text-3xl font-bold text-foreground mb-3">{t(language, "features.title")}</h2>
-                <p className="text-muted max-w-lg mx-auto">{t(language, "features.subtitle")}</p>
+              <div className="text-center mb-10 sm:mb-16">
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{t(language, "features.title")}</h2>
+                <p className="text-sm sm:text-base text-muted max-w-lg mx-auto">{t(language, "features.subtitle")}</p>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 stagger-children">
                 {[
                   {
                     title: t(language, "features.ocr"),
@@ -415,14 +498,14 @@ export default function Home() {
                 ].map((feat) => (
                   <div
                     key={feat.title}
-                    className="group bg-surface rounded-2xl border border-border p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/15 transition-all duration-300 card-hover"
+                    className="group bg-surface rounded-2xl border border-border p-5 sm:p-6 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/15 transition-all duration-300 card-hover"
                   >
-                    <div className={`w-12 h-12 rounded-xl bg-${feat.color}/10 flex items-center justify-center mb-5 group-hover:bg-${feat.color}/20 transition-colors`}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`text-${feat.color}`}>
+                    <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-${feat.color}/10 flex items-center justify-center mb-4 sm:mb-5 group-hover:bg-${feat.color}/20 transition-colors`}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={`text-${feat.color} sm:w-[22px] sm:h-[22px]`}>
                         <path d={feat.icon} />
                       </svg>
                     </div>
-                    <h3 className="text-sm font-bold text-foreground mb-2">{feat.title}</h3>
+                    <h3 className="text-sm font-bold text-foreground mb-1.5 sm:mb-2">{feat.title}</h3>
                     <p className="text-xs text-muted leading-relaxed">{feat.desc}</p>
                   </div>
                 ))}
@@ -433,17 +516,17 @@ export default function Home() {
 
         {/* ====== CHAT SECTION ====== */}
         {view === "home" && (
-          <section className="py-24 border-t border-border bg-surface/50">
+          <section className="py-14 sm:py-24 border-t border-border bg-surface/50">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-10">
-                <div className="inline-flex items-center gap-2 bg-accent/10 text-accent text-xs font-semibold px-4 py-2 rounded-full mb-4 border border-accent/10">
+              <div className="text-center mb-8 sm:mb-10">
+                <div className="inline-flex items-center gap-2 bg-accent/10 text-accent text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full mb-3 sm:mb-4 border border-accent/10">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   {t(language, "chat.sectionBadge")}
                 </div>
-                <h2 className="text-3xl font-bold text-foreground mb-3">{t(language, "chat.sectionTitle")}</h2>
-                <p className="text-muted max-w-md mx-auto">{t(language, "chat.sectionSubtitle")}</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2 sm:mb-3">{t(language, "chat.sectionTitle")}</h2>
+                <p className="text-sm sm:text-base text-muted max-w-md mx-auto">{t(language, "chat.sectionSubtitle")}</p>
               </div>
               <div className="rounded-2xl overflow-hidden shadow-xl shadow-accent/5 border border-border/50">
                 <ChatInterface language={language} />
@@ -457,11 +540,15 @@ export default function Home() {
 
         {/* ====== RESULTS VIEW ====== */}
         {view === "results" && (
-          <section className="py-8 lg:py-12">
+          <section className="py-6 sm:py-8 lg:py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <button
-                onClick={() => { setView("home"); setOcrData(null); setMedicines([]); }}
-                className="flex items-center gap-2 text-sm text-muted hover:text-foreground mb-6 transition-colors group"
+                onClick={() => {
+                  setView("home");
+                  setOcrData(null);
+                  setMedicines([]);
+                }}
+                className="flex items-center gap-2 text-sm text-muted hover:text-foreground mb-4 sm:mb-6 transition-colors group"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-1 transition-transform">
                   <polyline points="15 18 9 12 15 6" />
@@ -469,19 +556,24 @@ export default function Home() {
                 {t(language, "results.backHome")}
               </button>
 
-              <div className="grid lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 <div className="space-y-6">
                   {ocrData && (
                     <OCRResults
                       candidates={ocrData.candidates}
                       rawText={ocrData.raw_text}
-                      onSelectCandidate={() => {}}
+                      language={language}
+                      onSelectCandidate={(cand) => {
+                        if (cand.matched_medicine) {
+                          handleViewDetails(cand.matched_medicine.id);
+                        }
+                      }}
                     />
                   )}
                   <div className="grid gap-4 stagger-children">
-                    {medicines.map((med) => (
+                    {medicines.map((med, i) => (
                       <MedicineCard
-                        key={med.id}
+                        key={`${med.id}-${i}`}
                         medicine={med}
                         onViewDetails={handleViewDetails}
                         onViewPrices={handleViewPrices}
@@ -511,7 +603,11 @@ export default function Home() {
                 </svg>
                 {t(language, "results.backResults")}
               </button>
-              <InfoPanel info={selectedInfo} language={language} />
+              <InfoPanel
+                info={selectedInfo}
+                language={language}
+                onRequireAuth={() => setAuthModal({ pending: { kind: "info", id: selectedInfo.medicine.id } })}
+              />
               <div className="mt-6">
                 <Disclaimer language={language} />
               </div>
@@ -532,17 +628,139 @@ export default function Home() {
                 </svg>
                 {t(language, "results.backResults")}
               </button>
+
+              {/* Medicine header with Save to Cabinet */}
+              <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                    {selectedPrices.medicine.brand_name}
+                  </h3>
+                  <p className="text-sm text-muted">
+                    {selectedPrices.medicine.generic_name} &bull; {selectedPrices.medicine.strength} &bull; {selectedPrices.medicine.dosage_form}
+                  </p>
+                  <p className="text-xs text-muted mt-1">
+                    Manufacturer: {selectedPrices.medicine.manufacturer}
+                  </p>
+                </div>
+                <SaveToCabinetButton
+                  medicineId={selectedPrices.medicine.id}
+                  onRequireAuth={() => setAuthModal({ pending: { kind: "prices", id: selectedPrices.medicine.id } })}
+                />
+              </div>
+
+              {/* Price Table */}
               <PriceTable comparison={selectedPrices} />
               {/* Phase-1 Feature A: check the paid price vs the DRAP MRP */}
               <MrpChecker medicine={selectedPrices.medicine} language={language} />
-              {/* Phase-1 Feature B: check the medicine (and optional batch) against active alerts */}
-              <AlertChecker medicine={selectedPrices.medicine} language={language} />
               <div className="mt-6">
                 <Disclaimer language={language} />
               </div>
             </div>
           </section>
         )}
+
+        {/* ====== DIRECT SEARCH VIEW (Info + Price Comparison + Quantity Calculator) ====== */}
+        {view === "direct_search" && selectedInfo && selectedPrices && (
+          <section className="py-6 sm:py-8 lg:py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <button
+                  onClick={() => {
+                    setView("home");
+                    setSelectedInfo(null);
+                    setSelectedPrices(null);
+                    setMedicines([]);
+                  }}
+                  className="flex items-center gap-2 text-sm text-muted hover:text-foreground transition-colors group self-start"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:-translate-x-1 transition-transform">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  {t(language, "results.backHome")}
+                </button>
+
+                {/* View switcher tabs: 2 Tabs */}
+                <div className="flex items-center gap-1.5 bg-surface border border-border p-1 rounded-xl self-start sm:self-auto">
+                  <button
+                    onClick={() => setDirectTab("prices")}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      directTab === "prices"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    🌟 Overview & Prices
+                  </button>
+                  <button
+                    onClick={() => setDirectTab("info")}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      directTab === "info"
+                        ? "bg-primary text-white shadow-sm"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                  >
+                    📋 Medical Info
+                  </button>
+                </div>
+              </div>
+
+              {/* Layout depending on active tab */}
+              {directTab === "prices" && (
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Medicine summary header with Save to Cabinet */}
+                  <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">
+                        {selectedPrices.medicine.brand_name}
+                      </h3>
+                      <p className="text-sm text-muted">
+                        {selectedPrices.medicine.generic_name} &bull; {selectedPrices.medicine.strength} &bull; {selectedPrices.medicine.dosage_form}
+                      </p>
+                      <p className="text-xs text-muted mt-1">
+                        Manufacturer: {selectedPrices.medicine.manufacturer}
+                        {selectedPrices.medicine.registration_info && ` • DRAP Reg: ${selectedPrices.medicine.registration_info}`}
+                      </p>
+                    </div>
+                    <SaveToCabinetButton
+                      medicineId={selectedPrices.medicine.id}
+                      onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedPrices.medicine.id } })}
+                    />
+                  </div>
+
+                  {/* Price Comparison Table & Custom Quantity Calculator */}
+                  <PriceTable comparison={selectedPrices} />
+
+                  {/* MRP / Overcharge Checker */}
+                  <MrpChecker medicine={selectedPrices.medicine} language={language} />
+
+                  {/* AI Assistant Chat */}
+                  <div className="rounded-2xl overflow-hidden border border-border/50 shadow-lg">
+                    <div className="px-4 py-3 bg-surface-hover border-b border-border flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                      <span className="text-xs font-bold text-foreground">AI Medicine Assistant</span>
+                    </div>
+                    <ChatInterface language={language} medicineId={selectedPrices.medicine.id} />
+                  </div>
+                </div>
+              )}
+
+              {directTab === "info" && (
+                <div className="max-w-4xl mx-auto space-y-6">
+                  <InfoPanel
+                    info={selectedInfo}
+                    language={language}
+                    onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedInfo.medicine.id } })}
+                  />
+                </div>
+              )}
+
+              <div className="mt-8">
+                <Disclaimer language={language} />
+              </div>
+            </div>
+          </section>
+        )}
+
 
         {/* ====== LOADING / ERROR ====== */}
         {isProcessing && view !== "home" && (

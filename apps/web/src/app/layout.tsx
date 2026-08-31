@@ -23,7 +23,14 @@ export const metadata: Metadata = {
   description:
     "AI-powered medicine assistant that extracts medicine names from prescriptions, provides verified information, and compares prices. Available in English, Urdu, and Roman Urdu.",
   keywords: ["medicine", "prescription", "OCR", "price comparison", "Pakistan", "health"],
+  icons: {
+    icon: "/Afiya_icon.ico",
+    shortcut: "/Afiya_icon.ico",
+    apple: "/Afiya_icon.ico",
+  },
 };
+
+import CustomCursor from "@/components/shared/CustomCursor";
 
 export default function RootLayout({
   children,
@@ -36,7 +43,44 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${notoNastaliq.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  // Suppress third-party Chrome/browser extension script errors from triggering Next.js dev overlay
+                  window.addEventListener('error', function(event) {
+                    if (event.filename && (event.filename.indexOf('chrome-extension://') !== -1 || event.filename.indexOf('moz-extension://') !== -1)) {
+                      event.stopImmediatePropagation();
+                      event.preventDefault();
+                    }
+                  }, true);
+
+                  // Neutralize Bitdefender & extension injected attributes before React hydration
+                  var observer = new MutationObserver(function(mutations) {
+                    for (var i = 0; i < mutations.length; i++) {
+                      var m = mutations[i];
+                      if (m.type === 'attributes' && m.attributeName === 'bis_skin_checked' && m.target) {
+                        m.target.removeAttribute('bis_skin_checked');
+                      }
+                    }
+                  });
+                  observer.observe(document.documentElement, {
+                    attributes: true,
+                    subtree: true,
+                    attributeFilter: ['bis_skin_checked']
+                  });
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <CustomCursor />
+        {children}
+      </body>
     </html>
   );
 }

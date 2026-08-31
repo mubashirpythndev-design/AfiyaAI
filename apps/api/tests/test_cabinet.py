@@ -91,16 +91,13 @@ def test_cabinet_flow(client):
     assert check_after.status_code == 200
     assert check_after.json()["in_cabinet"] is True
 
-    # 7. GET /api/v1/cabinet -> returns saved cabinet items + recall watchdog alerts!
+    # 7. GET /api/v1/cabinet -> returns saved cabinet items
     cab_res = client.get("/api/v1/cabinet", headers=auth_header)
     assert cab_res.status_code == 200
     cab_body = cab_res.json()
     assert cab_body["total_items"] == 1
     assert cab_body["items"][0]["medicine_id"] == med_id
-    # Augmentin has DEMO-BATCH-001 recall alert in seed_alerts!
-    assert cab_body["items"][0]["has_recall_alert"] is True
-    assert cab_body["recalled_items_count"] == 1
-    assert len(cab_body["items"][0]["active_alerts"]) >= 1
+    assert cab_body["items"][0]["medicine"]["brand_name"] == "Augmentin"
 
     # 8. DELETE /api/v1/cabinet/{med_id} -> 204 No Content
     del_res = client.delete(f"/api/v1/cabinet/{med_id}", headers=auth_header)

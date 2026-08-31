@@ -7,10 +7,34 @@
         "Registration_No": "004052",
         "Manufacturer": "GSK Pakistan Limited",
         "Category": "Analgesic / Antipyretic",
-        "Packsize": "10x10's",
-        "Price": 350.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 72.7,
+        "effective from": "2026-01-15",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Relief of mild to moderate pain (headache, toothache, muscle aches) and fever reduction.",
+                "roman_urdu": "Bukhar, sar dard, daant dard, aur jism ke dard mein istemaal hoti hai."
+            },
+            "side_effects": {
+                "en": "Rare at recommended doses. Overdose can cause severe liver damage.",
+                "roman_urdu": "Aam taur par koi nuksan nahi hota. Zyada madaar lene se jigar (liver) ko nuksan pahunch sakta hai."
+            },
+            "precautions": {
+                "en": "Do not exceed 4000mg (8 tablets) in 24 hours. Avoid alcohol.",
+                "roman_urdu": "24 ghante mein 8 golion se zyada na lein. Jigar ke mariz doctor se mashwara karein."
+            },
+            "dosage_instructions": {
+                "en": "Take every 4 to 6 hours as needed. Leave at least 4 hours between doses.",
+                "roman_urdu": "Zaroorat padne par har 4 se 6 ghante baad lein. Do khoraq ke darmiyan kam az kam 4 ghante ka waqfa rakhein."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Brufen 400mg Tablet",
@@ -20,10 +44,34 @@
         "Registration_No": "001124",
         "Manufacturer": "Abbott Laboratories (Pakistan)",
         "Category": "Analgesic / Antipyretic",
-        "Packsize": "25x10's",
-        "Price": 1750.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 17.44,
+        "effective from": "2026-01-22",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Pain, inflammation, fever, and menstrual cramps.",
+                "roman_urdu": "Dard, sujan (inflammation), bukhar, aur makhsoos ayam ke dard ke liye."
+            },
+            "side_effects": {
+                "en": "Stomach upset, heartburn, nausea; high doses can cause ulcers.",
+                "roman_urdu": "Mede mein jalan, matli. Zyada miqdar lene se mede mein ulcer ho sakta hai."
+            },
+            "precautions": {
+                "en": "Avoid if you have a history of stomach ulcers, severe asthma, or kidney disease.",
+                "roman_urdu": "Agar mede ka ulcer, shadeed dama (asthma), ya gurde ki bimari ho to istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 400mg every 6 to 8 hours as needed. Do not exceed 3,200 mg per day.",
+                "roman_urdu": "Zaroorat padne par har 6 se 8 ghante baad lein. Din mein 3,200 mg se zyada na lein."
+            },
+            "food_interactions": {
+                "en": "Take with food or milk to prevent stomach upset.",
+                "roman_urdu": "Mede ki jalan se bachne ke liye khane ya doodh ke sath lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Ponstan 250mg Tablet",
@@ -33,10 +81,34 @@
         "Registration_No": "002598",
         "Manufacturer": "Pfizer Pakistan Limited",
         "Category": "Analgesic / Antipyretic",
-        "Packsize": "10x10's",
-        "Price": 450.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 210.8,
+        "effective from": "2026-02-05",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Mild to moderate pain, especially menstrual pain and toothaches.",
+                "roman_urdu": "Halka se darmiyana dard, khaas taur par makhsoos ayam aur daant ke dard ke liye."
+            },
+            "side_effects": {
+                "en": "Diarrhea, nausea, vomiting, stomach pain.",
+                "roman_urdu": "Pechis (diarrhea), matli, ulti, aur mede ka dard."
+            },
+            "precautions": {
+                "en": "Avoid if you have active stomach ulcers or kidney problems.",
+                "roman_urdu": "Mede ke ulcer ya gurde ke masail mein istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 250mg to 500mg every 8 hours.",
+                "roman_urdu": "Aam taur par 250mg se 500mg har 8 ghante baad."
+            },
+            "food_interactions": {
+                "en": "Must be taken with or immediately after food to avoid GI irritation.",
+                "roman_urdu": "Mede ki kharabi se bachne ke liye khane ke foran baad lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Disprin 300mg Tablet",
@@ -46,10 +118,34 @@
         "Registration_No": "000543",
         "Manufacturer": "Reckitt Benckiser Pakistan",
         "Category": "Analgesic / Antipyretic",
-        "Packsize": "10x10's",
-        "Price": 250.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 30.2,
+        "effective from": "2026-02-12",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Fever, pain, inflammation, and to prevent blood clots.",
+                "roman_urdu": "Bukhar, dard, sujan, aur khoon jamne se rokne ke liye."
+            },
+            "side_effects": {
+                "en": "Indigestion, stomach bleeding, increased risk of bruising.",
+                "roman_urdu": "Badhazmi, mede se khoon aana, aur nishanat padne ka zyada khatra."
+            },
+            "precautions": {
+                "en": "Avoid in children under 16, asthma patients, or those with bleeding disorders.",
+                "roman_urdu": "16 saal se kam umar bacchon, dame ke marizon, ya khoon ki bimari walon ko nahi deni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Take 300mg every 4 to 6 hours for pain.",
+                "roman_urdu": "Dard ke liye har 4 se 6 ghante baad 300mg lein."
+            },
+            "food_interactions": {
+                "en": "Take with food or a full glass of water.",
+                "roman_urdu": "Khane ke sath ya poore glass pani ke sath lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Augmentin 625mg Tablet",
@@ -60,9 +156,33 @@
         "Manufacturer": "GSK Pakistan Limited",
         "Category": "Antibiotic (Broad Spectrum)",
         "Packsize": "1x6's",
-        "Price": 220.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 563.0,
+        "effective from": "2026-02-18",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (respiratory, ear, skin, and urinary tract).",
+                "roman_urdu": "Bacterial infections jese saans, kaan, jild, aur pishab ki nali ki infection."
+            },
+            "side_effects": {
+                "en": "Diarrhea, nausea, skin rash.",
+                "roman_urdu": "Pechis, matli, aur jild par daane (rash)."
+            },
+            "precautions": {
+                "en": "Do not use if allergic to penicillin.",
+                "roman_urdu": "Agar penicillin se allergy ho to istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 625mg every 8 or 12 hours. Complete the entire course.",
+                "roman_urdu": "Har 8 ya 12 ghante baad lein. Pura course mukammal karein."
+            },
+            "food_interactions": {
+                "en": "Take at the start of a meal to minimize stomach upset.",
+                "roman_urdu": "Khane ke shuru mein lein taake mede mein dard na ho."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 6
     },
     {
         "Product_name": "Amoxil 500mg Capsule",
@@ -72,10 +192,34 @@
         "Registration_No": "003310",
         "Manufacturer": "GSK Pakistan Limited",
         "Category": "Antibiotic (Broad Spectrum)",
-        "Packsize": "10x10's",
-        "Price": 1200.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 190.1,
+        "effective from": "2026-02-25",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (throat, ear, and sinus infections).",
+                "roman_urdu": "Galay, kaan, aur sinus ke bacterial infections ke liye."
+            },
+            "side_effects": {
+                "en": "Nausea, vomiting, diarrhea, mild skin rash.",
+                "roman_urdu": "Matli, ulti, pechis, aur halke daane."
+            },
+            "precautions": {
+                "en": "Avoid if allergic to penicillin or cephalosporins.",
+                "roman_urdu": "Penicillin ya cephalosporins se allergy hone par istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 500mg every 8 hours. Complete the entire prescribed course.",
+                "roman_urdu": "Aam taur par har 8 ghante baad 500mg. Pura course mukammal karein."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Azomax 500mg Capsule",
@@ -86,9 +230,33 @@
         "Manufacturer": "Pfizer Pakistan Limited",
         "Category": "Antibiotic (Broad Spectrum)",
         "Packsize": "1x6's",
-        "Price": 450.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 548.0,
+        "effective from": "2026-03-02",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (respiratory, skin, and certain STIs).",
+                "roman_urdu": "Saans, jild, aur makhsoos infections ke liye."
+            },
+            "side_effects": {
+                "en": "Diarrhea, nausea, abdominal pain.",
+                "roman_urdu": "Pechis, matli, aur pait mein dard."
+            },
+            "precautions": {
+                "en": "Avoid taking antacids containing aluminum or magnesium within 2 hours.",
+                "roman_urdu": "Is dawa ke 2 ghante ke andar antacids ka istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 500mg once daily for 3 to 5 days. Complete the course.",
+                "roman_urdu": "Din mein ek baar 500mg, 3 se 5 din tak. Course pura karein."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair le sakte hain."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 6
     },
     {
         "Product_name": "Klaricid 250mg Tablet",
@@ -99,9 +267,33 @@
         "Manufacturer": "Abbott Laboratories (Pakistan)",
         "Category": "Antibiotic (Broad Spectrum)",
         "Packsize": "1x10's",
-        "Price": 320.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 546.0,
+        "effective from": "2026-03-09",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (respiratory tract, skin, H. pylori eradication).",
+                "roman_urdu": "Saans aur jild ke infections, aur mede ke H. pylori bacteria ke liye."
+            },
+            "side_effects": {
+                "en": "Metallic taste in the mouth, nausea, diarrhea.",
+                "roman_urdu": "Munh ka zaiqa kharab hona, matli, aur pechis."
+            },
+            "precautions": {
+                "en": "Avoid in patients with a history of heart rhythm disorders.",
+                "roman_urdu": "Dil ki dhadkan ke masail wale mariz istemaal na karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 250mg or 500mg every 12 hours.",
+                "roman_urdu": "Har 12 ghante baad 250mg ya 500mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya baghair le sakte hain."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Ciproxin 500mg Tablet",
@@ -112,9 +304,33 @@
         "Manufacturer": "Bayer Pakistan Private Limited",
         "Category": "Antibiotic (Fluoroquinolone)",
         "Packsize": "1x10's",
-        "Price": 250.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 726.0,
+        "effective from": "2026-03-14",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Severe bacterial infections (urinary tract, intestinal, respiratory).",
+                "roman_urdu": "Shadeed infections (pishab ki nali, aant, aur saans ke masail)."
+            },
+            "side_effects": {
+                "en": "Nausea, diarrhea, dizziness, risk of tendon rupture.",
+                "roman_urdu": "Matli, chakkar aana, aur pathon (tendon) ke fatne ka khatra."
+            },
+            "precautions": {
+                "en": "Avoid in children and pregnant women. Risk of tendonitis.",
+                "roman_urdu": "Bacchon aur hamla khawateen ko nahi leni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Usually 250mg to 500mg every 12 hours. Stay hydrated.",
+                "roman_urdu": "Har 12 ghante baad 250mg ya 500mg. Pani zyada piyein."
+            },
+            "food_interactions": {
+                "en": "Do not take with dairy products alone. Can be taken with normal meals.",
+                "roman_urdu": "Doodh ya calcium wali cheezon ke sath na lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Novidat 250mg Tablet",
@@ -125,9 +341,33 @@
         "Manufacturer": "Sami Pharma",
         "Category": "Antibiotic (Fluoroquinolone)",
         "Packsize": "1x10's",
-        "Price": 150.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 275.0,
+        "effective from": "2026-03-20",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Severe bacterial infections (urinary tract, intestinal, respiratory).",
+                "roman_urdu": "Shadeed infections (pishab ki nali, aant, aur saans ke masail)."
+            },
+            "side_effects": {
+                "en": "Nausea, diarrhea, dizziness, risk of tendon rupture.",
+                "roman_urdu": "Matli, chakkar aana, aur pathon (tendon) ke fatne ka khatra."
+            },
+            "precautions": {
+                "en": "Avoid in children and pregnant women. Risk of tendonitis.",
+                "roman_urdu": "Bacchon aur hamla khawateen ko nahi leni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Usually 250mg to 500mg every 12 hours. Stay hydrated.",
+                "roman_urdu": "Har 12 ghante baad 250mg ya 500mg. Pani zyada piyein."
+            },
+            "food_interactions": {
+                "en": "Do not take with dairy products alone. Can be taken with normal meals.",
+                "roman_urdu": "Doodh ya calcium wali cheezon ke sath na lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Leflox 500mg Tablet",
@@ -138,9 +378,33 @@
         "Manufacturer": "Getz Pharma (Pvt.) Ltd.",
         "Category": "Antibiotic (Fluoroquinolone)",
         "Packsize": "1x10's",
-        "Price": 270.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 680.0,
+        "effective from": "2026-03-27",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (respiratory, urinary tract, skin).",
+                "roman_urdu": "Saans, pishab ki nali, aur jild ke infections."
+            },
+            "side_effects": {
+                "en": "Nausea, diarrhea, headache, insomnia.",
+                "roman_urdu": "Matli, pechis, sar dard, neend na aana."
+            },
+            "precautions": {
+                "en": "Use with caution if you have a history of seizures or heart rhythm issues.",
+                "roman_urdu": "Mirgi (seizures) ya dil ke marizon ko ehtiyat karni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Usually 500mg once daily. Complete the course.",
+                "roman_urdu": "Din mein ek baar 500mg. Pura course karein."
+            },
+            "food_interactions": {
+                "en": "Take at least 2 hours before or after antacids or iron supplements.",
+                "roman_urdu": "Iron ya antacids lene se 2 ghante pehle ya baad mein lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Cefspan 400mg Capsule",
@@ -151,9 +415,33 @@
         "Manufacturer": "Martin Dow Limited",
         "Category": "Antibiotic (Cephalosporin)",
         "Packsize": "1x5's",
-        "Price": 380.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 730.0,
+        "effective from": "2026-04-03",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial infections (ear, bronchitis, urinary tract, gonorrhea).",
+                "roman_urdu": "Kaan, saans ki nali, aur pishab ki infection ke liye."
+            },
+            "side_effects": {
+                "en": "Diarrhea, stomach pain, nausea.",
+                "roman_urdu": "Pechis, mede mein dard, matli."
+            },
+            "precautions": {
+                "en": "Avoid if allergic to cephalosporin or penicillin.",
+                "roman_urdu": "Cephalosporin ya penicillin allergy ho to na lein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 400mg once daily or 200mg twice daily.",
+                "roman_urdu": "Din mein ek baar 400mg ya do baar 200mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 5
     },
     {
         "Product_name": "Risek 20mg Capsule",
@@ -164,9 +452,33 @@
         "Manufacturer": "Getz Pharma (Pvt.) Ltd.",
         "Category": "Antacid / Anti-ulcer",
         "Packsize": "1x14's",
-        "Price": 180.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 610.0,
+        "effective from": "2026-04-10",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Acid reflux, GERD, stomach ulcers, heartburn.",
+                "roman_urdu": "Mede ki tezabiyat, seene ki jalan, aur ulcer ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, stomach pain, nausea, flatulence.",
+                "roman_urdu": "Sar dard, mede mein dard, matli, aur gas."
+            },
+            "precautions": {
+                "en": "Long-term use may lead to magnesium or Vitamin B12 deficiency.",
+                "roman_urdu": "Lambe arse tak lene se Vitamin B12 ki kami ho sakti hai."
+            },
+            "dosage_instructions": {
+                "en": "Take 20mg or 40mg once daily in the morning.",
+                "roman_urdu": "Subah ke waqt din mein ek baar 20mg ya 40mg."
+            },
+            "food_interactions": {
+                "en": "Take 30 to 60 minutes before a meal (preferably breakfast).",
+                "roman_urdu": "Nashte se adha ya ek ghanta pehle lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Nexum 40mg Capsule",
@@ -177,22 +489,70 @@
         "Manufacturer": "AstraZeneca Pharmaceuticals",
         "Category": "Antacid / Anti-ulcer",
         "Packsize": "1x14's",
-        "Price": 300.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 644.0,
+        "effective from": "2026-04-16",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Acid reflux, GERD, stomach ulcers.",
+                "roman_urdu": "Mede ki tezabiyat, jalan, aur ulcer ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, diarrhea, nausea, stomach pain.",
+                "roman_urdu": "Sar dard, pechis, matli, aur mede mein dard."
+            },
+            "precautions": {
+                "en": "Do not chew or crush the capsules.",
+                "roman_urdu": "Capsule ko chabayein ya todein nahi."
+            },
+            "dosage_instructions": {
+                "en": "Take 20mg or 40mg once daily.",
+                "roman_urdu": "Din mein ek baar 20mg ya 40mg."
+            },
+            "food_interactions": {
+                "en": "Take at least 1 hour before a meal.",
+                "roman_urdu": "Khane se kam az kam ek ghanta pehle lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
-        "Product_name": "Zantac 150mg Tablet",
-        "Generic": "Ranitidine",
-        "Strength": "150mg",
+        "Product_name": "Pantium 40mg Tablet",
+        "Generic": "Pantoprazole",
+        "Strength": "40mg",
         "Form": "Tablet",
-        "Registration_No": "005912",
-        "Manufacturer": "GSK Pakistan Limited",
+        "Registration_No": "093412",
+        "Manufacturer": "Getz Pharma (Pvt.) Ltd.",
         "Category": "Antacid / Anti-ulcer",
-        "Packsize": "10x10's",
-        "Price": 800.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x14's",
+        "Price": 450.0,
+        "effective from": "2026-04-21",
+        "source": "Alternative substitution",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Acid reflux, GERD, protecting the stomach from NSAID damage.",
+                "roman_urdu": "Tezabiyat, seene ki jalan, aur pain killers se mede ko bachane ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, diarrhea, dizziness.",
+                "roman_urdu": "Sar dard, pechis, chakkar aana."
+            },
+            "precautions": {
+                "en": "Long-term use may increase the risk of bone fractures.",
+                "roman_urdu": "Zyada arse lene se haddiyan kamzor ho sakti hain."
+            },
+            "dosage_instructions": {
+                "en": "Take 40mg once daily.",
+                "roman_urdu": "Din mein ek baar 40mg."
+            },
+            "food_interactions": {
+                "en": "Take 30 minutes before a meal.",
+                "roman_urdu": "Khane se aadha ghanta pehle lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Losec 20mg Capsule",
@@ -203,9 +563,33 @@
         "Manufacturer": "AstraZeneca Pharmaceuticals",
         "Category": "Antacid / Anti-ulcer",
         "Packsize": "1x14's",
-        "Price": 450.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 950.0,
+        "effective from": "2026-04-28",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Acid reflux, GERD, stomach ulcers, heartburn.",
+                "roman_urdu": "Mede ki tezabiyat, seene ki jalan, aur ulcer ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, stomach pain, nausea, flatulence.",
+                "roman_urdu": "Sar dard, mede mein dard, matli, aur gas."
+            },
+            "precautions": {
+                "en": "Long-term use may lead to magnesium or Vitamin B12 deficiency.",
+                "roman_urdu": "Lambe arse tak lene se Vitamin B12 ki kami ho sakti hai."
+            },
+            "dosage_instructions": {
+                "en": "Take 20mg or 40mg once daily in the morning.",
+                "roman_urdu": "Subah ke waqt din mein ek baar 20mg ya 40mg."
+            },
+            "food_interactions": {
+                "en": "Take 30 to 60 minutes before a meal (preferably breakfast).",
+                "roman_urdu": "Nashte se adha ya ek ghanta pehle lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Rigix 10mg Tablet",
@@ -216,9 +600,33 @@
         "Manufacturer": "AGP Limited",
         "Category": "Antihistamine / Anti-allergy",
         "Packsize": "1x10's",
-        "Price": 60.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 390.0,
+        "effective from": "2026-05-04",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Allergies, hay fever, hives, sneezing, runny nose.",
+                "roman_urdu": "Allergy, nazla, chhenkein, aur jild ki kharish ke liye."
+            },
+            "side_effects": {
+                "en": "Drowsiness, dry mouth, headache, fatigue.",
+                "roman_urdu": "Neend aana, munh khushk hona, thakawat."
+            },
+            "precautions": {
+                "en": "Avoid driving or operating machinery if it makes you drowsy.",
+                "roman_urdu": "Agar is se neend aye to gari chalane se gurez karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 10mg once daily.",
+                "roman_urdu": "Din mein ek baar 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Avoid alcohol.",
+                "roman_urdu": "Khane ke sath ya baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Zyrtec 10mg Tablet",
@@ -229,9 +637,33 @@
         "Manufacturer": "GlaxoSmithKline Pakistan Limited",
         "Category": "Antihistamine / Anti-allergy",
         "Packsize": "1x10's",
-        "Price": 110.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 390.0,
+        "effective from": "2026-05-11",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Allergies, hay fever, hives, sneezing, runny nose.",
+                "roman_urdu": "Allergy, nazla, chhenkein, aur jild ki kharish ke liye."
+            },
+            "side_effects": {
+                "en": "Drowsiness, dry mouth, headache, fatigue.",
+                "roman_urdu": "Neend aana, munh khushk hona, thakawat."
+            },
+            "precautions": {
+                "en": "Avoid driving or operating machinery if it makes you drowsy.",
+                "roman_urdu": "Agar is se neend aye to gari chalane se gurez karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 10mg once daily.",
+                "roman_urdu": "Din mein ek baar 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Avoid alcohol.",
+                "roman_urdu": "Khane ke sath ya baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Telfast 120mg Tablet",
@@ -242,9 +674,33 @@
         "Manufacturer": "Sanofi-Aventis Pakistan limited",
         "Category": "Antihistamine / Anti-allergy",
         "Packsize": "1x10's",
-        "Price": 180.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 560.0,
+        "effective from": "2026-05-18",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Allergies, seasonal allergic rhinitis, chronic hives.",
+                "roman_urdu": "Mosmi allergy aur jild ki kharish (hives) ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, dizziness, nausea (usually non-drowsy).",
+                "roman_urdu": "Sar dard, chakkar (aam taur par is se neend nahi aati)."
+            },
+            "precautions": {
+                "en": "Do not take with antacids containing aluminum or magnesium within 2 hours.",
+                "roman_urdu": "Antacids ke sath 2 ghante ke waqfe se lein."
+            },
+            "dosage_instructions": {
+                "en": "Take 120mg or 180mg once daily.",
+                "roman_urdu": "Din mein ek baar 120mg ya 180mg."
+            },
+            "food_interactions": {
+                "en": "Do not take with fruit juices (apple, orange, grapefruit).",
+                "roman_urdu": "Phalon ke juice ke sath na lein (is se asar kam hota hai)."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Softin 10mg Tablet",
@@ -255,9 +711,33 @@
         "Manufacturer": "PHARMEVO (PVT) LTD.",
         "Category": "Antihistamine / Anti-allergy",
         "Packsize": "1x10's",
-        "Price": 95.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 302.0,
+        "effective from": "2026-05-25",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Allergies, hay fever, hives, sneezing, runny nose.",
+                "roman_urdu": "Allergy, nazla, chhenkein, aur jild ki kharish ke liye."
+            },
+            "side_effects": {
+                "en": "Drowsiness, dry mouth, headache, fatigue.",
+                "roman_urdu": "Neend aana, munh khushk hona, thakawat."
+            },
+            "precautions": {
+                "en": "Avoid driving or operating machinery if it makes you drowsy.",
+                "roman_urdu": "Agar is se neend aye to gari chalane se gurez karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 10mg once daily.",
+                "roman_urdu": "Din mein ek baar 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Avoid alcohol.",
+                "roman_urdu": "Khane ke sath ya baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Glucophage 500mg Tablet",
@@ -267,10 +747,34 @@
         "Registration_No": "007812",
         "Manufacturer": "Martin Dow Limited",
         "Category": "Anti-diabetic",
-        "Packsize": "5x10's",
-        "Price": 550.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 42.4,
+        "effective from": "2026-05-30",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Type 2 diabetes management, PCOS.",
+                "roman_urdu": "Sugar (Type 2 Diabetes) aur khawateen mein PCOS ke liye."
+            },
+            "side_effects": {
+                "en": "Nausea, vomiting, diarrhea, stomach ache, metallic taste.",
+                "roman_urdu": "Matli, ulti, pechis, mede ka dard, aur munh ka zaiqa kharab hona."
+            },
+            "precautions": {
+                "en": "Monitor kidney function. Stop taking temporarily before contrast-dye imaging.",
+                "roman_urdu": "Gurdon ka khayal rakhein. Dawa lene se pehle doctor se checkup karwayein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 500mg once or twice daily, titrated upwards by a doctor.",
+                "roman_urdu": "Aam taur par 500mg din mein 1 ya 2 baar, doctor ke mashware ke mutabiq."
+            },
+            "food_interactions": {
+                "en": "Must be taken with meals to minimize gastrointestinal side effects.",
+                "roman_urdu": "Mede ki kharabi se bachne ke liye khane ke sath khani lazmi hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Amaryl 2mg Tablet",
@@ -280,10 +784,34 @@
         "Registration_No": "018593",
         "Manufacturer": "Sanofi-Aventis Pakistan limited",
         "Category": "Anti-diabetic",
-        "Packsize": "3x10's",
-        "Price": 540.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 253.33,
+        "effective from": "2026-06-04",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Type 2 diabetes management.",
+                "roman_urdu": "Type 2 Sugar ko control karne ke liye."
+            },
+            "side_effects": {
+                "en": "Hypoglycemia (low blood sugar), weight gain, dizziness.",
+                "roman_urdu": "Sugar low hona, wazan badhna, chakkar aana."
+            },
+            "precautions": {
+                "en": "Risk of low blood sugar if meals are skipped or delayed.",
+                "roman_urdu": "Khana chhodne par sugar dangerously low ho sakti hai."
+            },
+            "dosage_instructions": {
+                "en": "Usually 1mg or 2mg once daily.",
+                "roman_urdu": "Aam taur par din mein ek baar 1mg ya 2mg."
+            },
+            "food_interactions": {
+                "en": "Take with breakfast or the first main meal of the day.",
+                "roman_urdu": "Nashte ya din ke pehle khane ke sath lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Diamicron MR 30mg Tablet",
@@ -294,9 +822,33 @@
         "Manufacturer": "Servier Research and Pharmaceuticals",
         "Category": "Anti-diabetic",
         "Packsize": "1x30's",
-        "Price": 450.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 438.0,
+        "effective from": "2026-06-11",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Type 2 diabetes management.",
+                "roman_urdu": "Type 2 Sugar ko control karne ke liye."
+            },
+            "side_effects": {
+                "en": "Hypoglycemia (low blood sugar), upset stomach, weight gain.",
+                "roman_urdu": "Sugar ka low hona, mede ki kharabi, wazan badhna."
+            },
+            "precautions": {
+                "en": "Monitor blood sugar regularly.",
+                "roman_urdu": "Sugar ko musalsal check karte rahein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 30mg to 120mg once daily.",
+                "roman_urdu": "Din mein ek baar 30mg se 120mg."
+            },
+            "food_interactions": {
+                "en": "Take with breakfast. Do not crush or chew modified-release tablets.",
+                "roman_urdu": "Nashte ke sath lein. Modified-release goli ko chabayein mat."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 30
     },
     {
         "Product_name": "Janumet 50/500mg Tablet",
@@ -307,9 +859,33 @@
         "Manufacturer": "Organon Pakistan",
         "Category": "Anti-diabetic",
         "Packsize": "1x56's",
-        "Price": 1200.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 1550.0,
+        "effective from": "2026-06-17",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Type 2 diabetes management.",
+                "roman_urdu": "Type 2 Sugar ko theek rakhne ke liye."
+            },
+            "side_effects": {
+                "en": "Nausea, diarrhea, headache, risk of low blood sugar.",
+                "roman_urdu": "Matli, pechis, sar dard, sugar ka girna."
+            },
+            "precautions": {
+                "en": "Not for Type 1 diabetes. Monitor for signs of pancreatitis.",
+                "roman_urdu": "Type 1 diabetes ke liye nahi hai."
+            },
+            "dosage_instructions": {
+                "en": "Take twice daily as prescribed by a doctor.",
+                "roman_urdu": "Doctor ki hidayat ke mutabiq din mein 2 baar lein."
+            },
+            "food_interactions": {
+                "en": "Take with meals to reduce stomach upset.",
+                "roman_urdu": "Mede ke masail se bachne ke liye khane ke sath lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 56
     },
     {
         "Product_name": "Concor 5mg Tablet",
@@ -320,9 +896,33 @@
         "Manufacturer": "Merck",
         "Category": "Anti-hypertensive",
         "Packsize": "1x14's",
-        "Price": 220.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 348.0,
+        "effective from": "2026-06-24",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High blood pressure, angina, heart failure.",
+                "roman_urdu": "High blood pressure aur dil ke masail (angina) ke liye."
+            },
+            "side_effects": {
+                "en": "Fatigue, slow heartbeat, cold hands/feet, dizziness.",
+                "roman_urdu": "Thakawat, dil ki dhadkan ahista hona, chakkar."
+            },
+            "precautions": {
+                "en": "Do not stop taking suddenly. Caution in asthma patients.",
+                "roman_urdu": "Dawq ko achanak band na karein. Dame ke mariz ehtiyat karein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 5mg or 10mg once daily.",
+                "roman_urdu": "Din mein ek baar 5mg ya 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Best taken in the morning.",
+                "roman_urdu": "Subah ke waqt khane ke sath ya baghair."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Norvasc 5mg Tablet",
@@ -332,10 +932,34 @@
         "Registration_No": "019482",
         "Manufacturer": "Pfizer Pakistan Limited",
         "Category": "Anti-hypertensive",
-        "Packsize": "3x10's",
-        "Price": 780.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 172.33,
+        "effective from": "2026-06-30",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High blood pressure, angina.",
+                "roman_urdu": "High blood pressure aur seene mein dard (angina) ke liye."
+            },
+            "side_effects": {
+                "en": "Swelling of the ankles/feet, flushing, dizziness, palpitations.",
+                "roman_urdu": "Takhnon/paon par sujan, chakkar, dil ka tezi se dhadakna."
+            },
+            "precautions": {
+                "en": "Can cause dizziness when standing up quickly.",
+                "roman_urdu": "Achanak khade hone se chakkar aa sakte hain."
+            },
+            "dosage_instructions": {
+                "en": "Usually 5mg or 10mg once daily.",
+                "roman_urdu": "Din mein ek baar 5mg ya 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Avoid large amounts of grapefruit juice.",
+                "roman_urdu": "Khane ke sath ya baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Eziday 50mg Tablet",
@@ -346,9 +970,33 @@
         "Manufacturer": "Werrick Pharmaceuticals",
         "Category": "Anti-hypertensive",
         "Packsize": "1x20's",
-        "Price": 300.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 478.0,
+        "effective from": "2026-07-06",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High blood pressure, protecting kidneys in diabetic patients.",
+                "roman_urdu": "High blood pressure aur sugar ke marizon mein gurde bachane ke liye."
+            },
+            "side_effects": {
+                "en": "Dizziness, fatigue, low blood pressure.",
+                "roman_urdu": "Chakkar aana, thakawat, blood pressure low hona."
+            },
+            "precautions": {
+                "en": "Do not use during pregnancy.",
+                "roman_urdu": "Hamla khawateen ko nahi leni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Usually 50mg once daily.",
+                "roman_urdu": "Din mein ek baar 50mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya baghair."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 20
     },
     {
         "Product_name": "Tenormin 50mg Tablet",
@@ -358,10 +1006,34 @@
         "Registration_No": "002495",
         "Manufacturer": "Martin Dow Limited",
         "Category": "Anti-hypertensive",
-        "Packsize": "2x14's",
-        "Price": 280.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x14's",
+        "Price": 208.0,
+        "effective from": "2026-07-12",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High blood pressure, angina, irregular heartbeats.",
+                "roman_urdu": "High BP aur dil ki beqaida dhadkan ke liye."
+            },
+            "side_effects": {
+                "en": "Tiredness, cold extremities, slow heart rate.",
+                "roman_urdu": "Thakawat, hath paon thande hona, dhadkan sust hona."
+            },
+            "precautions": {
+                "en": "Do not stop abruptly. Use with caution in patients with asthma.",
+                "roman_urdu": "Is dawa ko achanak na chhodein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 50mg or 100mg once daily.",
+                "roman_urdu": "Din mein ek baar 50mg ya 100mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Motilium 10mg Tablet",
@@ -371,10 +1043,34 @@
         "Registration_No": "009184",
         "Manufacturer": "Janssen",
         "Category": "Antiemetic / GI Tract",
-        "Packsize": "5x10's",
-        "Price": 375.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 119.8,
+        "effective from": "2026-07-16",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Nausea, vomiting, stomach fullness, bloating.",
+                "roman_urdu": "Matli, ulti, aur mede ke bhari pan ke liye."
+            },
+            "side_effects": {
+                "en": "Dry mouth, headache, rare heart rhythm issues.",
+                "roman_urdu": "Munh khushk hona, sar dard."
+            },
+            "precautions": {
+                "en": "Avoid in patients with underlying heart conditions.",
+                "roman_urdu": "Dil ke marizon ko ehtiyat se leni chahiye."
+            },
+            "dosage_instructions": {
+                "en": "Usually 10mg up to three times a day.",
+                "roman_urdu": "Din mein teen baar tak 10mg."
+            },
+            "food_interactions": {
+                "en": "Take 15 to 30 minutes before meals.",
+                "roman_urdu": "Khane se 15-30 minute pehle lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Gravinate 50mg Tablet",
@@ -384,10 +1080,34 @@
         "Registration_No": "001485",
         "Manufacturer": "The Searle Company Limited",
         "Category": "Antiemetic / GI Tract",
-        "Packsize": "10x10's",
-        "Price": 500.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 35.0,
+        "effective from": "2026-07-21",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Motion sickness, nausea, vomiting.",
+                "roman_urdu": "Safar ke dauran matli aur ulti (motion sickness) rokne ke liye."
+            },
+            "side_effects": {
+                "en": "Drowsiness, dry mouth, blurred vision, constipation.",
+                "roman_urdu": "Shadeed neend aana, munh khushk hona, kabz."
+            },
+            "precautions": {
+                "en": "May cause severe drowsiness. Avoid driving.",
+                "roman_urdu": "Is se neend aati hai, gari chalane se gurez karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 50mg 30 minutes before travel.",
+                "roman_urdu": "Safar shuru karne se aadha ghanta pehle 50mg lein."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair li ja sakti hai."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Flagyl 400mg Tablet",
@@ -397,10 +1117,34 @@
         "Registration_No": "004812",
         "Manufacturer": "Sanofi-Aventis Pakistan limited",
         "Category": "Antiemetic / GI Tract",
-        "Packsize": "10x10's",
-        "Price": 650.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 100.0,
+        "effective from": "2026-07-25",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Bacterial and protozoal infections (GI tract, reproductive system, dental).",
+                "roman_urdu": "Aant, daanton, aur makhsoos infections ke liye (jese pechis)."
+            },
+            "side_effects": {
+                "en": "Metallic taste in the mouth, nausea, vomiting, dark urine.",
+                "roman_urdu": "Munh ka zaiqa kharab hona, matli, ulti, aur pishab ka rang dark hona."
+            },
+            "precautions": {
+                "en": "Can cause severe reaction if mixed with alcohol.",
+                "roman_urdu": "Is dawa ke sath sharaab bilkul na piyein."
+            },
+            "dosage_instructions": {
+                "en": "Usually 400mg every 8 or 12 hours. Complete the course.",
+                "roman_urdu": "Har 8 ya 12 ghante baad 400mg. Course pura karein."
+            },
+            "food_interactions": {
+                "en": "Take with or after food. Strictly avoid alcohol during and 3 days after treatment.",
+                "roman_urdu": "Khane ke sath lein taake mede mein takleef na ho."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Entamizole 250/200mg Tablet",
@@ -410,10 +1154,34 @@
         "Registration_No": "012845",
         "Manufacturer": "Abbott Laboratories (Pakistan)",
         "Category": "Antiemetic / GI Tract",
-        "Packsize": "15x10's",
-        "Price": 1350.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Packsize": "1x10's",
+        "Price": 20.0,
+        "effective from": "2026-07-29",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Amoebic dysentery, severe intestinal infections.",
+                "roman_urdu": "Shadeed pechis (amoebic dysentery) aur aanton ke infection ke liye."
+            },
+            "side_effects": {
+                "en": "Metallic taste, nausea, flatulence, stomach cramps.",
+                "roman_urdu": "Munh ka kharab zaiqa, matli, gas, aur pait mein marod."
+            },
+            "precautions": {
+                "en": "Do not consume alcohol.",
+                "roman_urdu": "Sharab noshi se mukammal parhez karein."
+            },
+            "dosage_instructions": {
+                "en": "Take exactly as prescribed, usually for 5 to 10 days.",
+                "roman_urdu": "Doctor ki hidayat ke mutabiq 5 se 10 din tak."
+            },
+            "food_interactions": {
+                "en": "Take with food to minimize stomach upset.",
+                "roman_urdu": "Mede ki jalan se bachne ke liye khane ke sath lein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Lipget 20mg Tablet",
@@ -424,9 +1192,33 @@
         "Manufacturer": "Getz Pharma (Pvt.) Ltd.",
         "Category": "Lipid-lowering Agent",
         "Packsize": "1x10's",
-        "Price": 210.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 1640.0,
+        "effective from": "2026-08-03",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High cholesterol, prevention of cardiovascular disease.",
+                "roman_urdu": "Cholesterol control karne aur dil ki bimari se bachne ke liye."
+            },
+            "side_effects": {
+                "en": "Muscle aches, joint pain, nausea, mild liver enzyme elevation.",
+                "roman_urdu": "Pathon (muscles) mein dard, joron ka dard, matli."
+            },
+            "precautions": {
+                "en": "Report any unexplained muscle pain or weakness to your doctor immediately.",
+                "roman_urdu": "Agar pathon mein achanak shadeed dard ho to doctor ko batayein."
+            },
+            "dosage_instructions": {
+                "en": "Take 10mg to 40mg once daily.",
+                "roman_urdu": "Din mein ek baar 10mg se 40mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food. Avoid drinking large amounts of grapefruit juice.",
+                "roman_urdu": "Khane ke sath ya baghair. Angoor ka juice zyada na piyein."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Crestor 10mg Tablet",
@@ -437,9 +1229,33 @@
         "Manufacturer": "AstraZeneca Pharmaceuticals",
         "Category": "Lipid-lowering Agent",
         "Packsize": "1x14's",
-        "Price": 850.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 1360.0,
+        "effective from": "2026-08-07",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High cholesterol, prevention of cardiovascular disease.",
+                "roman_urdu": "Cholesterol kam karne aur dil ki hifazat ke liye."
+            },
+            "side_effects": {
+                "en": "Muscle pain, headache, dizziness, stomach ache.",
+                "roman_urdu": "Pathon mein dard, sar dard, mede mein dard."
+            },
+            "precautions": {
+                "en": "Use cautiously in Asian patients (often require a lower starting dose).",
+                "roman_urdu": "Agar pathon mein be-waja dard mehsoos ho to doctor ko dikhayein."
+            },
+            "dosage_instructions": {
+                "en": "Take 5mg to 20mg once daily.",
+                "roman_urdu": "Din mein ek baar 5mg ya 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair le sakte hain."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Rovista 10mg Tablet",
@@ -450,9 +1266,33 @@
         "Manufacturer": "Getz Pharma (Pvt.) Ltd.",
         "Category": "Lipid-lowering Agent",
         "Packsize": "1x10's",
-        "Price": 260.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 1360.0,
+        "effective from": "2026-08-11",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High cholesterol, prevention of cardiovascular disease.",
+                "roman_urdu": "Cholesterol kam karne aur dil ki hifazat ke liye."
+            },
+            "side_effects": {
+                "en": "Muscle pain, headache, dizziness, stomach ache.",
+                "roman_urdu": "Pathon mein dard, sar dard, mede mein dard."
+            },
+            "precautions": {
+                "en": "Use cautiously in Asian patients (often require a lower starting dose).",
+                "roman_urdu": "Agar pathon mein be-waja dard mehsoos ho to doctor ko dikhayein."
+            },
+            "dosage_instructions": {
+                "en": "Take 5mg to 20mg once daily.",
+                "roman_urdu": "Din mein ek baar 5mg ya 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair le sakte hain."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Xplendid 10mg Tablet",
@@ -463,9 +1303,33 @@
         "Manufacturer": "Sami Pharma",
         "Category": "Lipid-lowering Agent",
         "Packsize": "1x10's",
-        "Price": 240.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 477.0,
+        "effective from": "2026-08-14",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "High cholesterol, prevention of cardiovascular disease.",
+                "roman_urdu": "Cholesterol kam karne aur dil ki hifazat ke liye."
+            },
+            "side_effects": {
+                "en": "Muscle pain, headache, dizziness, stomach ache.",
+                "roman_urdu": "Pathon mein dard, sar dard, mede mein dard."
+            },
+            "precautions": {
+                "en": "Use cautiously in Asian patients (often require a lower starting dose).",
+                "roman_urdu": "Agar pathon mein be-waja dard mehsoos ho to doctor ko dikhayein."
+            },
+            "dosage_instructions": {
+                "en": "Take 5mg to 20mg once daily.",
+                "roman_urdu": "Din mein ek baar 5mg ya 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya khane ke baghair le sakte hain."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 10
     },
     {
         "Product_name": "Ventolin 100mcg Inhaler",
@@ -476,9 +1340,33 @@
         "Manufacturer": "GSK Pakistan Limited",
         "Category": "Bronchodilator / Respiratory",
         "Packsize": "200 doses",
-        "Price": 250.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 395.0,
+        "effective from": "2026-08-18",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Asthma attacks, COPD, relieving chest tightness and wheezing.",
+                "roman_urdu": "Dame (asthma) ke attack, seene ki jakdan, aur saans lene mein dushwari ke liye."
+            },
+            "side_effects": {
+                "en": "Tremors (shaky hands), fast heartbeat, headaches.",
+                "roman_urdu": "Hath kanpna, dil ki dhadkan tez hona, sar dard."
+            },
+            "precautions": {
+                "en": "If you need to use this more than 3 times a week, consult a doctor.",
+                "roman_urdu": "Agar iska istemaal zyada karna pade to doctor ko laazmi dikhayein."
+            },
+            "dosage_instructions": {
+                "en": "Inhale 1 or 2 puffs as needed for symptom relief.",
+                "roman_urdu": "Saans phoolne par zaroorat ke mutabiq 1 ya 2 puff lein."
+            },
+            "food_interactions": {
+                "en": "None directly related to food.",
+                "roman_urdu": "Khane peene ki pabandi nahi."
+            }
+        },
+        "Selling_Unit": "1 Unit",
+        "Units_in_Strip": 1
     },
     {
         "Product_name": "Symbicort 160/4.5mcg Inhaler",
@@ -490,8 +1378,32 @@
         "Category": "Bronchodilator / Respiratory",
         "Packsize": "60 doses",
         "Price": 1800.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "effective from": "2026-08-21",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Maintenance treatment for Asthma and COPD.",
+                "roman_urdu": "Dame (asthma) se musalsal bachao ke liye (Preventer)."
+            },
+            "side_effects": {
+                "en": "Oral thrush (fungal infection in the mouth), throat irritation, palpitations.",
+                "roman_urdu": "Munh mein infection, galay mein kharash, dhadkan tez hona."
+            },
+            "precautions": {
+                "en": "This is a preventer medicine, not for sudden severe asthma attacks.",
+                "roman_urdu": "Yeh emergency inhaler nahi hai, iska rozana istemaal zaroori hai."
+            },
+            "dosage_instructions": {
+                "en": "Use exactly as prescribed (e.g., 1 or 2 puffs twice daily).",
+                "roman_urdu": "Doctor ke bataye hue tareeqe ke mutabiq din mein 2 baar lein."
+            },
+            "food_interactions": {
+                "en": "Rinse mouth with water and spit out after every use to prevent thrush.",
+                "roman_urdu": "Istemal ke baad munh laazmi dho lein ya kuli karein."
+            }
+        },
+        "Selling_Unit": "1 Unit",
+        "Units_in_Strip": 1
     },
     {
         "Product_name": "Myteka 10mg Tablet",
@@ -502,9 +1414,33 @@
         "Manufacturer": "Hilton Pharma",
         "Category": "Bronchodilator / Respiratory",
         "Packsize": "1x14's",
-        "Price": 490.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 528.0,
+        "effective from": "2026-08-25",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Asthma prevention, allergic rhinitis (hay fever).",
+                "roman_urdu": "Dame ki rok-tham aur mosmi allergy ke liye."
+            },
+            "side_effects": {
+                "en": "Headache, stomach pain, rarely mood/behavior changes.",
+                "roman_urdu": "Sar dard, pait dard, aur kabhi kabhar mizaj (mood) mein tabdeeli."
+            },
+            "precautions": {
+                "en": "Watch for any unusual mood changes or vivid dreams.",
+                "roman_urdu": "Agar mizaj mein gussa ya ajeeb khawab ayein to ehtiyat karein."
+            },
+            "dosage_instructions": {
+                "en": "Take 10mg once daily in the evening.",
+                "roman_urdu": "Din mein ek baar sham ya raat ke waqt 10mg."
+            },
+            "food_interactions": {
+                "en": "Can be taken with or without food.",
+                "roman_urdu": "Khane ke sath ya baghair."
+            }
+        },
+        "Selling_Unit": "1 Strip",
+        "Units_in_Strip": 14
     },
     {
         "Product_name": "Clenil 250mcg Inhaler",
@@ -515,8 +1451,32 @@
         "Manufacturer": "Chiesi Pharmaceuticals",
         "Category": "Bronchodilator / Respiratory",
         "Packsize": "200 doses",
-        "Price": 650.0,
-        "effective from": "2023-05-10",
-        "source": "https://e.dra.gov.pk/public/price"
+        "Price": 1180.0,
+        "effective from": "2026-08-28",
+        "source": "https://e.dra.gov.pk/public/price",
+        "medical_info": {
+            "when_to_use": {
+                "en": "Asthma prevention (preventer inhaler).",
+                "roman_urdu": "Dame (asthma) se bachao ke liye."
+            },
+            "side_effects": {
+                "en": "Oral thrush, hoarse voice, dry throat.",
+                "roman_urdu": "Munh mein fungus, awaz ka bhaari hona, khushk gala."
+            },
+            "precautions": {
+                "en": "Does not relieve acute asthma attacks. Must be used daily.",
+                "roman_urdu": "Achanak saans band hone mein kaam nahi ata. Rozana istemal zaroori hai."
+            },
+            "dosage_instructions": {
+                "en": "Use regularly twice a day as prescribed.",
+                "roman_urdu": "Doctor ki hidayat ke mutabiq din mein 2 baar lein."
+            },
+            "food_interactions": {
+                "en": "Always rinse your mouth with water after inhaling to prevent thrush.",
+                "roman_urdu": "Istemal ke foran baad kuli laazmi karein."
+            }
+        },
+        "Selling_Unit": "1 Unit",
+        "Units_in_Strip": 1
     }
 ]

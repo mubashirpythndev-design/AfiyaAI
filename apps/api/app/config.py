@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     embedding_dimensions: int = 768
 
-    gemini_chat_model: str = "gemini-3.6-flash"
-    gemini_embedding_model: str = "text-embedding-004"
+    gemini_chat_model: str = "models/gemini-3.5-flash-lite"
+    gemini_embedding_model: str = "models/gemini-embedding-001"
 
     fuzzy_match_threshold: float = 0.85
     rag_top_k: int = 5

@@ -39,14 +39,14 @@ export default function ThemeToggle() {
 
   // Avoid hydration mismatch — render nothing until mounted
   if (!mounted) {
-    return <div className="w-10 h-10" />;
+    return <div className="w-8 h-8 sm:w-10 sm:h-10" />;
   }
 
   return (
     <button
       onClick={toggle}
       aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-      className="relative w-10 h-10 rounded-xl border border-border bg-surface hover:bg-surface-hover flex items-center justify-center transition-all duration-300 hover:border-primary/30 hover:shadow-md group"
+      className="relative w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl border border-border bg-surface hover:bg-surface-hover flex items-center justify-center transition-all duration-300 hover:border-primary/30 hover:shadow-md group shrink-0"
     >
       {/* Sun icon (visible in dark mode → click to go light) */}
       <svg

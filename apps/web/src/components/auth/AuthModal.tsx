@@ -56,11 +56,11 @@ export default function AuthModal({ language, onClose, onSuccess }: AuthModalPro
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-surface rounded-2xl border border-border shadow-2xl w-full max-w-md p-8 animate-slide-up"
+        className="bg-surface rounded-2xl border border-border shadow-2xl w-full max-w-md p-5 sm:p-8 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

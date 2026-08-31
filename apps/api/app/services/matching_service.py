@@ -1,4 +1,6 @@
-"""Medicine matching service: normalize -> exact -> alias -> fuzzy matching."""
+"""Afiya AI — Medicine Matching & Normalization Engine (Exact, Token Set, Alias & Fuzzy Matching).
+Author / Developer: Mubashir (Lead Developer)
+"""
 
 import logging
 import re
@@ -44,6 +46,8 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
     if not normalized:
         return {"medicine": None, "confidence": 0.0, "needs_confirmation": True, "alternatives": []}
 
+    cand_tokens = set(re.findall(r"\b[a-z0-9]+\b", normalized))
+
     # 1. Exact match on brand_name
     result = await db.execute(
         select(Medicine).where(func.lower(Medicine.brand_name) == normalized)
@@ -73,34 +77,43 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
             "alternatives": [medicine_to_schema(m) for m in generic_meds][:5],
         }
 
-    # 3. Alias match (check JSONB aliases)
+    # 3. Check all medicines for token containment & aliases
     all_medicines = await db.execute(select(Medicine))
     all_meds = all_medicines.scalars().all()
 
+    # 3a. Whole-word token containment on brand name / aliases
     for med in all_meds:
-        aliases = med.aliases or []
-        for alias in aliases:
+        brand_tokens = set(re.findall(r"\b[a-z0-9]+\b", normalize(med.brand_name)))
+        if brand_tokens and brand_tokens.issubset(cand_tokens):
+            # Check strength if candidate explicitly contains numbers
+            med_strength_tokens = set(re.findall(r"\b\d+[a-z]*\b", normalize(med.strength)))
+            cand_strength_tokens = set(re.findall(r"\b\d+[a-z]*\b", normalized))
+            if not med_strength_tokens or not cand_strength_tokens or med_strength_tokens.intersection(cand_strength_tokens):
+                logger.info(f"Token brand match: '{candidate}' -> {med.brand_name}")
+                return {"medicine": medicine_to_schema(med), "confidence": 0.95, "needs_confirmation": False, "alternatives": []}
+
+        for alias in (med.aliases or []):
             if normalize(alias) == normalized:
                 logger.info(f"Alias match: '{candidate}' -> {med.brand_name} (alias: {alias})")
-                return {"medicine": medicine_to_schema(med), "confidence": 0.9, "needs_confirmation": False, "alternatives": []}
+                return {"medicine": medicine_to_schema(med), "confidence": 0.95, "needs_confirmation": False, "alternatives": []}
 
-    # 4. Fuzzy match against brand names, generic names, and aliases
+    # 4. Strict Fuzzy match against brand names, generic names, and aliases
     best_match: Optional[Medicine] = None
     best_score = 0.0
     alternatives: list[MedicineSchema] = []
 
     for med in all_meds:
         # Check brand name
-        score = fuzz.ratio(normalized, normalize(med.brand_name)) / 100.0
+        score = fuzz.token_set_ratio(normalized, normalize(med.brand_name)) / 100.0
         # Check generic name
-        gen_score = fuzz.ratio(normalized, normalize(med.generic_name)) / 100.0
+        gen_score = fuzz.token_set_ratio(normalized, normalize(med.generic_name)) / 100.0
         score = max(score, gen_score)
         # Check aliases
         for alias in (med.aliases or []):
-            alias_score = fuzz.ratio(normalized, normalize(alias)) / 100.0
+            alias_score = fuzz.token_set_ratio(normalized, normalize(alias)) / 100.0
             score = max(score, alias_score)
 
-        if score >= 0.6:
+        if score >= 0.75:
             alternatives.append(medicine_to_schema(med))
 
         if score > best_score:
@@ -109,16 +122,16 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
 
     alternatives.sort(key=lambda m: m.brand_name)
     threshold = settings.fuzzy_match_threshold
-    needs_confirmation = best_score < threshold
 
-    if best_match and best_score >= 0.6:
+    # Only treat as a match if best_score is high (>= threshold or >= 0.82)
+    if best_match and best_score >= max(threshold, 0.82):
         logger.info(f"Fuzzy match: '{candidate}' -> {best_match.brand_name} (score: {best_score:.2f})")
         return {
             "medicine": medicine_to_schema(best_match),
             "confidence": round(best_score, 2),
-            "needs_confirmation": needs_confirmation,
+            "needs_confirmation": False,
             "alternatives": alternatives[:3],
         }
 
-    logger.info(f"No match found for: '{candidate}'")
-    return {"medicine": None, "confidence": best_score, "needs_confirmation": True, "alternatives": alternatives[:3]}
+    logger.info(f"No strong match found for: '{candidate}' (best: {best_score:.2f})")
+    return {"medicine": None, "confidence": round(best_score, 2), "needs_confirmation": True, "alternatives": alternatives[:3]}

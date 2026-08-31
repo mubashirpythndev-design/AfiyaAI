@@ -7,7 +7,9 @@ from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import async_session, Medicine, Source, MedicinePrice
+
 
 logger = logging.getLogger(__name__)
 
@@ -102,19 +104,19 @@ def _parse_medicine_name(product_name: str) -> dict:
     }
 
 
-async def seed_if_empty():
-    """Seed the database if it's empty."""
-    async with async_session() as db:
-        # Check if already seeded
-        result = await db.execute(select(func.count()).select_from(Medicine))
-        count = result.scalar()
-        if count and count > 0:
-            logger.info(f"Database already has {count} medicines, skipping seed.")
-            return
+async def seed_or_sync_drap_data(db: AsyncSession):
+    """Seed or synchronize the database with DRAP_40_Medicines_data.json."""
+    if not DRAP_DATA_PATH.exists():
+        logger.error(f"DRAP data file not found at {DRAP_DATA_PATH}")
+        return
 
-        logger.info("Seeding SQLite database with DRAP data...")
+    with open(DRAP_DATA_PATH, "r", encoding="utf-8") as f:
+        medicines_data = json.load(f)
 
-        # Create DRAP source
+    # Ensure DRAP source exists
+    source_result = await db.execute(select(Source).where(Source.id == SOURCE_DRAP_ID))
+    source = source_result.scalar_one_or_none()
+    if not source:
         source = Source(
             id=SOURCE_DRAP_ID,
             name="DRAP Pakistan",
@@ -122,52 +124,103 @@ async def seed_if_empty():
             source_type="government_regulatory",
         )
         db.add(source)
+        await db.flush()
 
-        # Load DRAP JSON
-        if not DRAP_DATA_PATH.exists():
-            logger.error(f"DRAP data file not found at {DRAP_DATA_PATH}")
-            return
+    for i, item in enumerate(medicines_data, start=1):
+        med_id = f"b0000001-0000-0000-0000-{i:012d}"
+        price_id = f"c0000001-0000-0000-0000-{i:012d}"
+        reg_no = str(item.get("Registration_No", "")).strip() or None
+        parsed = _parse_medicine_name(item["Product_name"])
+        brand_name = parsed["brand_name"]
+        generic_name = item.get("Generic") or parsed["generic_name"]
+        dosage_form = item.get("Form") or parsed["dosage_form"]
+        strength = item.get("Strength") or parsed["strength"]
+        manufacturer = item.get("Manufacturer", "")
+        category = item.get("Category", "")
+        pack_size = item.get("Packsize", "")
 
-        with open(DRAP_DATA_PATH, "r", encoding="utf-8") as f:
-            medicines_data = json.load(f)
+        price_val = item.get("Price", 0)
+        if isinstance(price_val, str):
+            price_val = float(price_val.replace(",", ""))
 
-        for i, item in enumerate(medicines_data, start=1):
-            med_id = f"b0000001-0000-0000-0000-{i:012d}"
-            price_id = f"c0000001-0000-0000-0000-{i:012d}"
+        # Lookup existing medicine by deterministic ID or drap_reg_no
+        res = await db.execute(select(Medicine).where(Medicine.id == med_id))
+        med = res.scalar_one_or_none()
+        if not med and reg_no:
+            res = await db.execute(select(Medicine).where(Medicine.drap_reg_no == reg_no))
+            med = res.scalar_one_or_none()
 
-            parsed = _parse_medicine_name(item["Product_name"])
+        if med:
+            med.brand_name = brand_name
+            med.generic_name = generic_name
+            med.dosage_form = dosage_form
+            med.strength = strength
+            med.manufacturer = manufacturer
+            med.registration_info = item.get("Registration_No", "")
+            med.drap_reg_no = reg_no
+            med.category = category
+            med.aliases = [generic_name, item["Product_name"]]
 
-            # Prefer the authoritative enriched fields from the DRAP JSON;
-            # fall back to the parsed heuristics if a row lacks them.
-            medicine = Medicine(
+            price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.id == price_id))
+            price_obj = price_res.scalar_one_or_none()
+            if not price_obj:
+                price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.medicine_id == med.id))
+                price_obj = price_res.scalar_one_or_none()
+
+            if price_obj:
+                price_obj.price = Decimal(str(price_val))
+                price_obj.package_size = pack_size
+                price_obj.package_description = pack_size
+                price_obj.source_id = SOURCE_DRAP_ID
+            else:
+                db.add(MedicinePrice(
+                    id=price_id,
+                    medicine_id=med.id,
+                    price=Decimal(str(price_val)),
+                    currency="PKR",
+                    package_size=pack_size,
+                    package_description=pack_size,
+                    source_id=SOURCE_DRAP_ID,
+                ))
+        else:
+            new_med = Medicine(
                 id=med_id,
-                brand_name=parsed["brand_name"],
-                generic_name=item.get("Generic") or parsed["generic_name"],
-                dosage_form=item.get("Form") or parsed["dosage_form"],
-                strength=item.get("Strength") or parsed["strength"],
-                manufacturer=item.get("Manufacturer", ""),
+                brand_name=brand_name,
+                generic_name=generic_name,
+                dosage_form=dosage_form,
+                strength=strength,
+                manufacturer=manufacturer,
                 registration_info=item.get("Registration_No", ""),
-                drap_reg_no=str(item.get("Registration_No", "")).strip() or None,
-                aliases=[parsed["generic_name"], item["Product_name"]],
-                category=item.get("Category", ""),
+                drap_reg_no=reg_no,
+                aliases=[generic_name, item["Product_name"]],
+                category=category,
             )
-            db.add(medicine)
-
-            # Add price
-            price_val = item.get("Price", 0)
-            if isinstance(price_val, str):
-                price_val = float(price_val.replace(",", ""))
-
-            price = MedicinePrice(
+            db.add(new_med)
+            db.add(MedicinePrice(
                 id=price_id,
                 medicine_id=med_id,
                 price=Decimal(str(price_val)),
                 currency="PKR",
-                package_size=item.get("Packsize", ""),
-                package_description=item.get("Packsize", ""),
+                package_size=pack_size,
+                package_description=pack_size,
                 source_id=SOURCE_DRAP_ID,
-            )
-            db.add(price)
+            ))
 
-        await db.commit()
-        logger.info(f"Seeded {len(medicines_data)} medicines with prices from DRAP data.")
+    await db.commit()
+    logger.info("Synchronized %d medicines with DRAP data.", len(medicines_data))
+
+
+
+async def seed_if_empty():
+    """Seed the database if it's empty, or sync it if already present."""
+    async with async_session() as db:
+        result = await db.execute(select(func.count()).select_from(Medicine))
+        count = result.scalar()
+        if count and count > 0:
+            logger.info(f"Database has {count} medicines, ensuring synced state.")
+            await seed_or_sync_drap_data(db)
+            return
+
+        logger.info("Seeding SQLite database with DRAP data...")
+        await seed_or_sync_drap_data(db)
+

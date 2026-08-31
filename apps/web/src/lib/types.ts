@@ -13,7 +13,7 @@ export interface MedicineCandidate {
   raw_text: string;
   confidence: number;
   is_verified: boolean;
-  matched_medicine?: MedicineDetail;
+  matched_medicine?: MedicineDetail | null;
 }
 
 export interface MedicineDetail {
@@ -153,41 +153,6 @@ export interface PriceCheckResponse {
   disclaimer: string;
 }
 
-// ---- Phase-1 Feature B: Authenticity / Alert Checker (spec 09 §7.3) ----
-
-export interface AlertCheckRequest {
-  medicine_query: string;
-  batch_no?: string; // optional: empty batch = name-only check
-  lang?: string;
-}
-
-export type AlertCheckStatus = "ALERT_FOUND" | "NO_ALERT";
-
-/** One active drap_alerts row as returned by the API (DB-only facts). */
-export interface AlertEntry {
-  alert_type: string;
-  description: string | null;
-  batch_no: string | null;
-  issued_at: string | null;
-  match_basis: string; // batch_no (exact) | name_only (possible — verify)
-  is_demo: boolean;
-  source: Source | null;
-}
-
-/** Verbatim API response - the client never decides authenticity itself. */
-export interface AlertCheckResponse {
-  status: AlertCheckStatus | null;
-  medicine_id: string | null;
-  matched_name: string | null;
-  match_confidence: number;
-  needs_confirmation: boolean;
-  candidates: MedicineDetail[];
-  alerts: AlertEntry[];
-  match_basis: "batch_no" | "name_only" | null;
-  message: string;
-  disclaimer: string;
-}
-
 export interface ApiError {
   detail: string;
   status_code: number;
@@ -206,46 +171,7 @@ export interface AuthSession {
   user: AuthUser;
 }
 
-// ---- Overcharge Reports ----
-
-export interface OverchargeReportRequest {
-  medicine_id: string;
-  pharmacy_name: string;
-  city: string;
-  price_paid: number;
-  pack_size?: string | null;
-  note?: string | null;
-}
-
-export interface OverchargeReportResponse {
-  id: string;
-  medicine_id: string;
-  medicine_name: string | null;
-  reported_by_user_id: string | null;
-  reporter_name: string | null;
-  reporter_email: string | null;
-  pharmacy_name: string;
-  city: string;
-  price_paid: number;
-  notified_mrp: number;
-  mrp_effective_date: string | null;
-  overcharge_amount: number;
-  currency: string;
-  note: string | null;
-  status: string;
-  created_at: string | null;
-}
-
-export interface AdminOverchargeReportsResponse {
-  summary: {
-    total_reports: number;
-    total_overcharge_amount: number;
-    top_cities: { city: string; count: number }[];
-  };
-  reports: OverchargeReportResponse[];
-}
-
-// ---- Digital Medicine Cabinet & Recall Watchdog ----
+// ---- Digital Medicine Cabinet ----
 
 export interface CabinetAddRequest {
   medicine_id: string;
@@ -256,14 +182,11 @@ export interface CabinetItem {
   medicine_id: string;
   medicine: MedicineDetail;
   notified_mrp?: number | null;
-  active_alerts: AlertEntry[];
-  has_recall_alert: boolean;
   created_at?: string | null;
 }
 
 export interface CabinetResponse {
   total_items: number;
-  recalled_items_count: number;
   items: CabinetItem[];
 }
 

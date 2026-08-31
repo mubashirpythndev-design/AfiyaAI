@@ -98,14 +98,14 @@ async def test_mrp_seed_one_row_per_medicine(phase1_db):
 
 
 # ---------------------------------------------------------------------------
-# Endpoint: overcharged path (Risek: MRP 180.00 for pack "1x14's")
+# Endpoint: overcharged path (Risek: MRP 610.00 for pack "1x14's")
 # ---------------------------------------------------------------------------
 
 
 async def test_price_check_overcharged(phase1_db):
     db_file, factory = phase1_db
     req = PriceCheckRequest(
-        medicine_query="Risek 20mg", price_paid=250.0, lang="roman-ur"
+        medicine_query="Risek 20mg", price_paid=700.0, lang="roman-ur"
     )
     async with factory() as db:
         resp = await price_check(req, db)
@@ -113,22 +113,23 @@ async def test_price_check_overcharged(phase1_db):
     assert resp.status == STATUS_OVERCHARGED
     assert resp.needs_confirmation is False
     assert resp.matched_name == "Omeprazole 20mg (Risek)"
-    assert resp.mrp == 180.0
-    assert resp.overcharge_amount == 70.0
+    assert resp.mrp == 610.0
+    assert resp.overcharge_amount == 90.0
     assert resp.pack_size == "1x14's"
-    assert resp.effective_date == "2023-05-10"  # from JSON "effective from"
+    assert resp.effective_date == "2026-04-10"  # from JSON "effective from"
     assert resp.source is not None
+
     assert resp.source.name == PRICE_PORTAL_SOURCE_NAME
     assert resp.source.url == "https://e.dra.gov.pk/public/price"
     # Localized message + mandatory freshness disclaimer (spec 07/09)
-    assert "70" in resp.message and "180" in resp.message
+    assert "90" in resp.message and "610" in resp.message
     assert "MRP change ho sakti hai" in resp.disclaimer
     assert "latest DRAP notification se verify karein" in resp.disclaimer
 
 
 async def test_price_check_ok_at_mrp_english(phase1_db):
     db_file, factory = phase1_db
-    req = PriceCheckRequest(medicine_query="Risek 20mg", price_paid=180.0)
+    req = PriceCheckRequest(medicine_query="Risek 20mg", price_paid=610.0)
     async with factory() as db:
         resp = await price_check(req, db)
 
@@ -140,13 +141,14 @@ async def test_price_check_ok_at_mrp_english(phase1_db):
 
 async def test_price_check_below_mrp(phase1_db):
     db_file, factory = phase1_db
-    req = PriceCheckRequest(medicine_query="Panadol", price_paid=300.0)
+    req = PriceCheckRequest(medicine_query="Panadol", price_paid=50.0)
     async with factory() as db:
         resp = await price_check(req, db)
 
     assert resp.status == STATUS_BELOW_MRP
-    assert resp.mrp == 350.0
+    assert resp.mrp == 72.7
     assert resp.overcharge_amount == 0.0  # only positive overcharge is reported
+
 
 
 # ---------------------------------------------------------------------------
@@ -211,9 +213,10 @@ async def test_price_check_strength_mismatch_needs_confirmation(phase1_db):
 async def test_price_check_urdu_message(phase1_db):
     db_file, factory = phase1_db
     req = PriceCheckRequest(
-        medicine_query="Risek 20mg", price_paid=250.0, lang="ur"
+        medicine_query="Risek 20mg", price_paid=700.0, lang="ur"
     )
     async with factory() as db:
+
         resp = await price_check(req, db)
 
     assert resp.status == STATUS_OVERCHARGED

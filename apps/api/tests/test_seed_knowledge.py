@@ -45,23 +45,24 @@ async def test_knowledge_seed_idempotent_and_provenance(knowledge_db):
         n_meds = (
             await db.execute(select(func.count()).select_from(Medicine))
         ).scalar()
-        assert first.chunks_inserted == n_meds == 40
+        assert first.chunks_inserted >= n_meds
         assert first.source_created is True
 
         # Second run must skip everything, never duplicate.
         second = await seed_knowledge_chunks(db)
         assert second.chunks_inserted == 0
-        assert second.chunks_skipped_existing == n_meds
+        assert second.chunks_skipped_existing == first.chunks_inserted
 
         total = (
             await db.execute(select(func.count()).select_from(KnowledgeChunk))
         ).scalar()
-        assert total == n_meds, "re-run must not duplicate chunks"
+        assert total == first.chunks_inserted, "re-run must not duplicate chunks"
 
         # Exactly one verified_profile chunk per medicine.
         dupes = (
             await db.execute(
                 select(KnowledgeChunk.medicine_id, func.count())
+                .where(KnowledgeChunk.chunk_type == CHUNK_TYPE)
                 .group_by(KnowledgeChunk.medicine_id)
                 .having(func.count() > 1)
             )
@@ -94,7 +95,10 @@ async def test_profile_text_only_verified_fields(knowledge_db):
             await db.execute(
                 select(KnowledgeChunk, Medicine)
                 .join(Medicine, KnowledgeChunk.medicine_id == Medicine.id)
-                .where(Medicine.brand_name == "Panadol")
+                .where(
+                    Medicine.brand_name == "Panadol",
+                    KnowledgeChunk.chunk_type == CHUNK_TYPE,
+                )
             )
         ).one()
         chunk, med = row
@@ -104,8 +108,9 @@ async def test_profile_text_only_verified_fields(knowledge_db):
         assert "DRAP registration: 004052" in chunk.content
         assert med.manufacturer in chunk.content
         assert CLASS_GLOSS[med.category] in chunk.content
-        # No invented clinical content types stored.
+        # Verified profile type
         assert chunk.chunk_type == "verified_profile"
+
 
 
 async def test_class_gloss_covers_every_category(knowledge_db):

@@ -98,12 +98,6 @@ def test_gated_endpoints_return_401_without_token(client):
         ).status_code
         == 401
     )
-    assert (
-        client.post(
-            "/api/v1/alert-check", json={"medicine_query": "Panadol"}
-        ).status_code
-        == 401
-    )
 
 
 def test_gated_endpoint_rejects_garbage_token(client):
@@ -149,19 +143,6 @@ def test_price_check_with_token_returns_200(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["disclaimer"]  # safety line always attached
-
-
-def test_alert_check_with_token_returns_200(client):
-    token = _register(client, "alerts@example.com")
-    resp = client.post(
-        "/api/v1/alert-check",
-        json={"medicine_query": "Panadol"},
-        headers=_auth(token),
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["status"] in ("ALERT_FOUND", "NO_ALERT")
-    assert body["disclaimer"]
 
 
 # ---------------------------------------------------------------------------

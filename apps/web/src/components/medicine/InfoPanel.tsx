@@ -2,10 +2,12 @@
 
 import type { MedicineInfo, Language } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import SaveToCabinetButton from "./SaveToCabinetButton";
 
 interface InfoPanelProps {
   info: MedicineInfo;
   language?: Language;
+  onRequireAuth?: () => void;
 }
 
 /** Trim trailing zeros from a display number (59.99 -> "59.99", 60 -> "60"). */
@@ -13,7 +15,7 @@ function fmtNum(value: number, maxDecimals = 2): string {
   return parseFloat(value.toFixed(maxDecimals)).toString();
 }
 
-export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
+export default function InfoPanel({ info, language = "en", onRequireAuth }: InfoPanelProps) {
   const { medicine, knowledge_chunks, sources, cheapest_brands } = info;
 
   // Show the block only when a real alternative exists (>= 2 brands in the
@@ -28,27 +30,42 @@ export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
   }, {} as Record<string, typeof knowledge_chunks>);
 
   const typeLabels: Record<string, string> = {
+    verified_profile: "Verified Profile & Classification",
+    when_to_use: "When to Use / Indications",
     uses: "Uses & Indications",
-    side_effects: "Side Effects",
-    precautions: "Precautions",
+    side_effects: "Side Effects & Adverse Reactions",
+    precautions: "Precautions & Warnings",
+    dosage_instructions: "Dosage & Usage Instructions",
     dosage_info: "Dosage Information",
+    food_interactions: "Food & Drug Interactions",
     general: "General Information",
   };
 
   const typeIcons: Record<string, string> = {
+    verified_profile: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+    when_to_use: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
     uses: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
     side_effects: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z",
     precautions: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    dosage_instructions: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
     dosage_info: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
+    food_interactions: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
   };
+
 
   return (
     <div className="animate-slide-up space-y-4">
       {/* Medicine header */}
-      <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10">
-        <h3 className="text-lg font-bold text-foreground">{medicine.brand_name}</h3>
-        <p className="text-sm text-muted">{medicine.generic_name} &bull; {medicine.strength} &bull; {medicine.dosage_form}</p>
-        <p className="text-xs text-muted mt-1">by {medicine.manufacturer}</p>
+      <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-foreground">{medicine.brand_name}</h3>
+          <p className="text-sm text-muted">{medicine.generic_name} &bull; {medicine.strength} &bull; {medicine.dosage_form}</p>
+          <p className="text-xs text-muted mt-1">by {medicine.manufacturer}</p>
+        </div>
+        <SaveToCabinetButton
+          medicineId={medicine.id}
+          onRequireAuth={onRequireAuth}
+        />
       </div>
 
       {/* Cheapest brands in the same (generic, strength) group.
@@ -83,7 +100,7 @@ export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
                       : "border-border bg-background/50"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-foreground">{opt.brand_name}</span>
@@ -100,7 +117,7 @@ export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
                       </div>
                       <p className="text-xs text-muted mt-0.5">{opt.manufacturer}</p>
                     </div>
-                    <div className="text-end shrink-0">
+                    <div className="text-start sm:text-end shrink-0">
                       <p className="text-sm font-bold text-foreground">
                         Rs {fmtNum(opt.per_unit)}
                         <span className="text-[10px] font-medium text-muted"> {t(language, "info.perUnit")}</span>
@@ -117,7 +134,7 @@ export default function InfoPanel({ info, language = "en" }: InfoPanelProps) {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted pt-1 border-t border-border/40 sm:border-0 sm:pt-0">
                     <span>
                       {t(language, "info.packPrice")}: <span className="font-medium text-foreground">Rs {opt.price.toLocaleString()}</span>
                     </span>

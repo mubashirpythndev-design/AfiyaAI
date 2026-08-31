@@ -63,22 +63,22 @@ async def test_omeprazole_20mg_cheapest_is_risek(backfilled_db):
     assert result.strength == "20mg"
     assert result.cheapest.brand_name == "Risek"
     assert [o.brand_name for o in result.options] == ["Risek", "Losec"]
-    assert result.options[0].per_unit == Decimal("12.86")  # 180 / 14
-    assert result.options[1].per_unit == Decimal("32.14")  # 450 / 14
+    assert result.options[0].per_unit == Decimal("43.57")  # 610 / 14
+    assert result.options[1].per_unit == Decimal("67.86")  # 950 / 14
     # Saving of the cheapest brand vs the queried brand (Losec):
-    assert result.options[0].saving_percent_vs_queried == Decimal("59.99")
+    assert result.options[0].saving_percent_vs_queried == Decimal("35.79")
     assert result.options[1].saving_percent_vs_queried == Decimal("0.00")
 
 
-async def test_cetirizine_10mg_cheapest_is_rigix(backfilled_db):
+async def test_cetirizine_10mg_cheapest_is_softin(backfilled_db):
     _, factory = backfilled_db
     async with factory() as db:
         result = await get_cheapest_brands(db, await _med_id(db, "Zyrtec"))
 
-    assert [o.brand_name for o in result.options] == ["Rigix", "Softin", "Zyrtec"]
+    assert [o.brand_name for o in result.options] == ["Softin", "Rigix", "Zyrtec"]
     per_units = [o.per_unit for o in result.options]
-    assert per_units == [Decimal("6.00"), Decimal("9.50"), Decimal("11.00")]
-    assert result.cheapest.brand_name == "Rigix"
+    assert per_units == [Decimal("30.20"), Decimal("39.00"), Decimal("39.00")]
+    assert result.cheapest.brand_name == "Softin"
 
 
 async def test_rosuvastatin_10mg_cheapest_is_xplendid(backfilled_db):
@@ -88,12 +88,13 @@ async def test_rosuvastatin_10mg_cheapest_is_xplendid(backfilled_db):
 
     assert [o.brand_name for o in result.options] == [
         "Xplendid",
-        "Rovista",
         "Crestor",
+        "Rovista",
     ]
     per_units = [o.per_unit for o in result.options]
-    assert per_units == [Decimal("24.00"), Decimal("26.00"), Decimal("60.71")]
+    assert per_units == [Decimal("47.70"), Decimal("97.14"), Decimal("136.00")]
     assert result.cheapest.brand_name == "Xplendid"
+
 
 
 # --- Guardrail: never group across strengths ---------------------------------------

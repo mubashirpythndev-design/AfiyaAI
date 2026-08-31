@@ -1,28 +1,24 @@
-"""My Digital Medicine Cabinet & Automated Recall Watchdog Router.
+"""My Digital Medicine Cabinet Router.
 
 Endpoints:
   - POST /api/v1/cabinet: Add medicine to cabinet (Authenticated).
   - DELETE /api/v1/cabinet/{medicine_id}: Remove medicine from cabinet (Authenticated).
-  - GET /api/v1/cabinet: Get user's cabinet with active DRAP recall alerts (Authenticated).
+  - GET /api/v1/cabinet: Get user's cabinet (Authenticated).
   - GET /api/v1/cabinet/check/{medicine_id}: Check if medicine is in cabinet (Authenticated).
 """
 import uuid
 from decimal import Decimal
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.db.database import get_db, UserCabinet, Medicine, MrpReference, DrapAlert, Source, User
+from app.db.database import get_db, UserCabinet, Medicine, MrpReference, User
 from app.models.schemas import (
     CabinetAddRequest,
     CabinetItemSchema,
     CabinetResponse,
     MedicineSchema,
-    AlertSchema,
-    SourceSchema,
 )
 from app.services.auth_dependency import get_current_user
 
@@ -40,26 +36,6 @@ def _to_medicine_schema(med: Medicine) -> MedicineSchema:
         category=med.category,
         drap_reg_no=med.drap_reg_no,
         registration_info=med.registration_info,
-    )
-
-
-def _to_alert_schema(alert: DrapAlert) -> AlertSchema:
-    source_schema = None
-    if alert.source:
-        source_schema = SourceSchema(
-            id=alert.source.id,
-            name=alert.source.name,
-            url=alert.source.url,
-            source_type=alert.source.source_type,
-        )
-    return AlertSchema(
-        alert_type=alert.alert_type,
-        description=alert.description,
-        batch_no=alert.batch_no,
-        issued_at=str(alert.issued_at) if alert.issued_at else None,
-        match_basis="name_only" if not alert.batch_no else "batch_no",
-        is_demo=alert.is_demo,
-        source=source_schema,
     )
 
 
@@ -98,19 +74,7 @@ async def add_to_cabinet(
         await db.commit()
         await db.refresh(existing)
 
-    # 3. Check active alerts for this medicine
-    alerts_res = await db.execute(
-        select(DrapAlert)
-        .options(selectinload(DrapAlert.source))
-        .where(
-            DrapAlert.medicine_id == med.id,
-            DrapAlert.resolved == False,
-        )
-    )
-    alert_rows = alerts_res.scalars().all()
-    active_alerts = [_to_alert_schema(a) for a in alert_rows]
-
-    # 4. Fetch MRP
+    # 3. Fetch MRP
     mrp_res = await db.execute(
         select(MrpReference)
         .where(MrpReference.medicine_id == med.id)
@@ -123,8 +87,6 @@ async def add_to_cabinet(
         medicine_id=med.id,
         medicine=_to_medicine_schema(med),
         notified_mrp=Decimal(str(mrp_row.notified_mrp)) if mrp_row else None,
-        active_alerts=active_alerts,
-        has_recall_alert=len(active_alerts) > 0,
         created_at=existing.created_at,
     )
 
@@ -154,7 +116,7 @@ async def get_user_cabinet(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve user's cabinet list with automated DRAP recall watchdog alerts."""
+    """Retrieve user's cabinet list."""
     res = await db.execute(
         select(UserCabinet, Medicine)
         .join(Medicine, UserCabinet.medicine_id == Medicine.id)
@@ -164,8 +126,6 @@ async def get_user_cabinet(
     rows = res.all()
 
     items = []
-    recalled_count = 0
-
     for cab_item, med in rows:
         # Check MRP
         mrp_res = await db.execute(
@@ -175,36 +135,18 @@ async def get_user_cabinet(
         )
         mrp_row = mrp_res.scalars().first()
 
-        # Automated Recall Watchdog Join with drap_alerts
-        alerts_res = await db.execute(
-            select(DrapAlert)
-            .options(selectinload(DrapAlert.source))
-            .where(
-                DrapAlert.medicine_id == med.id,
-                DrapAlert.resolved == False,
-            )
-        )
-        alert_rows = alerts_res.scalars().all()
-        active_alerts = [_to_alert_schema(a) for a in alert_rows]
-        has_recall = len(active_alerts) > 0
-        if has_recall:
-            recalled_count += 1
-
         items.append(
             CabinetItemSchema(
                 id=cab_item.id,
                 medicine_id=med.id,
                 medicine=_to_medicine_schema(med),
                 notified_mrp=Decimal(str(mrp_row.notified_mrp)) if mrp_row else None,
-                active_alerts=active_alerts,
-                has_recall_alert=has_recall,
                 created_at=cab_item.created_at,
             )
         )
 
     return CabinetResponse(
         total_items=len(items),
-        recalled_items_count=recalled_count,
         items=items,
     )
 
@@ -223,3 +165,4 @@ async def check_in_cabinet(
         )
     )
     return {"in_cabinet": res.scalar_one_or_none() is not None}
+

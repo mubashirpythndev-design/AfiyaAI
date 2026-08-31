@@ -23,6 +23,7 @@ async def generate_embedding(query: str) -> list[float]:
         model=settings.gemini_embedding_model,
         content=query,
         task_type="retrieval_query",
+        output_dimensionality=settings.embedding_dimensions,
     )
     return result["embedding"]
 
@@ -43,12 +44,12 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
             text("""
                 SELECT kc.id, kc.content, kc.chunk_type,
                        s.name as source_name, s.url as source_url, s.source_type,
-                       1 - (e.embedding <=> :query_embedding::vector) as similarity
+                       1 - (e.embedding <=> CAST(:query_embedding AS vector)) as similarity
                 FROM embeddings e
                 JOIN knowledge_chunks kc ON e.chunk_id = kc.id
                 JOIN sources s ON kc.source_id = s.id
                 WHERE kc.medicine_id = :medicine_id
-                ORDER BY e.embedding <=> :query_embedding::vector
+                ORDER BY e.embedding <=> CAST(:query_embedding AS vector)
                 LIMIT :top_k
             """),
             {

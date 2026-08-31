@@ -61,6 +61,10 @@
   box-sizing: border-box;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -112,9 +116,15 @@ section {
   50% { transform: translateY(-6px); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+@keyframes scanline {
+  0% { transform: translateY(-100%); opacity: 0; }
+  20% { opacity: 0.9; }
+  80% { opacity: 0.9; }
+  100% { transform: translateY(300px); opacity: 0; }
+}
+
+.animate-scanline {
+  animation: scanline 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .animate-fade-in {
@@ -209,4 +219,15 @@ section {
 
 :root.dark .card-hover:hover {
   box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Cursor Active on Desktop */
+@media (hover: hover) and (pointer: fine) {
+  html.custom-cursor-active,
+  html.custom-cursor-active *,
+  html.custom-cursor-active button,
+  html.custom-cursor-active a,
+  html.custom-cursor-active input {
+    cursor: none !important;
+  }
 }

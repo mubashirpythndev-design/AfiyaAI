@@ -121,9 +121,12 @@ async def seed_drap_alerts(
                 continue
 
             medicine = by_reg_no.get(reg_no)
+            med_id = medicine.id if medicine else None
+            name_raw = str(row.get("medicine_name_raw", "")).strip() or (
+                f"{medicine.brand_name} {medicine.strength}".strip() if medicine else f"Medicine {reg_no}"
+            )
             if medicine is None:
                 report.unmatched_reg_nos.append(reg_no)
-                continue
 
             if source is None:
                 source = await ensure_demo_alert_source(db)
@@ -131,26 +134,34 @@ async def seed_drap_alerts(
             batch_no = str(row.get("batch_no", "")).strip() or None
             issued_at = _parse_date(row.get("issued_at", ""))
             alert_type = str(row.get("alert_type", "")).strip() or "quality"
-            name_raw = str(row.get("medicine_name_raw", "")).strip() or (
-                f"{medicine.brand_name} {medicine.strength}".strip()
-            )
 
             # Idempotency: skip if this exact row already exists.
-            existing = await db.execute(
-                select(DrapAlert.id).where(
-                    DrapAlert.medicine_id == medicine.id,
-                    DrapAlert.batch_no == batch_no,
-                    DrapAlert.alert_type == alert_type,
-                    DrapAlert.issued_at == issued_at,
+            if med_id is not None:
+                existing = await db.execute(
+                    select(DrapAlert.id).where(
+                        DrapAlert.medicine_id == med_id,
+                        DrapAlert.batch_no == batch_no,
+                        DrapAlert.alert_type == alert_type,
+                        DrapAlert.issued_at == issued_at,
+                    )
                 )
-            )
+            else:
+                existing = await db.execute(
+                    select(DrapAlert.id).where(
+                        DrapAlert.medicine_name_raw == name_raw,
+                        DrapAlert.batch_no == batch_no,
+                        DrapAlert.alert_type == alert_type,
+                        DrapAlert.issued_at == issued_at,
+                    )
+                )
+
             if existing.first():
                 report.rows_skipped_existing += 1
                 continue
 
             db.add(
                 DrapAlert(
-                    medicine_id=medicine.id,
+                    medicine_id=med_id,
                     medicine_name_raw=name_raw,
                     batch_no=batch_no,
                     alert_type=alert_type,
@@ -162,6 +173,7 @@ async def seed_drap_alerts(
                 )
             )
             report.rows_inserted += 1
+
 
     await db.commit()
     logger.info(

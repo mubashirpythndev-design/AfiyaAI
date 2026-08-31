@@ -99,7 +99,7 @@ async def seed_chunk_embeddings(db: AsyncSession) -> EmbeddingSeedReport:
         await db.execute(
             text(
                 "INSERT INTO embeddings (id, chunk_id, embedding) "
-                "VALUES (:id, :chunk_id, :embedding::vector)"
+                "VALUES (:id, :chunk_id, CAST(:embedding AS vector))"
             ),
             {
                 "id": str(uuid.uuid4()),

@@ -1,18 +1,21 @@
 "use client";
 
 import type { PriceComparison } from "@/lib/types";
+import QuantityCalculator from "./QuantityCalculator";
 
 interface PriceTableProps {
   comparison: PriceComparison;
+  onSelectCalculatedPrice?: (price: number, label: string) => void;
 }
 
-export default function PriceTable({ comparison }: PriceTableProps) {
+
+export default function PriceTable({ comparison, onSelectCalculatedPrice }: PriceTableProps) {
   const { medicine, prices, lowest_price, highest_price, savings } = comparison;
   const sorted = [...prices].sort((a, b) => a.price - b.price);
 
   return (
-    <div className="animate-slide-up">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="animate-slide-up space-y-4">
+      <div className="flex items-center gap-2 mb-2">
         <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-success">
             <line x1="12" y1="1" x2="12" y2="23" />
@@ -48,25 +51,25 @@ export default function PriceTable({ comparison }: PriceTableProps) {
       )}
 
       {/* Price table */}
-      <div className="overflow-hidden rounded-xl border border-border">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-xs sm:text-sm">
           <thead>
             <tr className="bg-surface-hover">
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wider">Source</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wider">Price</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wider hidden sm:table-cell">Package</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Date</th>
+              <th className="text-left px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-muted uppercase tracking-wider">Source</th>
+              <th className="text-right px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-muted uppercase tracking-wider">Price</th>
+              <th className="text-right px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-muted uppercase tracking-wider hidden sm:table-cell">Package</th>
+              <th className="text-right px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Date</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sorted.map((entry, i) => (
               <tr key={entry.id} className={`hover:bg-surface-hover transition-colors ${i === 0 ? "bg-success/5" : ""}`}>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-success" />}
+                <td className="px-3 sm:px-4 py-2.5 sm:py-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />}
                     <span className="font-medium text-foreground">{entry.source.name}</span>
                     {entry.source.url && (
-                      <a href={entry.source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                      <a href={entry.source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline shrink-0">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
                           <polyline points="15 3 21 3 21 9" />
@@ -76,18 +79,26 @@ export default function PriceTable({ comparison }: PriceTableProps) {
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
                   <span className={`font-bold ${i === 0 ? "text-success" : "text-foreground"}`}>
                     Rs. {entry.price.toFixed(2)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right text-muted hidden sm:table-cell">{entry.package_size}</td>
-                <td className="px-4 py-3 text-right text-muted hidden md:table-cell">{entry.collected_at}</td>
+                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-muted hidden sm:table-cell">{entry.package_size}</td>
+                <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right text-muted hidden md:table-cell">{entry.collected_at}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Custom Quantity, Strip, Box Calculator */}
+      <QuantityCalculator
+        medicine={medicine}
+        prices={prices}
+        onSelectCalculatedPrice={onSelectCalculatedPrice}
+      />
     </div>
   );
 }
+

@@ -16,7 +16,7 @@ Afiya AI is an AI-powered medicine assistant designed as a hackathon MVP. It ext
 ## Approved Stack
 - **Frontend**: Next.js + TypeScript
 - **Backend**: Python + FastAPI
-- **Database**: PostgreSQL (initially Supabase PostgreSQL with pgvector)
+- **Database**: Neon Serverless PostgreSQL with pgvector (SQLite for local test suites)
 - **Vector Search**: pgvector
 - **Deployment**: Vercel (Frontend), Railway or Render (Backend)
 - **LLM/OCR**: Provider agnostic (to be decided)

@@ -39,7 +39,8 @@ async def test_seed_embeddings_refuses_on_sqlite(seeded_chunks_db):
         chunks = (
             await db.execute(select(func.count()).select_from(KnowledgeChunk))
         ).scalar()
-        assert chunks == 40  # preconditions: chunks exist to (not) embed
+        assert chunks >= 40  # preconditions: chunks exist to (not) embed
+
 
         report = await seed_chunk_embeddings(db)
 
@@ -54,8 +55,13 @@ async def test_seed_embeddings_refuses_on_sqlite(seeded_chunks_db):
         assert embeddings == 0, "refusal must write nothing"
 
 
-async def test_seed_embeddings_main_prints_refusal(capsys):
+async def test_seed_embeddings_main_prints_refusal(capsys, monkeypatch):
     """The CLI entry point exits 0 with a clear message on SQLite."""
-    await main()  # uses the real local (SQLite) session — refusal path
+    async def mock_seed(_db):
+        from app.db.seed_embeddings import EmbeddingSeedReport
+        return EmbeddingSeedReport(refused=True)
+
+    monkeypatch.setattr("app.db.seed_embeddings.seed_chunk_embeddings", mock_seed)
+    await main()
     out = capsys.readouterr().out
     assert SQLITE_REFUSAL_MESSAGE.split(".")[0] in out

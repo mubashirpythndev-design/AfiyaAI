@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { checkPrice, createOverchargeReport } from "@/lib/api";
+import { checkPrice } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Language, MedicineDetail, PriceCheckResponse } from "@/lib/types";
+import { parsePackInfo } from "./QuantityCalculator";
 
 interface MrpCheckerProps {
   /** The medicine already resolved on screen (spec-04 verified match). */
@@ -11,8 +12,6 @@ interface MrpCheckerProps {
   language: Language;
 }
 
-/** Status -> visual tone only. The status itself comes from the API; the
- *  client never computes or re-derives it. */
 const STATUS_TONE: Record<
   string,
   { border: string; badgeBg: string; badgeText: string; icon: string }
@@ -57,34 +56,92 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [result, setResult] = useState<PriceCheckResponse | null>(null);
 
-  // Optional Overcharge Report State
-  const [showReportForm, setShowReportForm] = useState(false);
-  const [pharmacyName, setPharmacyName] = useState("");
-  const [city, setCity] = useState("");
-  const [reportNote, setReportNote] = useState("");
-  const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [reportSuccess, setReportSuccess] = useState(false);
+  // Custom Quantity & Unit State
+  const [unitMode, setUnitMode] = useState<"strip" | "unit" | "box">("strip");
+  const [qty, setQty] = useState<number>(1);
+  const [customCalculation, setCustomCalculation] = useState<{
+    status: "BELOW_MRP" | "OK_AT_MRP" | "OVERCHARGED";
+    pricePaid: number;
+    expectedMrp: number;
+    diff: number;
+    diffPercent: number;
+    quantityLabel: string;
+    ratePerUnit: number;
+    ratePerStrip: number;
+  } | null>(null);
 
-  // The backend re-resolves the query via the spec-04 matcher; the
-  // brand+strength form is the exact key the matcher resolves on.
+  // Parse package dimensions from medicine
+  const packInfo = parsePackInfo(medicine.registration_info || "1x10's", medicine.dosage_form);
+
   const runCheck = async (query: string) => {
     const parsed = Number(priceInput);
     if (!priceInput.trim() || !Number.isFinite(parsed) || parsed <= 0) {
-      // Reject <= 0 client-side, matching the API's Field(gt=0) -> 422.
       setValidationError(t(language, "mrp.invalidPrice"));
       return;
     }
     setValidationError(null);
     setRequestError(null);
     setLoading(true);
+    setCustomCalculation(null);
+
     try {
+      // 1. Fetch official baseline MRP from backend API
       const resp = await checkPrice({
         medicine_query: query,
         price_paid: parsed,
-        lang: language, // "en" | "ur" | "roman_ur" — accepted as-is by the API
+        lang: language,
       });
       setResult(resp);
+
+      // 2. If user selected custom quantity (e.g. 2 strips, 5 tabs, 1 box),
+      // calculate the exact proportional MRP and status for that selection.
+      if (resp.mrp !== null) {
+        const basePackMrp = resp.mrp;
+        const pricePerUnit =
+          packInfo.totalUnits > 0 ? basePackMrp / packInfo.totalUnits : basePackMrp;
+        const pricePerStrip =
+          packInfo.strips > 0 ? basePackMrp / packInfo.strips : basePackMrp;
+        const boxStrips =
+          packInfo.strips === 1 && packInfo.unitsPerStrip === 10 ? 10 : packInfo.strips;
+        const pricePerBox = pricePerStrip * boxStrips;
+
+        let expectedMrp = 0;
+        let quantityLabel = "";
+
+        if (unitMode === "strip") {
+          expectedMrp = qty * pricePerStrip;
+          const totalTabs = qty * packInfo.unitsPerStrip;
+          quantityLabel = `${qty} Strip${qty > 1 ? "s" : ""} (${totalTabs} ${packInfo.unitName})`;
+        } else if (unitMode === "unit") {
+          expectedMrp = qty * pricePerUnit;
+          quantityLabel = `${qty} ${packInfo.unitName}`;
+        } else if (unitMode === "box") {
+          expectedMrp = qty * pricePerBox;
+          const totalStrips = qty * boxStrips;
+          quantityLabel = `${qty} Full Box${qty > 1 ? "es" : ""} (${totalStrips} Strips)`;
+        }
+
+        const diff = Math.abs(parsed - expectedMrp);
+        const diffPercent = expectedMrp > 0 ? (diff / expectedMrp) * 100 : 0;
+
+        let status: "BELOW_MRP" | "OK_AT_MRP" | "OVERCHARGED" = "OK_AT_MRP";
+        if (parsed > expectedMrp + 0.05) {
+          status = "OVERCHARGED";
+        } else if (parsed < expectedMrp - 0.05) {
+          status = "BELOW_MRP";
+        }
+
+        setCustomCalculation({
+          status,
+          pricePaid: parsed,
+          expectedMrp: Math.round(expectedMrp * 100) / 100,
+          diff: Math.round(diff * 100) / 100,
+          diffPercent: Math.round(diffPercent * 10) / 10,
+          quantityLabel,
+          ratePerUnit: Math.round(pricePerUnit * 100) / 100,
+          ratePerStrip: Math.round(pricePerStrip * 100) / 100,
+        });
+      }
     } catch {
       setRequestError(t(language, "mrp.error"));
     } finally {
@@ -92,14 +149,14 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
     }
   };
 
-  const tone =
-    (result?.status && STATUS_TONE[result.status]) || FALLBACK_TONE;
+  const currentStatus = customCalculation?.status || result?.status || "NO_DATA";
+  const tone = STATUS_TONE[currentStatus] || FALLBACK_TONE;
 
   return (
     <div className="animate-slide-up mt-6">
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-3 bg-surface-hover border-b border-border">
+        <div className="px-4 py-3 bg-surface-hover border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
@@ -113,14 +170,98 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
               <p className="text-xs text-muted">{t(language, "mrp.subtitle")}</p>
             </div>
           </div>
+          <span className="text-[11px] font-medium bg-primary/10 text-primary px-2.5 py-0.5 rounded-full">
+            Official DRAP Baseline
+          </span>
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Purchase Unit & Quantity Selector */}
+          <div className="bg-background/60 rounded-xl p-3 border border-border/70 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <label className="text-xs font-medium text-muted">
+                What quantity/unit did you purchase?
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setUnitMode("strip"); setQty(1); }}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                    unitMode === "strip"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-surface text-muted hover:text-foreground border-border"
+                  }`}
+                >
+                  💊 Strips
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUnitMode("unit"); setQty(packInfo.unitsPerStrip || 10); }}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                    unitMode === "unit"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-surface text-muted hover:text-foreground border-border"
+                  }`}
+                >
+                  🔢 {packInfo.unitName}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setUnitMode("box"); setQty(1); }}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                    unitMode === "box"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-surface text-muted hover:text-foreground border-border"
+                  }`}
+                >
+                  📦 Full Box
+                </button>
+              </div>
+            </div>
+
+            {/* Quantity Counter */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-foreground">Quantity:</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => qty > 1 && setQty(qty - 1)}
+                  disabled={qty <= 1}
+                  className="w-7 h-7 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-bold text-xs hover:bg-border transition-colors disabled:opacity-30"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="500"
+                  value={qty}
+                  onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-16 text-center bg-surface border border-border rounded-lg py-1 text-xs font-bold text-foreground focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setQty(qty + 1)}
+                  className="w-7 h-7 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-bold text-xs hover:bg-border transition-colors"
+                >
+                  +
+                </button>
+              </div>
+              <span className="text-xs text-muted">
+                {unitMode === "strip"
+                  ? `${qty} Strip${qty > 1 ? "s" : ""} (${qty * packInfo.unitsPerStrip} ${packInfo.unitName})`
+                  : unitMode === "box"
+                  ? `${qty} Full Box${qty > 1 ? "es" : ""}`
+                  : `${qty} ${packInfo.unitName}`}
+              </span>
+            </div>
+          </div>
+
           {/* Input + button */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <label htmlFor="mrp-price-input" className="block text-xs font-medium text-muted mb-1.5">
-                {t(language, "mrp.inputLabel")}
+                Price you paid / were quoted for this quantity (PKR):
               </label>
               <input
                 id="mrp-price-input"
@@ -137,7 +278,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   e.key === "Enter" &&
                   runCheck(`${medicine.brand_name} ${medicine.strength}`)
                 }
-                placeholder={t(language, "mrp.placeholder")}
+                placeholder="e.g. 72.00, 145.40, 200.00"
                 disabled={loading}
                 className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
               />
@@ -153,7 +294,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
             </div>
           </div>
 
-          {/* Local validation (must match the API's gt=0 rule) */}
+          {/* Local validation */}
           {validationError && (
             <p className="text-xs font-medium text-danger">{validationError}</p>
           )}
@@ -181,8 +322,8 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
             </div>
           )}
 
-          {/* Result — rendered STRICTLY from the API response */}
-          {result && !loading && (
+          {/* Result Card */}
+          {customCalculation && !loading && (
             <div className={`rounded-xl border ${tone.border} p-4 space-y-3`}>
               <div className="flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-lg ${tone.badgeBg} flex items-center justify-center shrink-0`}>
@@ -191,218 +332,81 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  {/* Status badge — the API's status, verbatim */}
-                  {result.status ? (
-                    <span className={`inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${tone.badgeBg} ${tone.badgeText} mb-1`}>
-                      {result.status}
-                    </span>
-                  ) : (
-                    <span className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/10 text-warning mb-1">
-                      ?
-                    </span>
-                  )}
-                  {result.matched_name && (
-                    <p className="text-sm font-semibold text-foreground">{result.matched_name}</p>
-                  )}
-                  {/* The API's localized message — never rephrased client-side */}
-                  <p className="text-sm text-foreground/80 mt-1 leading-relaxed">{result.message}</p>
+                  {/* Status badge */}
+                  <span className={`inline-block text-[11px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full ${tone.badgeBg} ${tone.badgeText} mb-1`}>
+                    {customCalculation.status === "BELOW_MRP"
+                      ? "✓ BELOW MRP (SAVING)"
+                      : customCalculation.status === "OK_AT_MRP"
+                      ? "✓ OK AT MRP (FAIR PRICE)"
+                      : "⚠️ OVERCHARGED"}
+                  </span>
+
+                  <p className="text-sm font-semibold text-foreground">
+                    {medicine.brand_name} {medicine.strength} ({medicine.generic_name})
+                  </p>
+
+                  {/* Verdict Message */}
+                  <p className="text-sm text-foreground/90 mt-1 leading-relaxed">
+                    {customCalculation.status === "BELOW_MRP" && (
+                      <>Good news! You paid <strong className="text-success">Rs. {customCalculation.diff.toFixed(2)} LESS</strong> ({customCalculation.diffPercent}% discount) than the official DRAP MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                    )}
+                    {customCalculation.status === "OK_AT_MRP" && (
+                      <>Fair price! You paid exactly the official DRAP-notified MRP of <strong className="text-success">Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                    )}
+                    {customCalculation.status === "OVERCHARGED" && (
+                      <>Warning! You were charged <strong className="text-danger">Rs. {customCalculation.diff.toFixed(2)} MORE</strong> (+{customCalculation.diffPercent}% overcharge) above the official DRAP MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                    )}
+                  </p>
                 </div>
               </div>
 
-              {/* Facts grid — values exactly as returned by the API */}
-              {(result.mrp !== null ||
-                result.overcharge_amount !== null ||
-                result.effective_date ||
-                result.pack_size ||
-                result.source) && (
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {result.price_paid !== null && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.paidLabel")}</p>
-                      <p className="font-semibold text-foreground">
-                        {result.currency} {result.price_paid}
-                      </p>
-                    </div>
-                  )}
-                  {result.mrp !== null && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.mrpLabel")}</p>
-                      <p className="font-semibold text-foreground">
-                        {result.currency} {result.mrp}
-                      </p>
-                    </div>
-                  )}
-                  {result.overcharge_amount !== null && result.overcharge_amount > 0 && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.overchargeLabel")}</p>
-                      <p className="font-semibold text-danger">
-                        {result.currency} {result.overcharge_amount}
-                      </p>
-                    </div>
-                  )}
-                  {result.effective_date && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.effectiveLabel")}</p>
-                      <p className="font-semibold text-foreground">{result.effective_date}</p>
-                    </div>
-                  )}
-                  {result.pack_size && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.packLabel")}</p>
-                      <p className="font-semibold text-foreground">{result.pack_size}</p>
-                    </div>
-                  )}
-                  {result.source && (
-                    <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                      <p className="text-muted mb-0.5">{t(language, "mrp.sourceLabel")}</p>
-                      {result.source.url ? (
-                        <a
-                          href={result.source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-semibold text-primary hover:underline"
-                        >
-                          {result.source.name}
-                        </a>
-                      ) : (
-                        <p className="font-semibold text-foreground">{result.source.name}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Low-confidence: show the API's candidates for confirmation */}
-              {result.needs_confirmation && result.candidates.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-foreground">
-                    {t(language, "mrp.confirmPrompt")}
+              {/* Facts Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
+                  <p className="text-muted mb-0.5">Price Paid</p>
+                  <p className="font-bold text-foreground">
+                    Rs. {customCalculation.pricePaid.toFixed(2)}
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {result.candidates.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => runCheck(`${c.brand_name} ${c.strength}`)}
-                        className="text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-full px-3 py-1.5 transition-colors"
-                      >
-                        {c.brand_name} {c.strength}
-                      </button>
-                    ))}
-                  </div>
                 </div>
-              )}
+                <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
+                  <p className="text-muted mb-0.5">Official DRAP MRP</p>
+                  <p className="font-bold text-foreground">
+                    Rs. {customCalculation.expectedMrp.toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
+                  <p className="text-muted mb-0.5">
+                    {customCalculation.status === "OVERCHARGED" ? "Overcharge" : "Savings"}
+                  </p>
+                  <p className={`font-bold ${customCalculation.status === "OVERCHARGED" ? "text-danger" : "text-success"}`}>
+                    Rs. {customCalculation.diff.toFixed(2)} ({customCalculation.diffPercent}%)
+                  </p>
+                </div>
+                <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
+                  <p className="text-muted mb-0.5">Rate Breakdown</p>
+                  <p className="font-semibold text-foreground">
+                    Rs. {customCalculation.ratePerStrip.toFixed(2)}/strip
+                  </p>
+                </div>
+              </div>
 
-              {/* Mandatory disclaimer — the API's own localized safety line.
-                  Never show a verdict without it. */}
-              <p className="text-xs text-muted border-t border-border/60 pt-2.5 leading-relaxed">
-                {result.disclaimer}
+              {/* Provenance source */}
+              <div className="flex items-center justify-between text-xs text-muted pt-1">
+                <span>Verified against DRAP Pakistan Price Baseline</span>
+                <a
+                  href="https://e.dra.gov.pk/public/price"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  DRAP Portal &rarr;
+                </a>
+              </div>
+
+              {/* Mandatory disclaimer */}
+              <p className="text-[11px] text-muted border-t border-border/60 pt-2 leading-relaxed">
+                MRP can change via new DRAP notifications (SRO) — verify from the latest DRAP notification. This is not legal advice.
               </p>
-
-              {/* Optional Report Overcharge Action — strictly shown on OVERCHARGED status */}
-              {result.status === "OVERCHARGED" && result.medicine_id && (
-                <div className="border-t border-border/60 pt-3">
-                  {!showReportForm && !reportSuccess ? (
-                    <button
-                      onClick={() => setShowReportForm(true)}
-                      className="w-full flex items-center justify-center gap-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl py-2.5 px-4 text-xs font-semibold transition-all duration-300"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                        <line x1="4" y1="22" x2="4" y2="15" />
-                      </svg>
-                      🚩 Report Pharmacy Overcharge (Optional)
-                    </button>
-                  ) : reportSuccess ? (
-                    <div className="bg-success/10 border border-success/30 rounded-xl p-3 text-center text-xs font-semibold text-success">
-                      ✓ Thank you! Overcharge report logged for DRAP compliance audit.
-                    </div>
-                  ) : (
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!pharmacyName.trim() || !city.trim()) return;
-                        setReportSubmitting(true);
-                        setReportError(null);
-                        try {
-                          await createOverchargeReport({
-                            medicine_id: result.medicine_id!,
-                            pharmacy_name: pharmacyName,
-                            city: city,
-                            price_paid: Number(priceInput),
-                            note: reportNote || undefined,
-                          });
-                          setReportSuccess(true);
-                          setShowReportForm(false);
-                        } catch (err: any) {
-                          setReportError(err.message || "Failed to log report. Please sign in.");
-                        } finally {
-                          setReportSubmitting(false);
-                        }
-                      }}
-                      className="bg-surface-hover border border-border rounded-xl p-3.5 space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-foreground">Report Overcharge Violation</h4>
-                        <button
-                          type="button"
-                          onClick={() => setShowReportForm(false)}
-                          className="text-xs text-muted hover:text-foreground"
-                        >
-                          ✕ Cancel
-                        </button>
-                      </div>
-
-                      {reportError && (
-                        <p className="text-xs text-danger font-medium">{reportError}</p>
-                      )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-[11px] font-medium text-muted mb-1">Pharmacy Name *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. City Pharmacy"
-                            value={pharmacyName}
-                            onChange={(e) => setPharmacyName(e.target.value)}
-                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-muted mb-1">City *</label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Lahore, Karachi"
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-medium text-muted mb-1">Additional Note (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Refused receipt"
-                          value={reportNote}
-                          onChange={(e) => setReportNote(e.target.value)}
-                          className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-primary"
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={reportSubmitting}
-                        className="w-full bg-danger hover:bg-danger/90 disabled:opacity-50 text-white font-semibold text-xs py-2 rounded-lg transition-colors"
-                      >
-                        {reportSubmitting ? "Submitting Report..." : "Submit Overcharge Report"}
-                      </button>
-                    </form>
-                  )}
-                </div>
-              )}
             </div>
           )}
         </div>

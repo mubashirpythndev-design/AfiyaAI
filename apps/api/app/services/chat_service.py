@@ -1,4 +1,6 @@
-"""Chat service - orchestrates RAG retrieval + Gemini LLM for grounded responses."""
+"""Afiya AI — Multilingual RAG Chat Service (Gemini Orchestration & Medical Safety Enforcement).
+Author / Developer: Mubashir (Lead Developer)
+"""
 
 import logging
 import google.generativeai as genai
@@ -104,40 +106,49 @@ User question: {message}
 Provide a helpful, grounded response based ONLY on the context provided. If you don't have enough information, say so.
 If the question asks for details not present in the context (such as exact doses, side effects, or interactions), state that this information is not in our verified DRAP dataset and advise consulting a doctor or pharmacist."""
 
-    # Call Gemini
+    # Call Gemini with automatic model fallback
     genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel(settings.gemini_chat_model)
+    model_candidates = [
+        settings.gemini_chat_model,
+        "models/gemini-3.5-flash-lite",
+        "models/gemini-3.1-flash-lite",
+        "models/gemini-flash-lite-latest",
+        "models/gemini-3.6-flash",
+    ]
+    models_to_try = list(dict.fromkeys(model_candidates))
 
-    try:
-        # Build conversation history for Gemini
-        history = []
-        if conversation_history:
-            for msg in conversation_history[-6:]:  # Keep last 6 messages
-                role = "user" if msg["role"] == "user" else "model"
-                history.append({"role": role, "parts": [msg["content"]]})
+    # Build conversation history for Gemini
+    history = []
+    if conversation_history:
+        for msg in conversation_history[-6:]:  # Keep last 6 messages
+            role = "user" if msg["role"] == "user" else "model"
+            history.append({"role": role, "parts": [msg["content"]]})
 
-        chat = model.start_chat(history=history)
-        response = chat.send_message(
-            f"{system_prompt}\n\n{user_prompt}",
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=1024,
-            ),
-        )
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name)
+            chat = model.start_chat(history=history)
+            response = chat.send_message(
+                f"{system_prompt}\n\n{user_prompt}",
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                ),
+            )
 
-        response_text = response.text.strip()
-        response_text = validate_response(response_text)
+            response_text = response.text.strip()
+            response_text = validate_response(response_text)
 
-        return ChatResponse(
-            message=response_text,
-            sources=sources,
-            disclaimer=DISCLAIMER,
-        )
+            return ChatResponse(
+                message=response_text,
+                sources=sources,
+                disclaimer=DISCLAIMER,
+            )
+        except Exception as e:
+            logger.warning(f"Chat model '{model_name}' failed: {e}. Trying fallback...")
 
-    except Exception as e:
-        logger.error(f"Chat generation failed: {type(e).__name__}: {e}", exc_info=True)
-        return ChatResponse(
-            message="I'm sorry, I encountered an error processing your request. Please try again.",
-            sources=[],
-            disclaimer=DISCLAIMER,
-        )
+    return ChatResponse(
+        message="I'm sorry, I encountered an error processing your request. Please try again.",
+        sources=[],
+        disclaimer=DISCLAIMER,
+    )

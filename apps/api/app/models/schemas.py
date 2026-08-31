@@ -161,42 +161,6 @@ class PriceCheckResponse(BaseModel):
     disclaimer: str
 
 
-class AlertCheckRequest(BaseModel):
-    """Phase-1 Feature B request (spec 09 §7.3)."""
-    medicine_query: str
-    batch_no: Optional[str] = None
-    lang: str = "en"
-
-
-class AlertSchema(BaseModel):
-    """One drap_alerts row as returned by alert-check (DB-only facts)."""
-    alert_type: str
-    description: Optional[str] = None
-    batch_no: Optional[str] = None
-    issued_at: Optional[str] = None
-    match_basis: str = "name_only"  # batch_no (exact) | name_only (verify)
-    is_demo: bool = False
-    source: Optional[SourceSchema] = None
-
-
-class AlertCheckResponse(BaseModel):
-    """Phase-1 Feature B response (spec 09 §7.3).
-
-    Status/alerts come only from the drap_alerts table — never the LLM.
-    ``status`` is None when the match itself needs confirmation.
-    """
-    status: Optional[str] = None  # ALERT_FOUND | NO_ALERT
-    medicine_id: Optional[str] = None
-    matched_name: Optional[str] = None
-    match_confidence: float = 0.0
-    needs_confirmation: bool = False
-    candidates: list[MedicineSchema] = []
-    alerts: list[AlertSchema] = []
-    match_basis: Optional[str] = None  # batch_no | name_only
-    message: str
-    disclaimer: str
-
-
 class HealthResponse(BaseModel):
     status: str
     version: str = "1.0.0"
@@ -253,75 +217,23 @@ class AdminUsersResponse(BaseModel):
     users: list[AdminUserSchema]
 
 
-class OverchargeReportCreate(BaseModel):
-    """Client request to log a price gouging overcharge report."""
-    medicine_id: str
-    pharmacy_name: str = Field(min_length=1)
-    city: str = Field(min_length=1)
-    price_paid: Decimal = Field(gt=0)
-    pack_size: Optional[str] = None
-    note: Optional[str] = None
-
-    @field_validator("pharmacy_name", "city")
-    @classmethod
-    def not_blank(cls, v: str) -> str:
-        trimmed = v.strip()
-        if not trimmed:
-            raise ValueError("Field must not be blank")
-        return trimmed
-
-
-class OverchargeReportSchema(BaseModel):
-    """Detailed view of an overcharge report."""
-    id: str
-    medicine_id: str
-    medicine_name: Optional[str] = None
-    reported_by_user_id: Optional[str] = None
-    reporter_name: Optional[str] = None
-    reporter_email: Optional[str] = None
-    pharmacy_name: str
-    city: str
-    price_paid: Decimal
-    notified_mrp: Decimal
-    mrp_effective_date: Optional[str] = None
-    overcharge_amount: Decimal
-    currency: str = "PKR"
-    note: Optional[str] = None
-    status: str = "pending"
-    created_at: Optional[datetime] = None
-
-
-class AdminOverchargeReportsSummary(BaseModel):
-    total_reports: int
-    total_overcharge_amount: Decimal
-    top_cities: list[dict] = []
-
-
-class AdminOverchargeReportsResponse(BaseModel):
-    summary: AdminOverchargeReportsSummary
-    reports: list[OverchargeReportSchema]
-
-
 class CabinetAddRequest(BaseModel):
     """Request to save a medicine to the user's digital cabinet."""
     medicine_id: str
 
 
 class CabinetItemSchema(BaseModel):
-    """Cabinet item detailed view, including medicine metadata and active DRAP recall alerts."""
+    """Cabinet item detailed view, including medicine metadata and official MRP."""
     id: str
     medicine_id: str
     medicine: MedicineSchema
     notified_mrp: Optional[Decimal] = None
-    active_alerts: list[AlertSchema] = []
-    has_recall_alert: bool = False
     created_at: Optional[datetime] = None
 
 
 class CabinetResponse(BaseModel):
-    """Full digital medicine cabinet response with recall watchdog metrics."""
+    """Full digital medicine cabinet response."""
     total_items: int
-    recalled_items_count: int
     items: list[CabinetItemSchema]
 
 

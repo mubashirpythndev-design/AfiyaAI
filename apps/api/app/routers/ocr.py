@@ -1,4 +1,6 @@
-"""OCR router - handles prescription image upload and extraction."""
+"""Afiya AI — OCR Router (Prescription image upload & candidate extraction).
+Author / Developer: Mubashir (Lead Developer)
+"""
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 

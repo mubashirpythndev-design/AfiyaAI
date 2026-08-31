@@ -139,19 +139,36 @@ async def seed_mrp_reference(
                 report.skipped_bad_price += 1
                 continue
 
-        # Idempotency: skip if this exact versioned row already exists
-        # (never update in place — spec 09 §7.4).
-        existing = await db.execute(
-            select(MrpReference.id).where(
+        # Clean up any stale MRP rows for this medicine with old pack sizes
+        stale_res = await db.execute(
+            select(MrpReference).where(
                 MrpReference.medicine_id == medicine.id,
-                MrpReference.pack_size == pack_size,
-                MrpReference.effective_date == effective,
+                MrpReference.pack_size != pack_size,
             )
         )
-        if existing.first():
-            report.rows_skipped_existing += 1
-            report.medicines_matched += 1
-            continue
+        for stale in stale_res.scalars().all():
+            await db.delete(stale)
+
+        # Check existing row for this medicine and current pack size
+        existing = await db.execute(
+            select(MrpReference).where(
+                MrpReference.medicine_id == medicine.id,
+                MrpReference.pack_size == pack_size,
+            )
+        )
+        existing_row = existing.scalars().first()
+        if existing_row:
+            if existing_row.effective_date == effective and existing_row.notified_mrp == Decimal(str(price_val)):
+                report.rows_skipped_existing += 1
+                report.medicines_matched += 1
+                continue
+            else:
+                existing_row.notified_mrp = Decimal(str(price_val))
+                existing_row.effective_date = effective
+                existing_row.source_id = source.id
+                report.rows_inserted += 1
+                report.medicines_matched += 1
+                continue
 
         db.add(
             MrpReference(
@@ -168,6 +185,7 @@ async def seed_mrp_reference(
         report.medicines_matched += 1
 
     await db.commit()
+
     logger.info(
         "MRP seed complete: %d inserted, %d skipped (existing), "
         "%d seed rows matched, %d unmatched reg_nos",

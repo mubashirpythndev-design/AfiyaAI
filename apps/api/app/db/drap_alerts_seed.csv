@@ -1,5 +1,5 @@
 drap_reg_no,medicine_name_raw,batch_no,alert_type,description,issued_at,resolved,is_demo
-005912,,,"recall","DEMO DATA: illustrative row modeled on the global ranitidine (NDMA impurity) withdrawals of 2019. This is NOT a confirmed DRAP notice and is not tied to any specific batch or DRAP notice ID.",2019-09-13,false,true
+005912,Zantac 150mg Tablet,,"recall","DEMO DATA: illustrative row modeled on the global ranitidine (NDMA impurity) withdrawals of 2019. This is NOT a confirmed DRAP notice and is not tied to any specific batch or DRAP notice ID.",2019-09-13,false,true
 008892,Augmentin 625mg Tablet,DEMO-BATCH-001,"substandard","DEMO DATA: sample lab-testing alert (dissolution result outside specification) for demonstration purposes only. Batch number is fictional.",2025-02-10,false,true
 008892,Augmentin 625mg Tablet,DEMO-BATCH-RESOLVED,"quality","DEMO DATA: sample packaging-defect alert that has since been resolved. Fictional batch number.",2024-01-15,true,true
 009934,Ciproxin 500mg Tablet,DEMO-BATCH-002,"spurious","DEMO DATA: sample suspected-counterfeit-packaging alert for demonstration purposes only. Batch number is fictional.",2025-06-01,false,true

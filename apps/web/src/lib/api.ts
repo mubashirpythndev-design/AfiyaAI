@@ -13,21 +13,13 @@ import type {
   Language,
   PriceCheckRequest,
   PriceCheckResponse,
-  AlertCheckRequest,
-  AlertCheckResponse,
   AuthSession,
   AuthUser,
-  OverchargeReportRequest,
-  OverchargeReportResponse,
-  AdminOverchargeReportsResponse,
   CabinetItem,
   CabinetResponse,
 } from "./types";
 
 export type {
-  OverchargeReportRequest,
-  OverchargeReportResponse,
-  AdminOverchargeReportsResponse,
   CabinetItem,
   CabinetResponse,
 };
@@ -142,16 +134,6 @@ export async function checkPrice(
   });
 }
 
-// Phase-1 Feature B: check a medicine (and optional batch) against active alerts
-export async function checkAlerts(
-  req: AlertCheckRequest
-): Promise<AlertCheckResponse> {
-  return apiFetch<AlertCheckResponse>("/api/v1/alert-check", {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-}
-
 // Health check
 export async function healthCheck(): Promise<{ status: string }> {
   return apiFetch<{ status: string }>("/api/health");
@@ -210,30 +192,7 @@ export async function fetchAdminUsers(opts?: {
   return apiFetch<AdminUsersResponse>(`/api/admin/users${qs ? `?${qs}` : ""}`);
 }
 
-// Overcharge reporting
-export async function createOverchargeReport(
-  req: OverchargeReportRequest
-): Promise<OverchargeReportResponse> {
-  return apiFetch<OverchargeReportResponse>("/api/v1/overcharge-reports", {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-}
-
-export async function fetchAdminOverchargeReports(opts?: {
-  limit?: number;
-  offset?: number;
-}): Promise<AdminOverchargeReportsResponse> {
-  const params = new URLSearchParams();
-  if (opts?.limit != null) params.set("limit", String(opts.limit));
-  if (opts?.offset != null) params.set("offset", String(opts.offset));
-  const qs = params.toString();
-  return apiFetch<AdminOverchargeReportsResponse>(
-    `/api/admin/overcharge-reports${qs ? `?${qs}` : ""}`
-  );
-}
-
-// Digital Medicine Cabinet & Recall Watchdog
+// Digital Medicine Cabinet
 export async function addToCabinet(
   medicineId: string
 ): Promise<CabinetItem> {
