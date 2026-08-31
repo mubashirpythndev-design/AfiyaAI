@@ -1,8 +1,9 @@
-# 🌿 Afiya AI (عافیہ) — Intelligent Medicine Assistant
-
 <div align="center">
 
-![Afiya AI Banner](https://img.shields.io/badge/Afiya%20AI-Intelligent%20Medicine%20Assistant-0d9488?style=for-the-badge&logo=medscape&logoColor=white)
+<img src="apps/web/public/logo.svg" width="88" height="88" alt="Afiya AI Logo" />
+
+# Afiya AI (عافیہ)
+### *Your Intelligent Medicine Assistant for Pakistan*
 
 [![Next.js](https://img.shields.io/badge/Next.js-15.0-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
