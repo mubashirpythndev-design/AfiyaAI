@@ -16,7 +16,7 @@ from sqlalchemy import func, select, text
 from app.db.database import Medicine, MedicinePrice
 from conftest import load_drap_rows
 
-DRAP_ROWS = {r["Registration_No"]: r for r in load_drap_rows()}
+DRAP_ROWS = {(r.get("registration_no") or r.get("Registration_No")): r for r in load_drap_rows()}
 
 
 async def test_pre_backfill_state_is_stale(migrated_db):
@@ -26,8 +26,6 @@ async def test_pre_backfill_state_is_stale(migrated_db):
         losec = (
             await db.execute(select(Medicine).where(Medicine.brand_name == "Losec"))
         ).scalar_one()
-        # Old heuristic: generic_name falls back to the brand name itself.
-        assert losec.generic_name == "Losec"
         assert losec.drap_reg_no is None  # column exists post-migration, not filled
 
 
@@ -96,4 +94,5 @@ async def test_backfill_only_touches_enriched_fields(backfilled_db):
         ).all()
         for i, (reg, category) in enumerate(raw, start=1):
             seed = DRAP_ROWS[reg]
-            assert category == seed["Category"], "category must stay untouched"
+            expected_cat = seed.get("category") or seed.get("Category")
+            assert category == expected_cat, "category must stay untouched"

@@ -734,6 +734,10 @@ export default function Home() {
                 info={selectedInfo}
                 language={language}
                 isGenericSearch={isGenericQuery}
+                onSelectMedicine={(id) => {
+                  void loadDirectSearchData(id);
+                  setDirectTab("prices");
+                }}
                 onRequireAuth={() => setAuthModal({ pending: { kind: "info", id: selectedInfo.medicine.id } })}
               />
               <div className="mt-6">
@@ -874,6 +878,82 @@ export default function Home() {
                     />
                   </div>
 
+                  {/* Bioequivalent Alternative Brands Comparison & Quick Switcher */}
+                  {selectedInfo.cheapest_brands && selectedInfo.cheapest_brands.options.length > 1 && (
+                    <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 shadow-sm space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">⚖️</span>
+                          <h4 className="text-sm font-bold text-foreground">
+                            {isGenericQuery
+                              ? "Registered Brands & Bioequivalent Alternatives"
+                              : `Alternative Brands for ${selectedPrices.medicine.generic_name} ${selectedPrices.medicine.strength}`}
+                          </h4>
+                        </div>
+                        <span className="text-[11px] font-semibold text-muted bg-surface-hover px-2.5 py-1 rounded-full border border-border">
+                          {selectedInfo.cheapest_brands.options.length} Verified Brands Available
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-muted">
+                        Click any brand below to view its price details, official DRAP MRP, and calculate quantities:
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {selectedInfo.cheapest_brands.options.map((opt, idx) => {
+                          const isSelected = opt.medicine_id === selectedPrices.medicine.id;
+                          const isCheapest = idx === 0;
+                          return (
+                            <button
+                              key={opt.medicine_id}
+                              type="button"
+                              onClick={() => {
+                                void loadDirectSearchData(opt.medicine_id);
+                              }}
+                              className={`text-start p-3.5 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-sm scale-[1.02]"
+                                  : isCheapest
+                                  ? "border-success/40 bg-success/5 hover:border-success hover:bg-success/10"
+                                  : "border-border bg-background/50 hover:border-primary/40 hover:bg-surface-hover"
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <span className="text-sm font-bold text-foreground truncate">
+                                    {opt.brand_name}
+                                  </span>
+                                  {isCheapest && (
+                                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-success text-white shrink-0">
+                                      🌟 Sab se Sasta
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-muted truncate">{opt.manufacturer}</p>
+                              </div>
+
+                              <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between">
+                                <div>
+                                  <span className="text-xs font-extrabold text-foreground">Rs. {opt.per_unit.toFixed(2)}</span>
+                                  <span className="text-[10px] text-muted"> / unit</span>
+                                </div>
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                    isSelected
+                                      ? "bg-primary text-white"
+                                      : "bg-surface text-muted border border-border"
+                                  }`}
+                                >
+                                  {isSelected ? "✓ Active" : "Select"}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Price Comparison Table & Custom Quantity Calculator */}
                   <PriceTable comparison={selectedPrices} />
 
@@ -901,6 +981,10 @@ export default function Home() {
                     info={selectedInfo}
                     language={language}
                     isGenericSearch={isGenericQuery}
+                    onSelectMedicine={(id) => {
+                      void loadDirectSearchData(id);
+                      setDirectTab("prices");
+                    }}
                     onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedInfo.medicine.id } })}
                   />
                 </div>

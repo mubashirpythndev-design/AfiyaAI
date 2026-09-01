@@ -9,6 +9,7 @@ interface InfoPanelProps {
   language?: Language;
   onRequireAuth?: () => void;
   isGenericSearch?: boolean;
+  onSelectMedicine?: (id: string) => void;
 }
 
 /** Trim trailing zeros from a display number (59.99 -> "59.99", 60 -> "60"). */
@@ -16,7 +17,7 @@ function fmtNum(value: number, maxDecimals = 2): string {
   return parseFloat(value.toFixed(maxDecimals)).toString();
 }
 
-export default function InfoPanel({ info, language = "en", onRequireAuth, isGenericSearch = false }: InfoPanelProps) {
+export default function InfoPanel({ info, language = "en", onRequireAuth, isGenericSearch = false, onSelectMedicine }: InfoPanelProps) {
   const { medicine, knowledge_chunks, sources, cheapest_brands } = info;
 
   // Show the block only when a real alternative exists (>= 2 brands in the
@@ -53,16 +54,34 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
     food_interactions: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
   };
 
-
   return (
     <div className="animate-slide-up space-y-4">
       {/* Medicine header */}
       <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-foreground">{medicine.brand_name}</h3>
-          <p className="text-sm text-muted">{medicine.generic_name} &bull; {medicine.strength} &bull; {medicine.dosage_form}</p>
-          <p className="text-xs text-muted mt-1">by {medicine.manufacturer}</p>
-        </div>
+        {isGenericSearch ? (
+          <div>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
+                🧪 Generic Molecule Overview
+              </span>
+              <span className="text-[11px] font-semibold text-muted">
+                {medicine.strength} {medicine.dosage_form}
+              </span>
+            </div>
+            <h3 className="text-xl font-bold text-foreground">
+              {medicine.generic_name}
+            </h3>
+            <p className="text-sm text-muted">
+              Category: {medicine.category} &bull; Verified DRAP Clinical Profile
+            </p>
+          </div>
+        ) : (
+          <div>
+            <h3 className="text-xl font-bold text-foreground">{medicine.brand_name}</h3>
+            <p className="text-sm text-muted">{medicine.generic_name} &bull; {medicine.strength} &bull; {medicine.dosage_form}</p>
+            <p className="text-xs text-muted mt-1">Manufacturer: {medicine.manufacturer}</p>
+          </div>
+        )}
         <SaveToCabinetButton
           medicineId={medicine.id}
           onRequireAuth={onRequireAuth}
@@ -90,29 +109,37 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
           <div className="p-4 space-y-3">
             {cheapest_brands.options.map((opt, idx) => {
               const isCheapest = idx === 0;
+              const isSelected = opt.medicine_id === medicine.id;
               const isQueried = !isGenericSearch && opt.medicine_id === medicine.id;
               const saving = opt.saving_percent_vs_queried;
               return (
                 <div
                   key={opt.medicine_id}
-                  className={`rounded-xl border p-3.5 transition-colors ${
-                    isCheapest
-                      ? "border-success/40 bg-success/5"
-                      : "border-border bg-background/50"
+                  onClick={() => onSelectMedicine && onSelectMedicine(opt.medicine_id)}
+                  className={`rounded-xl border p-4 transition-all ${
+                    onSelectMedicine ? "cursor-pointer hover:shadow-md hover:scale-[1.005]" : ""
+                  } ${
+                    isSelected
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                      : isCheapest
+                      ? "border-success/40 bg-success/5 hover:border-success/60"
+                      : "border-border bg-background/50 hover:border-primary/30"
                   }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold text-foreground">{opt.brand_name}</span>
+                        <span className="text-base font-bold text-foreground hover:text-primary transition-colors">
+                          {opt.brand_name}
+                        </span>
                         {isCheapest && (
                           <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success text-white">
                             {t(language, "info.cheapestBadge")}
                           </span>
                         )}
-                        {isQueried && (
+                        {isSelected && !isGenericSearch && (
                           <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                            {t(language, "info.yourMedicine")}
+                            ✓ Currently Active
                           </span>
                         )}
                       </div>
@@ -135,13 +162,31 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted pt-1 border-t border-border/40 sm:border-0 sm:pt-0">
-                    <span>
-                      {t(language, "info.packPrice")}: <span className="font-medium text-foreground">Rs {opt.price.toLocaleString()}</span>
-                    </span>
-                    <span>
-                      {t(language, "info.packSize")}: <span className="font-medium text-foreground">{opt.package_size}</span>
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted pt-2.5 border-t border-border/40">
+                    <div className="flex items-center gap-3">
+                      <span>
+                        {t(language, "info.packPrice")}: <strong className="text-foreground">Rs {opt.price.toLocaleString()}</strong>
+                      </span>
+                      <span>
+                        {t(language, "info.packSize")}: <strong className="text-foreground">{opt.package_size}</strong>
+                      </span>
+                    </div>
+                    {onSelectMedicine && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectMedicine(opt.medicine_id);
+                        }}
+                        className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                          isSelected
+                            ? "bg-primary text-white shadow-sm"
+                            : "bg-surface-hover hover:bg-primary hover:text-white border border-border"
+                        }`}
+                      >
+                        {isSelected ? "✓ Active View" : "⚖️ Compare Prices"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

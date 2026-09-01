@@ -115,40 +115,81 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
                 return {"medicine": medicine_to_schema(med), "confidence": 0.95, "needs_confirmation": False, "alternatives": []}
 
     # 4. Strict Fuzzy match against brand names, generic names, and aliases
-    best_match: Optional[Medicine] = None
-    best_score = 0.0
+    best_brand_match: Optional[Medicine] = None
+    best_brand_score = 0.0
+    best_gen_match: Optional[Medicine] = None
+    best_gen_score = 0.0
     alternatives: list[MedicineSchema] = []
+
+    clean_cand = re.sub(r"\b\d+\s*(mg|ml|mcg|g|iu|iu/ml|%)\b", "", normalized).strip()
 
     for med in all_meds:
         # Check brand name
-        score = fuzz.token_set_ratio(normalized, normalize(med.brand_name)) / 100.0
-        # Check generic name
-        gen_score = fuzz.token_set_ratio(normalized, normalize(med.generic_name)) / 100.0
-        score = max(score, gen_score)
-        # Check aliases
-        for alias in (med.aliases or []):
-            alias_score = fuzz.token_set_ratio(normalized, normalize(alias)) / 100.0
-            score = max(score, alias_score)
+        b_score = max(
+            fuzz.token_set_ratio(normalized, normalize(med.brand_name)),
+            fuzz.token_set_ratio(clean_cand, normalize(med.brand_name))
+        ) / 100.0
 
-        if score >= 0.75:
+        for alias in (med.aliases or []):
+            a_score = fuzz.token_set_ratio(normalized, normalize(alias)) / 100.0
+            b_score = max(b_score, a_score)
+
+        if b_score > best_brand_score:
+            best_brand_score = b_score
+            best_brand_match = med
+
+        # Check generic name
+        g_score = max(
+            fuzz.token_set_ratio(normalized, normalize(med.generic_name)),
+            fuzz.token_set_ratio(clean_cand, normalize(med.generic_name))
+        ) / 100.0
+
+        if g_score > best_gen_score:
+            best_gen_score = g_score
+            best_gen_match = med
+
+        if max(b_score, g_score) >= 0.75:
             alternatives.append(medicine_to_schema(med))
 
-        if score > best_score:
-            best_score = score
-            best_match = med
-
-    alternatives.sort(key=lambda m: m.brand_name)
     threshold = settings.fuzzy_match_threshold
 
-    # Only treat as a match if best_score is high (>= threshold or >= 0.82)
-    if best_match and best_score >= max(threshold, 0.82):
-        logger.info(f"Fuzzy match: '{candidate}' -> {best_match.brand_name} (score: {best_score:.2f})")
+    # If the user query matches a GENERIC name better or equal to brand name (e.g. Paracetomol, Ibuprefen, Omeprazol)
+    if best_gen_match and best_gen_score >= max(threshold, 0.82) and best_gen_score >= best_brand_score:
+        matched_gen_name = best_gen_match.generic_name.lower()
+        same_gen_meds = [m for m in all_meds if m.generic_name.lower() == matched_gen_name]
+
+        # Filter by strength if specified
+        cand_strength_tokens = set(re.findall(r"\b\d+[a-z]*\b", normalized))
+        if cand_strength_tokens:
+            filtered = [
+                m for m in same_gen_meds
+                if set(re.findall(r"\b\d+[a-z]*\b", normalize(m.strength))).intersection(cand_strength_tokens)
+            ]
+            if filtered:
+                same_gen_meds = filtered
+
+        if len(same_gen_meds) == 1:
+            med = same_gen_meds[0]
+            logger.info(f"Fuzzy single generic match: '{candidate}' -> {med.brand_name}")
+            return {"medicine": medicine_to_schema(med), "confidence": round(best_gen_score, 2), "needs_confirmation": False, "alternatives": []}
+
+        logger.info(f"Fuzzy generic match: '{candidate}' -> {len(same_gen_meds)} brands for generic '{best_gen_match.generic_name}'")
         return {
-            "medicine": medicine_to_schema(best_match),
-            "confidence": round(best_score, 2),
+            "medicine": None,
+            "confidence": round(best_gen_score, 2),
+            "needs_confirmation": True,
+            "alternatives": [medicine_to_schema(m) for m in same_gen_meds][:10],
+        }
+
+    # Otherwise, if brand match is highest
+    if best_brand_match and best_brand_score >= max(threshold, 0.82):
+        logger.info(f"Fuzzy brand match: '{candidate}' -> {best_brand_match.brand_name} (score: {best_brand_score:.2f})")
+        return {
+            "medicine": medicine_to_schema(best_brand_match),
+            "confidence": round(best_brand_score, 2),
             "needs_confirmation": False,
             "alternatives": alternatives[:3],
         }
 
-    logger.info(f"No strong match found for: '{candidate}' (best: {best_score:.2f})")
-    return {"medicine": None, "confidence": round(best_score, 2), "needs_confirmation": True, "alternatives": alternatives[:3]}
+    logger.info(f"No strong match found for: '{candidate}' (best: {max(best_brand_score, best_gen_score):.2f})")
+    return {"medicine": None, "confidence": round(max(best_brand_score, best_gen_score), 2), "needs_confirmation": True, "alternatives": alternatives[:3]}
