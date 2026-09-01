@@ -8,6 +8,7 @@ interface InfoPanelProps {
   info: MedicineInfo;
   language?: Language;
   onRequireAuth?: () => void;
+  isGenericSearch?: boolean;
 }
 
 /** Trim trailing zeros from a display number (59.99 -> "59.99", 60 -> "60"). */
@@ -15,7 +16,7 @@ function fmtNum(value: number, maxDecimals = 2): string {
   return parseFloat(value.toFixed(maxDecimals)).toString();
 }
 
-export default function InfoPanel({ info, language = "en", onRequireAuth }: InfoPanelProps) {
+export default function InfoPanel({ info, language = "en", onRequireAuth, isGenericSearch = false }: InfoPanelProps) {
   const { medicine, knowledge_chunks, sources, cheapest_brands } = info;
 
   // Show the block only when a real alternative exists (>= 2 brands in the
@@ -89,7 +90,7 @@ export default function InfoPanel({ info, language = "en", onRequireAuth }: Info
           <div className="p-4 space-y-3">
             {cheapest_brands.options.map((opt, idx) => {
               const isCheapest = idx === 0;
-              const isQueried = opt.medicine_id === medicine.id;
+              const isQueried = !isGenericSearch && opt.medicine_id === medicine.id;
               const saving = opt.saving_percent_vs_queried;
               return (
                 <div
@@ -122,12 +123,12 @@ export default function InfoPanel({ info, language = "en", onRequireAuth }: Info
                         Rs {fmtNum(opt.per_unit)}
                         <span className="text-[10px] font-medium text-muted"> {t(language, "info.perUnit")}</span>
                       </p>
-                      {!isQueried && saving > 0 && (
+                      {!isGenericSearch && !isQueried && saving > 0 && (
                         <p className="text-xs font-semibold text-success">
                           {t(language, "info.save")} {fmtNum(saving)}% {t(language, "info.vsYours")}
                         </p>
                       )}
-                      {!isQueried && saving < 0 && (
+                      {!isGenericSearch && !isQueried && saving < 0 && (
                         <p className="text-xs font-semibold text-danger">
                           +{fmtNum(Math.abs(saving))}% {t(language, "info.vsYours")}
                         </p>

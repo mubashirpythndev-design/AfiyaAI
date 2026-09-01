@@ -52,6 +52,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [directTab, setDirectTab] = useState<"info" | "prices">("info");
+  const [isGenericQuery, setIsGenericQuery] = useState(false);
 
   // Cabinet & Guide Modal State
   const [showCabinetModal, setShowCabinetModal] = useState(false);
@@ -100,6 +101,7 @@ export default function Home() {
           const match = await matchMedicine(payload);
           const targetMed = match.medicine || (match.alternatives && match.alternatives[0]);
           if (targetMed) {
+            setIsGenericQuery(!match.medicine);
             if (!isLoggedIn()) {
               setAuthModal({ pending: { kind: "direct_search", id: targetMed.id } });
               return;
@@ -221,6 +223,7 @@ export default function Home() {
     try {
       const match = await matchMedicine(searchQuery.trim());
       if (match.medicine) {
+        setIsGenericQuery(false);
         setMedicines([match.medicine]);
         if (!isLoggedIn()) {
           setAuthModal({ pending: { kind: "direct_search", id: match.medicine.id } });
@@ -229,6 +232,7 @@ export default function Home() {
         await loadDirectSearchData(match.medicine.id);
       } else if (match.alternatives && match.alternatives.length > 0) {
         // Multi-brand generic match (e.g. Paracetamol, Ibuprofen, Omeprazole)
+        setIsGenericQuery(true);
         setMedicines(match.alternatives);
         const topMedId = match.alternatives[0].id;
         if (!isLoggedIn()) {
@@ -248,6 +252,7 @@ export default function Home() {
   };
 
   const handleViewDetails = async (id: string) => {
+    setIsGenericQuery(false);
     if (!isLoggedIn()) {
       setAuthModal({ pending: { kind: "info", id } });
       return;
@@ -266,6 +271,7 @@ export default function Home() {
   };
 
   const handleViewPrices = async (id: string) => {
+    setIsGenericQuery(false);
     if (!isLoggedIn()) {
       setAuthModal({ pending: { kind: "prices", id } });
       return;
@@ -284,6 +290,7 @@ export default function Home() {
   };
 
   const handleCategorySearch = async (category: string) => {
+    setIsGenericQuery(false);
     setIsProcessing(true);
     setError(null);
     try {
@@ -676,6 +683,7 @@ export default function Home() {
               <InfoPanel
                 info={selectedInfo}
                 language={language}
+                isGenericSearch={isGenericQuery}
                 onRequireAuth={() => setAuthModal({ pending: { kind: "info", id: selectedInfo.medicine.id } })}
               />
               <div className="mt-6">
@@ -779,18 +787,37 @@ export default function Home() {
                 <div className="max-w-4xl mx-auto space-y-6">
                   {/* Medicine summary header with Save to Cabinet */}
                   <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-foreground">
-                        {selectedPrices.medicine.brand_name}
-                      </h3>
-                      <p className="text-sm text-muted">
-                        {selectedPrices.medicine.generic_name} &bull; {selectedPrices.medicine.strength} &bull; {selectedPrices.medicine.dosage_form}
-                      </p>
-                      <p className="text-xs text-muted mt-1">
-                        Manufacturer: {selectedPrices.medicine.manufacturer}
-                        {selectedPrices.medicine.registration_info && ` • DRAP Reg: ${selectedPrices.medicine.registration_info}`}
-                      </p>
-                    </div>
+                    {isGenericQuery ? (
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
+                            🧪 Generic Molecule Search
+                          </span>
+                          <span className="text-[11px] font-semibold text-muted">
+                            {selectedPrices.prices.length} Brands Registered
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground">
+                          {selectedPrices.medicine.generic_name} ({selectedPrices.medicine.strength})
+                        </h3>
+                        <p className="text-xs text-muted mt-1">
+                          Showing verified bioequivalent brands in Pakistan &bull; Ranked from lowest to highest price
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <h3 className="text-xl font-bold text-foreground">
+                          {selectedPrices.medicine.brand_name}
+                        </h3>
+                        <p className="text-sm text-muted">
+                          {selectedPrices.medicine.generic_name} &bull; {selectedPrices.medicine.strength} &bull; {selectedPrices.medicine.dosage_form}
+                        </p>
+                        <p className="text-xs text-muted mt-1">
+                          Manufacturer: {selectedPrices.medicine.manufacturer}
+                          {selectedPrices.medicine.registration_info && ` • DRAP Reg: ${selectedPrices.medicine.registration_info}`}
+                        </p>
+                      </div>
+                    )}
                     <SaveToCabinetButton
                       medicineId={selectedPrices.medicine.id}
                       onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedPrices.medicine.id } })}
@@ -823,6 +850,7 @@ export default function Home() {
                   <InfoPanel
                     info={selectedInfo}
                     language={language}
+                    isGenericSearch={isGenericQuery}
                     onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedInfo.medicine.id } })}
                   />
                 </div>
