@@ -221,8 +221,8 @@ section {
   box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.3);
 }
 
-/* Custom Cursor Active on Desktop */
-@media (hover: hover) and (pointer: fine) {
+/* Custom Cursor Active on Tablet, Laptop, and PC (Screens >= 768px) */
+@media (min-width: 768px) and ((hover: hover) or (pointer: fine)) {
   html.custom-cursor-active,
   html.custom-cursor-active *,
   html.custom-cursor-active button,

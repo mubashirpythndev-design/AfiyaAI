@@ -41,9 +41,23 @@ export default function CustomCursor() {
     "rgba(255, 255, 255, ", // Bright White
   ];
 
+  const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     setMounted(true);
-    document.documentElement.classList.add("custom-cursor-active");
+
+    const checkDevice = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        document.documentElement.classList.remove("custom-cursor-active");
+      } else {
+        document.documentElement.classList.add("custom-cursor-active");
+      }
+    };
+
+    checkDevice();
+    window.addEventListener("resize", checkDevice);
 
     const canvas = canvasRef.current;
     const ctx = canvas ? canvas.getContext("2d") : null;
@@ -218,7 +232,7 @@ export default function CustomCursor() {
     };
   }, []);
 
-  if (!mounted) return null;
+  if (!mounted || isMobile) return null;
 
   return (
     <div
