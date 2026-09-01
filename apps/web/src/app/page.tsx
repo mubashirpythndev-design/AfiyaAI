@@ -62,9 +62,15 @@ export default function Home() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authModal, setAuthModal] = useState<{ pending?: PendingAction } | null>(null);
 
-  // Hydrate the session from localStorage after mount (avoids SSR mismatch).
+  // Hydrate the session from localStorage after mount & trigger guide on first visit
   useEffect(() => {
     setAuthUser(getCurrentUser());
+    try {
+      const seen = localStorage.getItem("afiya_guide_seen");
+      if (!seen) {
+        setShowGuideModal(true);
+      }
+    } catch {}
   }, []);
 
   // Always reset scroll to top when changing views
@@ -83,6 +89,36 @@ export default function Home() {
       setAuthModal((prev) => (prev !== null ? prev : {}));
     });
   }, []);
+
+  const handleGuideAction = (actionType: "search" | "category" | "upload" | "chat", payload?: string) => {
+    setShowGuideModal(false);
+    if (actionType === "search" && payload) {
+      setSearchQuery(payload);
+      void (async () => {
+        setIsProcessing(true);
+        try {
+          const match = await matchMedicine(payload);
+          if (match.medicine) {
+            if (!isLoggedIn()) {
+              setAuthModal({ pending: { kind: "direct_search", id: match.medicine.id } });
+              return;
+            }
+            await loadDirectSearchData(match.medicine.id);
+          }
+        } finally {
+          setIsProcessing(false);
+        }
+      })();
+    } else if (actionType === "category" && payload) {
+      void handleCategorySearch(payload);
+    } else if (actionType === "upload") {
+      const el = document.getElementById("features");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else if (actionType === "chat") {
+      const el = document.getElementById("how-it-works");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const loadDirectSearchData = async (id: string) => {
     setIsProcessing(true);
@@ -296,9 +332,19 @@ export default function Home() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
                 {/* Left: Text + CTA */}
                 <div className="animate-slide-up">
-                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full mb-6 sm:mb-8 border border-primary/10">
-                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    {t(language, "hero.badge")}
+                  <div className="flex flex-wrap items-center gap-2 mb-6 sm:mb-8">
+                    <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-primary/10">
+                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                      {t(language, "hero.badge")}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuideModal(true)}
+                      className="inline-flex items-center gap-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 text-xs font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full transition-all shadow-sm hover:scale-105"
+                    >
+                      <span>💡</span>
+                      <span>How to Use & Compare (Interactive Tour)</span>
+                    </button>
                   </div>
 
                   <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.15] mb-4 sm:mb-6 break-words">
@@ -824,6 +870,7 @@ export default function Home() {
         <OnboardingGuideModal
           language={language}
           onClose={() => setShowGuideModal(false)}
+          onAction={handleGuideAction}
         />
       )}
     </div>
