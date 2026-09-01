@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Nastaliq_Urdu } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,6 +32,7 @@ export const metadata: Metadata = {
 };
 
 import CustomCursor from "@/components/shared/CustomCursor";
+import ClerkAuthSync from "@/components/auth/ClerkAuthSync";
 
 export default function RootLayout({
   children,
@@ -38,49 +40,78 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${notoNastaliq.variable} h-full antialiased`}
-    >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  // Suppress third-party Chrome/browser extension script errors from triggering Next.js dev overlay
-                  window.addEventListener('error', function(event) {
-                    if (event.filename && (event.filename.indexOf('chrome-extension://') !== -1 || event.filename.indexOf('moz-extension://') !== -1)) {
-                      event.stopImmediatePropagation();
-                      event.preventDefault();
+    <ClerkProvider>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={`${geistSans.variable} ${geistMono.variable} ${notoNastaliq.variable} h-full antialiased`}
+      >
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  try {
+                    function isExtensionError(event) {
+                      if (!event) return false;
+                      var file = event.filename || '';
+                      var stack = (event.error && event.error.stack) || '';
+                      var msg = event.message || '';
+                      return (
+                        file.indexOf('chrome-extension://') !== -1 ||
+                        file.indexOf('moz-extension://') !== -1 ||
+                        file.indexOf('safari-extension://') !== -1 ||
+                        stack.indexOf('chrome-extension://') !== -1 ||
+                        stack.indexOf('moz-extension://') !== -1 ||
+                        msg.indexOf('M_ID') !== -1 ||
+                        msg.indexOf('bis_skin_checked') !== -1 ||
+                        stack.indexOf('eppiocemhmnlbhjplcgkofciiegomcon') !== -1
+                      );
                     }
-                  }, true);
 
-                  // Neutralize Bitdefender & extension injected attributes before React hydration
-                  var observer = new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                      var m = mutations[i];
-                      if (m.type === 'attributes' && m.attributeName === 'bis_skin_checked' && m.target) {
-                        m.target.removeAttribute('bis_skin_checked');
+                    window.addEventListener('error', function(event) {
+                      if (isExtensionError(event)) {
+                        event.stopImmediatePropagation();
+                        event.preventDefault();
+                        return true;
                       }
-                    }
-                  });
-                  observer.observe(document.documentElement, {
-                    attributes: true,
-                    subtree: true,
-                    attributeFilter: ['bis_skin_checked']
-                  });
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <CustomCursor />
-        {children}
-      </body>
-    </html>
+                    }, true);
+
+                    window.addEventListener('unhandledrejection', function(event) {
+                      var reason = event.reason || {};
+                      var stack = reason.stack || '';
+                      var msg = reason.message || '';
+                      if (stack.indexOf('chrome-extension://') !== -1 || msg.indexOf('M_ID') !== -1) {
+                        event.stopImmediatePropagation();
+                        event.preventDefault();
+                      }
+                    }, true);
+
+                    // Neutralize Bitdefender & extension injected attributes before React hydration
+                    var observer = new MutationObserver(function(mutations) {
+                      for (var i = 0; i < mutations.length; i++) {
+                        var m = mutations[i];
+                        if (m.type === 'attributes' && m.attributeName && m.attributeName.indexOf('bis_') === 0 && m.target) {
+                          m.target.removeAttribute(m.attributeName);
+                        }
+                      }
+                    });
+                    observer.observe(document.documentElement, {
+                      attributes: true,
+                      subtree: true,
+                    });
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
+        </head>
+        <body className="min-h-full flex flex-col" suppressHydrationWarning>
+          <ClerkAuthSync />
+          <CustomCursor />
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

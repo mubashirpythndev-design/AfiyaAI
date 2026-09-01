@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import type { Language, AuthUser } from "@/lib/types";
 import { LANGUAGES } from "@/lib/constants";
 import { t } from "@/lib/i18n";
@@ -27,8 +28,8 @@ export default function Header({
   onOpenGuide,
   onNavigateHome,
 }: HeaderProps) {
+  const { isSignedIn, user: clerkUser } = useUser();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const handleLogoClick = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -38,6 +39,8 @@ export default function Header({
       window.location.href = "/";
     }
   };
+
+  const isUserAuthenticated = !!isSignedIn || !!user;
 
   return (
     <header className="sticky top-0 z-50 glass">
@@ -75,7 +78,7 @@ export default function Header({
               <button
                 type="button"
                 onClick={onOpenGuide}
-                className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+                className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl transition-all flex items-center gap-1 shadow-sm cursor-pointer"
               >
                 <span>💡</span>
                 <span>How to Compare</span>
@@ -89,71 +92,45 @@ export default function Header({
 
           {/* Auth + Language Selector + Theme Toggle + Mobile Menu */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Auth: sign-in button when logged out; cabinet + name + sign-out menu when logged in */}
-            {user ? (
+            {/* Auth: Clerk UserButton / SignInButton */}
+            {isUserAuthenticated ? (
               <div className="flex items-center gap-1.5 sm:gap-2">
                 {onOpenCabinet && (
                   <button
                     onClick={onOpenCabinet}
                     aria-label="Open My Cabinet"
-                    className="flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl px-2 sm:px-3 py-1.5 text-xs font-semibold transition-all shrink-0"
+                    className="flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-all shrink-0 cursor-pointer"
                   >
                     <span>⭐</span>
                     <span className="hidden md:inline">My Cabinet</span>
                   </button>
                 )}
-                <div className="relative">
+                {isSignedIn ? (
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-8 h-8 rounded-xl border border-border shadow-sm",
+                      },
+                    }}
+                  />
+                ) : (
                   <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-1.5 sm:gap-2 bg-surface rounded-xl border border-border px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground hover:border-primary/30 transition-all shrink-0"
+                    onClick={onSignOut}
+                    className="bg-surface hover:bg-surface-hover text-foreground border border-border px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
                   >
-                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] sm:text-xs font-bold">
-                      {user.name.charAt(0).toUpperCase()}
-                    </span>
-                    <span className="hidden sm:inline max-w-[90px] md:max-w-[120px] truncate">{user.name}</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
+                    {t(language, "nav.signOut")}
                   </button>
-                  {userMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-52 sm:w-56 bg-surface rounded-xl border border-border shadow-xl p-2 animate-fade-in z-50">
-                      <div className="px-3 py-2 border-b border-border mb-1">
-                        <p className="text-sm font-semibold text-foreground truncate">{user.name}</p>
-                        <p className="text-xs text-muted truncate">{user.email}</p>
-                      </div>
-                      {onOpenGuide && (
-                        <button
-                          onClick={() => { setUserMenuOpen(false); onOpenGuide(); }}
-                          className="w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-hover rounded-lg transition-all flex items-center gap-2"
-                        >
-                          <span>💡</span> How to Compare & Check MRP
-                        </button>
-                      )}
-                      {onOpenCabinet && (
-                        <button
-                          onClick={() => { setUserMenuOpen(false); onOpenCabinet(); }}
-                          className="w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-hover rounded-lg transition-all flex items-center gap-2"
-                        >
-                          <span>⭐</span> My Cabinet
-                        </button>
-                      )}
-                      <button
-                        onClick={() => { setUserMenuOpen(false); onSignOut(); }}
-                        className="w-full text-left px-3 py-2 text-sm font-medium text-danger hover:bg-surface-hover rounded-lg transition-all"
-                      >
-                        {t(language, "nav.signOut")}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             ) : (
-              <button
-                onClick={onSignIn}
-                className="bg-primary hover:bg-primary-dark text-white px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 hover:shadow-md hover:shadow-primary/20 shrink-0"
-              >
-                {t(language, "nav.signIn")}
-              </button>
+              <SignInButton mode="modal">
+                <button
+                  type="button"
+                  className="bg-primary hover:bg-primary-dark text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 hover:shadow-md hover:shadow-primary/20 shrink-0 cursor-pointer"
+                >
+                  {t(language, "nav.signIn")}
+                </button>
+              </SignInButton>
             )}
 
             {/* Desktop Theme toggle & Language selector */}

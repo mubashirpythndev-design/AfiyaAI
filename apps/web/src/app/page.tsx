@@ -5,8 +5,9 @@
  * Author / Developer: Mubashir (Lead Developer)
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ImageUploader from "@/components/upload/ImageUploader";
@@ -38,15 +39,20 @@ import { t } from "@/lib/i18n";
 
 type View = "home" | "results" | "info" | "prices" | "direct_search";
 
-/** A gated action remembered while the guest signs in. */
-type PendingAction = { kind: "info" | "prices" | "direct_search"; id: string };
+type PendingAction =
+  | { kind: "info"; id: string }
+  | { kind: "prices"; id: string }
+  | { kind: "direct_search"; id: string };
 
 export default function Home() {
-  const [language, setLanguage] = useState<Language>("en");
+  const { isSignedIn, user: clerkUser } = useUser();
+  const clerk = useClerk();
   const [view, setView] = useState<View>("home");
+  const [language, setLanguage] = useState<Language>("en");
+  const [medicines, setMedicines] = useState<MedicineDetail[]>([]);
+  const [candidates, setCandidates] = useState<MedicineCandidate[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrData, setOcrData] = useState<OCRResponse | null>(null);
-  const [medicines, setMedicines] = useState<MedicineDetail[]>([]);
   const [selectedInfo, setSelectedInfo] = useState<MedicineInfo | null>(null);
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,10 +64,48 @@ export default function Home() {
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // === Auth state (single centralized guard — a future whole-app login gate
-  // can move these two pieces to one entry point) ===
+  // === Auth state ===
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authModal, setAuthModal] = useState<{ pending?: PendingAction } | null>(null);
+  const pendingRef = useRef<PendingAction | null>(null);
+
+  // Sync Clerk user
+  useEffect(() => {
+    if (isSignedIn && clerkUser) {
+      const email = clerkUser.primaryEmailAddress?.emailAddress || "";
+      const userObj: AuthUser = {
+        id: clerkUser.id,
+        name: clerkUser.fullName || clerkUser.firstName || email.split("@")[0] || "User",
+        email: email,
+        is_admin: clerkUser.publicMetadata?.role === "admin" || false,
+      };
+      setAuthUser(userObj);
+
+      // Replay any pending action upon Clerk sign in
+      if (pendingRef.current) {
+        const pending = pendingRef.current;
+        pendingRef.current = null;
+        setAuthModal(null);
+        if (pending.kind === "info") void handleViewDetails(pending.id);
+        if (pending.kind === "prices") void handleViewPrices(pending.id);
+        if (pending.kind === "direct_search") void loadDirectSearchData(pending.id);
+      }
+    } else if (!isSignedIn) {
+      setAuthUser(getCurrentUser());
+    }
+  }, [isSignedIn, clerkUser]);
+
+  const requestAuth = (pending?: PendingAction) => {
+    if (pending) {
+      pendingRef.current = pending;
+      setAuthModal({ pending });
+    }
+    try {
+      clerk.openSignIn();
+    } catch {
+      setAuthModal({ pending });
+    }
+  };
 
   // Hydrate the session from localStorage after mount & trigger guide on first visit
   useEffect(() => {
@@ -81,13 +125,11 @@ export default function Home() {
     }
   }, [view]);
 
-  // Any 401 (expired token) drops the session and opens the modal. Guarded so
-  // a failed login attempt (also 401) inside an already-open modal keeps its
-  // pending action intact.
+  // Any 401 drops session and requests sign in
   useEffect(() => {
     setOnUnauthorized(() => {
       setAuthUser(null);
-      setAuthModal((prev) => (prev !== null ? prev : {}));
+      requestAuth();
     });
   }, []);
 
