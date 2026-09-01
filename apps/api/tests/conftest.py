@@ -106,7 +106,21 @@ async def create_pre_migration_db(db_file: Path) -> None:
         for i, item in enumerate(rows, start=1):
             med_id = f"b0000001-0000-0000-0000-{i:012d}"
             price_id = f"c0000001-0000-0000-0000-{i:012d}"
-            parsed = _parse_medicine_name(item["Product_name"])
+            p_name = item.get("product_name") or item.get("Product_name") or ""
+            parsed = _parse_medicine_name(p_name) if p_name else {}
+            brand = item.get("brand_name") or parsed.get("brand_name", "")
+            generic = item.get("generic_name") or item.get("Generic") or parsed.get("generic_name", "")
+            form = item.get("dosage_form") or item.get("Form") or parsed.get("dosage_form", "")
+            strength = item.get("strength") or item.get("Strength") or parsed.get("strength", "")
+            mfr = item.get("manufacturer") or item.get("Manufacturer", "")
+            reg = item.get("registration_no") or item.get("Registration_No", "")
+            cat = item.get("category") or item.get("Category", "")
+            price_val = item.get("pack_price_pkr") or item.get("Price", 0)
+            pack_size = item.get("pack_size") or item.get("Packsize", "")
+
+            if isinstance(price_val, str):
+                price_val = float(price_val.replace(",", ""))
+
             await conn.execute(
                 text(
                     "INSERT INTO medicines (id, brand_name, generic_name, "
@@ -116,18 +130,15 @@ async def create_pre_migration_db(db_file: Path) -> None:
                 ),
                 {
                     "id": med_id,
-                    "brand": parsed["brand_name"],
-                    "generic": parsed["generic_name"],
-                    "form": parsed["dosage_form"],
-                    "strength": parsed["strength"],
-                    "mfr": item.get("Manufacturer", ""),
-                    "reg": item.get("Registration_No", ""),
-                    "cat": item.get("Category", ""),
+                    "brand": brand,
+                    "generic": generic,
+                    "form": form,
+                    "strength": strength,
+                    "mfr": mfr,
+                    "reg": reg,
+                    "cat": cat,
                 },
             )
-            price_val = item.get("Price", 0)
-            if isinstance(price_val, str):
-                price_val = float(price_val.replace(",", ""))
             await conn.execute(
                 text(
                     "INSERT INTO medicine_prices (id, medicine_id, price, "
@@ -137,10 +148,8 @@ async def create_pre_migration_db(db_file: Path) -> None:
                 {
                     "id": price_id,
                     "mid": med_id,
-                    # raw sqlite binding cannot take Decimal; NUMERIC affinity
-                    # stores the float and the ORM reads it back as Decimal
-                    "price": float(price_val),
-                    "ps": item.get("Packsize", ""),
+                    "price": float(price_val or 0),
+                    "ps": pack_size,
                     "sid": SOURCE_DRAP_ID,
                 },
             )

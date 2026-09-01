@@ -98,12 +98,14 @@ export default function Home() {
         setIsProcessing(true);
         try {
           const match = await matchMedicine(payload);
-          if (match.medicine) {
+          const targetMed = match.medicine || (match.alternatives && match.alternatives[0]);
+          if (targetMed) {
             if (!isLoggedIn()) {
-              setAuthModal({ pending: { kind: "direct_search", id: match.medicine.id } });
+              setAuthModal({ pending: { kind: "direct_search", id: targetMed.id } });
               return;
             }
-            await loadDirectSearchData(match.medicine.id);
+            if (!match.medicine) setDirectTab("prices");
+            await loadDirectSearchData(targetMed.id);
           }
         } finally {
           setIsProcessing(false);
@@ -225,6 +227,16 @@ export default function Home() {
           return;
         }
         await loadDirectSearchData(match.medicine.id);
+      } else if (match.alternatives && match.alternatives.length > 0) {
+        // Multi-brand generic match (e.g. Paracetamol, Ibuprofen, Omeprazole)
+        setMedicines(match.alternatives);
+        const topMedId = match.alternatives[0].id;
+        if (!isLoggedIn()) {
+          setAuthModal({ pending: { kind: "direct_search", id: topMedId } });
+          return;
+        }
+        setDirectTab("prices");
+        await loadDirectSearchData(topMedId);
       } else {
         setError(t(language, "error.noMatch"));
       }

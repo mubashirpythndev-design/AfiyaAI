@@ -7,7 +7,7 @@ import re
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from thefuzz import fuzz
 
@@ -59,24 +59,39 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
         logger.info(f"Exact brand match: '{candidate}' -> {med.brand_name}")
         return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
 
-    # 2. Exact match on generic_name. Several brands can share one generic
-    # (e.g. Omeprazole -> Losec + Risek): never silently pick one — return
-    # the candidates for user confirmation (spec 04 §10).
+    # 2. Match on generic_name (exact or stripped of dosage tokens)
+    clean_gen_query = re.sub(r"\b\d+\s*(mg|ml|mcg|g|iu|iu/ml|%)\b", "", normalized).strip()
     result = await db.execute(
-        select(Medicine).where(func.lower(Medicine.generic_name) == normalized)
+        select(Medicine).where(
+            or_(
+                func.lower(Medicine.generic_name) == normalized,
+                func.lower(Medicine.generic_name) == clean_gen_query,
+            )
+        )
     )
     generic_meds = result.scalars().all()
-    if len(generic_meds) == 1:
-        med = generic_meds[0]
-        logger.info(f"Exact generic match: '{candidate}' -> {med.brand_name}")
-        return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
     if generic_meds:
-        logger.info(f"Ambiguous generic match: '{candidate}' -> {len(generic_meds)} brands")
+        # If candidate explicitly specified strength, prioritize matching strength
+        cand_strength_tokens = set(re.findall(r"\b\d+[a-z]*\b", normalized))
+        if cand_strength_tokens:
+            filtered_by_strength = [
+                m for m in generic_meds
+                if set(re.findall(r"\b\d+[a-z]*\b", normalize(m.strength))).intersection(cand_strength_tokens)
+            ]
+            if filtered_by_strength:
+                generic_meds = filtered_by_strength
+
+        if len(generic_meds) == 1:
+            med = generic_meds[0]
+            logger.info(f"Single generic match: '{candidate}' -> {med.brand_name}")
+            return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
+
+        logger.info(f"Generic match: '{candidate}' -> {len(generic_meds)} brands")
         return {
             "medicine": None,
             "confidence": 1.0,
             "needs_confirmation": True,
-            "alternatives": [medicine_to_schema(m) for m in generic_meds][:5],
+            "alternatives": [medicine_to_schema(m) for m in generic_meds][:10],
         }
 
     # 3. Check all medicines for token containment & aliases
