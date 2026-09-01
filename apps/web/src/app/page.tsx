@@ -144,8 +144,9 @@ export default function Home() {
           const targetMed = match.medicine || (match.alternatives && match.alternatives[0]);
           if (targetMed) {
             setIsGenericQuery(!match.medicine);
-            if (!isLoggedIn()) {
-              setAuthModal({ pending: { kind: "direct_search", id: targetMed.id } });
+            const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
+            if (!isAuthenticated) {
+              requestAuth({ kind: "direct_search", id: targetMed.id });
               return;
             }
             if (!match.medicine) setDirectTab("prices");
@@ -264,11 +265,12 @@ export default function Home() {
     setError(null);
     try {
       const match = await matchMedicine(searchQuery.trim());
+      const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
       if (match.medicine) {
         setIsGenericQuery(false);
         setMedicines([match.medicine]);
-        if (!isLoggedIn()) {
-          setAuthModal({ pending: { kind: "direct_search", id: match.medicine.id } });
+        if (!isAuthenticated) {
+          requestAuth({ kind: "direct_search", id: match.medicine.id });
           return;
         }
         await loadDirectSearchData(match.medicine.id);
@@ -277,8 +279,8 @@ export default function Home() {
         setIsGenericQuery(true);
         setMedicines(match.alternatives);
         const topMedId = match.alternatives[0].id;
-        if (!isLoggedIn()) {
-          setAuthModal({ pending: { kind: "direct_search", id: topMedId } });
+        if (!isAuthenticated) {
+          requestAuth({ kind: "direct_search", id: topMedId });
           return;
         }
         setDirectTab("prices");
@@ -295,8 +297,9 @@ export default function Home() {
 
   const handleViewDetails = async (id: string) => {
     setIsGenericQuery(false);
-    if (!isLoggedIn()) {
-      setAuthModal({ pending: { kind: "info", id } });
+    const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
+    if (!isAuthenticated) {
+      requestAuth({ kind: "info", id });
       return;
     }
     setIsProcessing(true);
@@ -314,8 +317,9 @@ export default function Home() {
 
   const handleViewPrices = async (id: string) => {
     setIsGenericQuery(false);
-    if (!isLoggedIn()) {
-      setAuthModal({ pending: { kind: "prices", id } });
+    const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
+    if (!isAuthenticated) {
+      requestAuth({ kind: "prices", id });
       return;
     }
     setIsProcessing(true);
@@ -780,7 +784,7 @@ export default function Home() {
                   void loadDirectSearchData(id);
                   setDirectTab("prices");
                 }}
-                onRequireAuth={() => setAuthModal({ pending: { kind: "info", id: selectedInfo.medicine.id } })}
+                onRequireAuth={() => requestAuth({ kind: "info", id: selectedInfo.medicine.id })}
               />
               <div className="mt-6">
                 <Disclaimer language={language} />
@@ -818,7 +822,7 @@ export default function Home() {
                 </div>
                 <SaveToCabinetButton
                   medicineId={selectedPrices.medicine.id}
-                  onRequireAuth={() => setAuthModal({ pending: { kind: "prices", id: selectedPrices.medicine.id } })}
+                  onRequireAuth={() => requestAuth({ kind: "prices", id: selectedPrices.medicine.id })}
                 />
               </div>
 
@@ -916,7 +920,7 @@ export default function Home() {
                     )}
                     <SaveToCabinetButton
                       medicineId={selectedPrices.medicine.id}
-                      onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedPrices.medicine.id } })}
+                      onRequireAuth={() => requestAuth({ kind: "direct_search", id: selectedPrices.medicine.id })}
                     />
                   </div>
 
@@ -1027,7 +1031,7 @@ export default function Home() {
                       void loadDirectSearchData(id);
                       setDirectTab("prices");
                     }}
-                    onRequireAuth={() => setAuthModal({ pending: { kind: "direct_search", id: selectedInfo.medicine.id } })}
+                    onRequireAuth={() => requestAuth({ kind: "direct_search", id: selectedInfo.medicine.id })}
                   />
                 </div>
               )}
