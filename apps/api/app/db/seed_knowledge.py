@@ -148,12 +148,14 @@ async def seed_knowledge_chunks(db: AsyncSession) -> KnowledgeSeedReport:
 
         # 1. verified_profile chunk
         existing_profile = await db.execute(
-            select(KnowledgeChunk.id).where(
+            select(KnowledgeChunk).where(
                 KnowledgeChunk.medicine_id == med.id,
                 KnowledgeChunk.chunk_type == CHUNK_TYPE,
             )
         )
-        if existing_profile.first():
+        profile_row = existing_profile.scalar_one_or_none()
+        if profile_row:
+            profile_row.content = build_profile_text(med)
             report.chunks_skipped_existing += 1
         else:
             db.add(
@@ -188,12 +190,14 @@ async def seed_knowledge_chunks(db: AsyncSession) -> KnowledgeSeedReport:
                     continue
 
                 existing_chunk = await db.execute(
-                    select(KnowledgeChunk.id).where(
+                    select(KnowledgeChunk).where(
                         KnowledgeChunk.medicine_id == med.id,
                         KnowledgeChunk.chunk_type == chunk_type,
                     )
                 )
-                if existing_chunk.first():
+                chunk_row = existing_chunk.scalar_one_or_none()
+                if chunk_row:
+                    chunk_row.content = content
                     report.chunks_skipped_existing += 1
                 else:
                     db.add(
