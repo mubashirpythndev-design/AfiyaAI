@@ -37,8 +37,8 @@ from app.db.database import Medicine, MrpReference, Source
 logger = logging.getLogger(__name__)
 
 # Path to the DRAP seed file (project root). Per Phase-1 override, the data
-# lives in the EXISTING DRAP_40_Medicines_data.json.
-DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "DRAP_40_Medicines_data.json"
+# lives in the EXISTING afiya_medicine_comparison_dataset_clean.json.
+DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "afiya_medicine_comparison_dataset_clean.json"
 
 # Provenance source for all seeded MRP rows (spec 09 §16 records this exact
 # name so rollback can remove it surgically).

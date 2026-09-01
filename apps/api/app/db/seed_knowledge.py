@@ -70,7 +70,8 @@ CLASS_GLOSS_FALLBACK = (
 )
 
 
-DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "DRAP_40_Medicines_data.json"
+DATA_PATH = Path(__file__).resolve().parents[4] / "afiya_medicine_comparison_dataset_clean.json"
+DRAP_DATA_PATH = DATA_PATH
 
 
 @dataclass

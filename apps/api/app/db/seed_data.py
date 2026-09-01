@@ -14,7 +14,8 @@ from app.db.database import async_session, Medicine, Source, MedicinePrice
 logger = logging.getLogger(__name__)
 
 # Path to DRAP data file (project root)
-DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "DRAP_40_Medicines_data.json"
+DATA_PATH = Path(__file__).resolve().parents[4] / "afiya_medicine_comparison_dataset_clean.json"
+DRAP_DATA_PATH = DATA_PATH
 
 # Deterministic IDs for reproducible seeds
 SOURCE_DRAP_ID = "a0000001-0000-0000-0000-000000000001"
