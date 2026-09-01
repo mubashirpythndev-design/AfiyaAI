@@ -187,17 +187,20 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
 
       {/* Sources */}
       {sources.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex flex-wrap items-center gap-2 pt-2">
           <span className="text-xs font-medium text-muted">Sources:</span>
           {sources.map((s, i) => (
             <span key={i} className="inline-flex items-center gap-1 text-xs bg-surface border border-border rounded-full px-2.5 py-1">
-              {s.url ? (
-                <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  {s.name}
-                </a>
-              ) : (
-                <span className="text-muted">{s.name}</span>
-              )}
+              <a
+                href={s.url?.includes("dra.gov.pk") ? "https://e.dra.gov.pk/public/price" : (s.url || "https://e.dra.gov.pk/public/price")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+                title="Verify at DRAP Price Portal"
+              >
+                <span>{s.name}</span>
+                <span className="text-[10px]">↗</span>
+              </a>
             </span>
           ))}
         </div>

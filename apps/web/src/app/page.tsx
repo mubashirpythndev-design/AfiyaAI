@@ -354,7 +354,49 @@ export default function Home() {
                   <div className="flex flex-wrap items-center gap-2 mb-6 sm:mb-8">
                     <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full border border-primary/10">
                       <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                      {t(language, "hero.badge")}
+                      <span>
+                        {language === "ur" ? (
+                          <>
+                            <span>طاقتور از </span>
+                            <a
+                              href="https://e.dra.gov.pk/public/price"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
+                              title="DRAP سرکاری پرائس پورٹل"
+                            >
+                              مصدقہ DRAP ڈیٹا ↗
+                            </a>
+                          </>
+                        ) : language === "roman_ur" ? (
+                          <>
+                            <span>Mustanad </span>
+                            <a
+                              href="https://e.dra.gov.pk/public/price"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
+                              title="Verify on DRAP Public Price Portal"
+                            >
+                              DRAP Data ↗
+                            </a>
+                            <span> se Taqatwar</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Powered by </span>
+                            <a
+                              href="https://e.dra.gov.pk/public/price"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
+                              title="Verify on DRAP Public Price Portal"
+                            >
+                              Verified DRAP Data ↗
+                            </a>
+                          </>
+                        )}
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -420,24 +462,32 @@ export default function Home() {
 
                 {/* Right: Hero image + Upload */}
                 <div className="animate-fade-in space-y-4 sm:space-y-6" style={{ animationDelay: "0.3s" }}>
-                  <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/30 card-hover">
+                  <a
+                    href="https://www.dra.gov.pk/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group relative block rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/30 card-hover cursor-pointer"
+                    title="Visit Official DRAP Website (dra.gov.pk)"
+                  >
                     <Image
                       src="/hero-banner.png"
-                      alt="Medical AI visualization"
+                      alt="Medical AI visualization - DRAP Pakistan"
                       width={800}
                       height={460}
-                      className="w-full h-auto"
+                      className="w-full h-auto group-hover:scale-[1.02] transition-transform duration-500"
                       priority
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent" />
                     {/* Floating badge */}
-                    <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-surface/90 backdrop-blur-md rounded-xl px-3 py-1.5 sm:px-4 sm:py-2.5 border border-border/30 shadow-lg">
+                    <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-surface/90 backdrop-blur-md rounded-xl px-3 py-1.5 sm:px-4 sm:py-2.5 border border-border/30 shadow-lg group-hover:border-primary/40 transition-colors">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                        <span className="text-[10px] sm:text-xs font-semibold text-foreground">{t(language, "hero.drapBadge")}</span>
+                        <span className="text-[10px] sm:text-xs font-semibold text-foreground">
+                          {t(language, "hero.drapBadge")} ↗
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  </a>
 
                   <ImageUploader
                     onImageSelected={handleImageSelected}

@@ -65,18 +65,18 @@ export default function PriceTable({ comparison, onSelectCalculatedPrice }: Pric
             {sorted.map((entry, i) => (
               <tr key={entry.id} className={`hover:bg-surface-hover transition-colors ${i === 0 ? "bg-success/5" : ""}`}>
                 <td className="px-3 sm:px-4 py-2.5 sm:py-3">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />}
                     <span className="font-medium text-foreground">{entry.source.name}</span>
-                    {entry.source.url && (
-                      <a href={entry.source.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline shrink-0">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-                          <polyline points="15 3 21 3 21 9" />
-                          <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                      </a>
-                    )}
+                    <a
+                      href="https://e.dra.gov.pk/public/price"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary-dark shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 hover:bg-primary/20 px-2 py-0.5 rounded-md border border-primary/20 transition-all ml-1"
+                      title="Verify Official Price at DRAP Public Price Portal (e.dra.gov.pk/public/price)"
+                    >
+                      <span>DRAP Price Portal ↗</span>
+                    </a>
                   </div>
                 </td>
                 <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right">
