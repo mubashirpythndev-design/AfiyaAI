@@ -1,7 +1,7 @@
 // Typed API client for Afiya AI backend
 
 import { API_BASE_URL } from "./constants";
-import { clearSession, getToken } from "./auth";
+import { clearSession, getToken, getCurrentUser } from "./auth";
 import type {
   OCRResponse,
   MatchResponse,
@@ -38,7 +38,12 @@ function handleUnauthorized(): void {
 
 function authHeaders(): Record<string, string> {
   const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const user = getCurrentUser();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (user?.email) headers["X-Clerk-User-Email"] = user.email;
+  if (user?.name) headers["X-Clerk-User-Name"] = user.name;
+  return headers;
 }
 
 async function apiFetch<T>(

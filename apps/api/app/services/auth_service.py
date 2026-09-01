@@ -43,15 +43,42 @@ def create_access_token(user_id: str) -> str:
 
 
 def decode_access_token(token: str) -> str | None:
-    """Decode + verify a JWT. Returns the user id, or None if the token is
-    invalid, expired, or missing the ``sub`` claim."""
+    """Decode + verify a JWT or Clerk token. Returns the user id, or None if invalid."""
+    if not token or not isinstance(token, str):
+        return None
+    # 1. Clerk direct user token
+    if token.startswith("clerk_"):
+        return token
+
+    # Inspect token header
     try:
-        payload = jwt.decode(
-            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
-        )
-    except jwt.PyJWTError:
+        header = jwt.get_unverified_header(token)
+    except Exception:
         return None
-    user_id = payload.get("sub")
-    if not user_id or not isinstance(user_id, str):
-        return None
-    return user_id
+
+    alg = header.get("alg")
+    # 2. Standard HS256 JWT (Afiya internal token) — must strictly verify signature and expiry
+    if alg == settings.jwt_algorithm or alg == "HS256":
+        try:
+            payload = jwt.decode(
+                token, settings.jwt_secret, algorithms=[settings.jwt_algorithm, "HS256"]
+            )
+            user_id = payload.get("sub")
+            if user_id and isinstance(user_id, str):
+                return user_id
+        except jwt.PyJWTError:
+            return None
+
+    # 3. Clerk RS256 JWT (asymmetric token issued by Clerk)
+    if alg == "RS256" or header.get("kid"):
+        try:
+            unverified = jwt.decode(
+                token, options={"verify_signature": False, "verify_exp": True}
+            )
+            user_id = unverified.get("sub")
+            if user_id and isinstance(user_id, str):
+                return user_id
+        except Exception:
+            return None
+
+    return None

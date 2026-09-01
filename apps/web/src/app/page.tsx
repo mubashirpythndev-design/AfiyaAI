@@ -18,7 +18,6 @@ import MrpChecker from "@/components/medicine/MrpChecker";
 import InfoPanel from "@/components/medicine/InfoPanel";
 import SaveToCabinetButton from "@/components/medicine/SaveToCabinetButton";
 import ChatInterface from "@/components/chat/ChatInterface";
-import AuthModal from "@/components/auth/AuthModal";
 import CabinetModal from "@/components/medicine/CabinetModal";
 import OnboardingGuideModal from "@/components/guide/OnboardingGuideModal";
 import Disclaimer from "@/components/shared/Disclaimer";
@@ -66,7 +65,6 @@ export default function Home() {
 
   // === Auth state ===
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [authModal, setAuthModal] = useState<{ pending?: PendingAction } | null>(null);
   const pendingRef = useRef<PendingAction | null>(null);
 
   // Sync Clerk user
@@ -85,7 +83,6 @@ export default function Home() {
       if (pendingRef.current) {
         const pending = pendingRef.current;
         pendingRef.current = null;
-        setAuthModal(null);
         if (pending.kind === "info") void handleViewDetails(pending.id);
         if (pending.kind === "prices") void handleViewPrices(pending.id);
         if (pending.kind === "direct_search") void loadDirectSearchData(pending.id);
@@ -98,13 +95,8 @@ export default function Home() {
   const requestAuth = (pending?: PendingAction) => {
     if (pending) {
       pendingRef.current = pending;
-      setAuthModal({ pending });
     }
-    try {
-      clerk.openSignIn();
-    } catch {
-      setAuthModal({ pending });
-    }
+    clerk.openSignIn();
   };
 
   // Hydrate the session from localStorage after mount & trigger guide on first visit
@@ -183,19 +175,6 @@ export default function Home() {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleAuthSuccess = (user: AuthUser, isNewSignup?: boolean) => {
-    setAuthUser(user);
-    const pending = authModal?.pending;
-    setAuthModal(null);
-    if (isNewSignup) {
-      setShowGuideModal(true);
-    }
-    // Replay the action the guest clicked before signing in.
-    if (pending?.kind === "info") void handleViewDetails(pending.id);
-    if (pending?.kind === "prices") void handleViewPrices(pending.id);
-    if (pending?.kind === "direct_search") void loadDirectSearchData(pending.id);
   };
 
   const handleSignOut = () => {
@@ -362,7 +341,7 @@ export default function Home() {
         language={language}
         onLanguageChange={setLanguage}
         user={authUser}
-        onSignIn={() => setAuthModal({})}
+        onSignIn={() => requestAuth()}
         onSignOut={handleSignOut}
         onOpenCabinet={() => setShowCabinetModal(true)}
         onOpenGuide={() => setShowGuideModal(true)}
@@ -1071,14 +1050,6 @@ export default function Home() {
       </main>
 
       <Footer language={language} />
-
-      {authModal !== null && (
-        <AuthModal
-          language={language}
-          onClose={() => setAuthModal(null)}
-          onSuccess={handleAuthSuccess}
-        />
-      )}
 
       <CabinetModal
         isOpen={showCabinetModal}

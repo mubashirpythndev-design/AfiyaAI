@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useUser, useClerk, UserButton, SignInButton } from "@clerk/nextjs";
 import { isLoggedIn } from "@/lib/auth";
 import {
   fetchAdminUsers,
@@ -16,21 +17,19 @@ import {
   type AdminUsersResponse,
 } from "@/lib/api";
 
-// Lazy-import AuthModal only when needed (keeps the initial bundle small).
-import AuthModal from "@/components/auth/AuthModal";
-
 export default function AdminUsersPage() {
+  const { isSignedIn, user: clerkUser } = useUser();
+  const clerk = useClerk();
   const [loggedIn, setLoggedIn] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<AdminUsersResponse | null>(null);
   const [search, setSearch] = useState("");
 
-  // Check auth on mount (client-only).
+  // Check auth on mount & when Clerk loads
   useEffect(() => {
-    setLoggedIn(isLoggedIn());
-  }, []);
+    setLoggedIn(Boolean(isSignedIn || isLoggedIn()));
+  }, [isSignedIn]);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -56,13 +55,13 @@ export default function AdminUsersPage() {
 
   // Auto-load on login state change
   useEffect(() => {
-    if (loggedIn) {
+    if (loggedIn || isSignedIn) {
       loadUsers();
     }
-  }, [loggedIn, loadUsers]);
+  }, [loggedIn, isSignedIn, loadUsers]);
 
   // ── Not logged in: show sign-in card ──
-  if (!loggedIn) {
+  if (!loggedIn && !isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="bg-surface rounded-2xl border border-border shadow-xl p-8 max-w-md w-full text-center animate-fade-in">
@@ -87,24 +86,15 @@ export default function AdminUsersPage() {
           <p className="text-sm text-muted mb-6">
             Sign in with an admin account to view registered users.
           </p>
-          <button
-            onClick={() => setShowAuthModal(true)}
-            className="bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors w-full"
-          >
-            Sign in
-          </button>
+          <SignInButton mode="modal">
+            <button
+              type="button"
+              className="bg-primary text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-dark transition-colors w-full cursor-pointer shadow-md shadow-primary/20"
+            >
+              Sign in with Clerk
+            </button>
+          </SignInButton>
         </div>
-
-        {showAuthModal && (
-          <AuthModal
-            language="en"
-            onClose={() => setShowAuthModal(false)}
-            onSuccess={() => {
-              setShowAuthModal(false);
-              setLoggedIn(true);
-            }}
-          />
-        )}
       </div>
     );
   }
