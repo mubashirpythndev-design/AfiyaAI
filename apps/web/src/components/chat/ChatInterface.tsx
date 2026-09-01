@@ -9,12 +9,14 @@ import { t } from "@/lib/i18n";
 interface ChatInterfaceProps {
   language: Language;
   medicineId?: string;
+  onSelectMedicine?: (medicine: any) => void;
 }
 
-export default function ChatInterface({ language, medicineId }: ChatInterfaceProps) {
+export default function ChatInterface({ language, medicineId, onSelectMedicine }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -30,11 +32,11 @@ export default function ChatInterface({ language, medicineId }: ChatInterfacePro
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isStreaming]);
 
   const handleSend = async (text?: string) => {
     const messageText = text ?? input.trim();
-    if (!messageText || loading) return;
+    if (!messageText || loading || isStreaming) return;
     const userMsg: ChatMsg = {
       id: crypto.randomUUID(),
       role: "user",
@@ -53,16 +55,63 @@ export default function ChatInterface({ language, medicineId }: ChatInterfacePro
         language,
         conversation_history: history,
       });
-      const assistantMsg: ChatMsg = {
-        id: crypto.randomUUID(),
+
+      setLoading(false);
+      setIsStreaming(true);
+
+      const msgId = crypto.randomUUID();
+      const initialAssistantMsg: ChatMsg = {
+        id: msgId,
         role: "assistant",
-        content: res.message,
-        sources: res.sources,
+        content: "",
+        sources: [],
+        medicine: res.medicine,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, assistantMsg]);
-      if (res.disclaimer) setDisclaimer(res.disclaimer);
+      setMessages((prev) => [...prev, initialAssistantMsg]);
+
+      // Stream text chunk-by-chunk (Approach 2: Progressive typing stream)
+      const fullText = res.message || "";
+      const words = fullText.split(" ");
+      let currentWordIndex = 0;
+      const chunkSize = 2; // Stream 2 words per tick
+
+      const streamTimer = setInterval(() => {
+        currentWordIndex += chunkSize;
+        const currentSlice = words.slice(0, currentWordIndex).join(" ");
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === msgId
+              ? {
+                  ...msg,
+                  content: currentSlice,
+                }
+              : msg
+          )
+        );
+
+        if (currentWordIndex >= words.length) {
+          clearInterval(streamTimer);
+          setIsStreaming(false);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === msgId
+                ? {
+                    ...msg,
+                    content: fullText,
+                    sources: res.sources,
+                  }
+                : msg
+            )
+          );
+          if (res.disclaimer) setDisclaimer(res.disclaimer);
+        }
+      }, 20);
+
     } catch {
+      setLoading(false);
+      setIsStreaming(false);
       const errorMsg: ChatMsg = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -70,8 +119,6 @@ export default function ChatInterface({ language, medicineId }: ChatInterfacePro
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -136,13 +183,30 @@ export default function ChatInterface({ language, medicineId }: ChatInterfacePro
                   <span className="text-[10px] font-semibold text-muted">Afiya AI</span>
                 </div>
               )}
-              <div className={`rounded-2xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm leading-relaxed ${
+              <div className={`rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === "user"
                   ? "bg-gradient-to-br from-primary to-primary-dark text-white rounded-br-md shadow-md shadow-primary/10"
                   : "bg-background text-foreground border border-border rounded-bl-md"
               }`}>
                 {msg.content}
+                {isStreaming && msg.role === "assistant" && msg.content && (
+                  <span className="inline-block w-1.5 h-3.5 bg-primary ml-1 animate-pulse align-middle" />
+                )}
               </div>
+
+              {/* Interactive Medicine Action Pill */}
+              {msg.medicine && (
+                <div className="mt-2 flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => onSelectMedicine && onSelectMedicine(msg.medicine)}
+                    className="inline-flex items-center gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 rounded-xl px-3 py-1.5 text-xs font-bold transition-all shadow-sm hover:scale-[1.02]"
+                  >
+                    <span>🔍</span>
+                    <span>View {msg.medicine.brand_name} {msg.medicine.strength} Details & Prices</span>
+                  </button>
+                </div>
+              )}
 
               {/* Source badges */}
               {msg.sources && msg.sources.length > 0 && (

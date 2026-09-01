@@ -87,6 +87,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   sources?: Source[];
+  medicine?: MedicineDetail;
   timestamp: Date;
 }
 

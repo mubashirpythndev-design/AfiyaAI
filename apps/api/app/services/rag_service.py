@@ -90,11 +90,8 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
                 })
 
         if not chunks:
-            return {
-                "context": "No verified information found for this medicine in our database.",
-                "chunks": [],
-                "sources": [],
-            }
+            # Fallback to direct knowledge retrieval so known medicines always have complete context
+            return await _retrieve_context_sqlite(medicine_id, db)
 
         # Assemble context string for LLM
         context_parts = []
@@ -108,12 +105,8 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
         }
 
     except Exception as e:
-        logger.error(f"RAG retrieval failed: {e}")
-        return {
-            "context": "Unable to retrieve information at this time.",
-            "chunks": [],
-            "sources": [],
-        }
+        logger.warning(f"pgvector retrieval failed: {e}. Falling back to direct database retrieval...")
+        return await _retrieve_context_sqlite(medicine_id, db)
 
 
 async def _retrieve_context_sqlite(medicine_id: str, db: AsyncSession) -> dict:

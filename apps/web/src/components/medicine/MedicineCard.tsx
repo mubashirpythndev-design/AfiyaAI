@@ -60,9 +60,14 @@ export default function MedicineCard({ medicine, onViewDetails, onViewPrices, la
             <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted font-medium mb-0.5">{t(language, "results.category")}</p>
             <p className="text-xs sm:text-sm font-medium text-foreground truncate">{medicine.category}</p>
           </div>
-          <div className="bg-background/50 rounded-xl p-2 sm:p-2.5 col-span-2">
-            <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted font-medium mb-0.5">{t(language, "results.manufacturer")}</p>
-            <p className="text-xs sm:text-sm font-medium text-foreground truncate">{medicine.manufacturer}</p>
+          <div className="bg-background/50 rounded-xl p-2 sm:p-2.5 col-span-2 flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-muted font-medium mb-0.5">{t(language, "results.manufacturer")}</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground truncate">{medicine.manufacturer}</p>
+            </div>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-lg shrink-0">
+              ⚖️ 3 Brands
+            </span>
           </div>
         </div>
 

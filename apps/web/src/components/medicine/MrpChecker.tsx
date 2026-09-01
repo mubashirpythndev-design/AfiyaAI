@@ -154,42 +154,52 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
   return (
     <div className="animate-slide-up mt-6">
-      <div className="bg-surface rounded-xl border border-border overflow-hidden">
-        {/* Header */}
-        <div className="px-4 py-3 bg-surface-hover border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+      <div className="bg-surface rounded-2xl border-2 border-primary/20 shadow-lg shadow-primary/5 overflow-hidden">
+        {/* Header - High Visibility */}
+        <div className="px-4 sm:px-5 py-4 bg-gradient-to-r from-primary/10 via-surface-hover to-accent/5 border-b border-primary/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/25 shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-foreground">
-                {t(language, "mrp.title")}
-              </h3>
-              <p className="text-xs text-muted">{t(language, "mrp.subtitle")}</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-foreground tracking-tight">
+                  {t(language, "mrp.title")}
+                </h3>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-success/15 text-success border border-success/30 px-2.5 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                  DRAP Verified
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm font-semibold text-foreground/90 mt-0.5 flex items-center gap-1.5">
+                <span className="text-primary font-extrabold text-sm">💡 Check what you paid:</span>
+                <span className="text-foreground/80">{t(language, "mrp.subtitle")}</span>
+              </p>
             </div>
           </div>
-          <span className="text-[11px] font-medium bg-primary/10 text-primary px-2.5 py-0.5 rounded-full">
-            Official DRAP Baseline
+          <span className="self-start sm:self-auto text-xs font-bold bg-primary text-white shadow-sm px-3 py-1 rounded-xl">
+            Overcharge Checker
           </span>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 sm:p-5 space-y-5">
           {/* Purchase Unit & Quantity Selector */}
-          <div className="bg-background/60 rounded-xl p-3 border border-border/70 space-y-3">
+          <div className="bg-background/80 rounded-xl p-3.5 border border-border/90 space-y-3 shadow-inner">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="text-xs font-medium text-muted">
-                What quantity/unit did you purchase?
+              <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-primary" />
+                1. Select what quantity/unit you purchased:
               </label>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => { setUnitMode("strip"); setQty(1); }}
-                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "strip"
-                      ? "bg-primary text-white border-primary"
-                      : "bg-surface text-muted hover:text-foreground border-border"
+                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
                   💊 Strips
@@ -197,10 +207,10 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                 <button
                   type="button"
                   onClick={() => { setUnitMode("unit"); setQty(packInfo.unitsPerStrip || 10); }}
-                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "unit"
-                      ? "bg-primary text-white border-primary"
-                      : "bg-surface text-muted hover:text-foreground border-border"
+                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
                   🔢 {packInfo.unitName}
@@ -208,10 +218,10 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                 <button
                   type="button"
                   onClick={() => { setUnitMode("box"); setQty(1); }}
-                  className={`text-xs px-2.5 py-1 rounded-lg border font-semibold transition-all ${
+                  className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "box"
-                      ? "bg-primary text-white border-primary"
-                      : "bg-surface text-muted hover:text-foreground border-border"
+                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
                   📦 Full Box
@@ -220,14 +230,14 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
             </div>
 
             {/* Quantity Counter */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-medium text-foreground">Quantity:</span>
+            <div className="flex items-center gap-3 pt-1">
+              <span className="text-xs font-bold text-foreground">Quantity:</span>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => qty > 1 && setQty(qty - 1)}
                   disabled={qty <= 1}
-                  className="w-7 h-7 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-bold text-xs hover:bg-border transition-colors disabled:opacity-30"
+                  className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-extrabold text-sm hover:bg-border transition-colors disabled:opacity-30 text-foreground"
                 >
                   -
                 </button>
@@ -237,17 +247,17 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   max="500"
                   value={qty}
                   onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-16 text-center bg-surface border border-border rounded-lg py-1 text-xs font-bold text-foreground focus:outline-none focus:border-primary"
+                  className="w-16 text-center bg-surface border-2 border-primary/30 rounded-lg py-1 text-sm font-bold text-foreground focus:outline-none focus:border-primary shadow-inner"
                 />
                 <button
                   type="button"
                   onClick={() => setQty(qty + 1)}
-                  className="w-7 h-7 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-bold text-xs hover:bg-border transition-colors"
+                  className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-extrabold text-sm hover:bg-border transition-colors text-foreground"
                 >
                   +
                 </button>
               </div>
-              <span className="text-xs text-muted">
+              <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20">
                 {unitMode === "strip"
                   ? `${qty} Strip${qty > 1 ? "s" : ""} (${qty * packInfo.unitsPerStrip} ${packInfo.unitName})`
                   : unitMode === "box"
@@ -258,39 +268,42 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
           </div>
 
           {/* Input + button */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <label htmlFor="mrp-price-input" className="block text-xs font-medium text-muted mb-1.5">
-                Price you paid / were quoted for this quantity (PKR):
-              </label>
-              <input
-                id="mrp-price-input"
-                type="number"
-                min="0.01"
-                step="0.01"
-                inputMode="decimal"
-                value={priceInput}
-                onChange={(e) => {
-                  setPriceInput(e.target.value);
-                  setValidationError(null);
-                }}
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  runCheck(`${medicine.brand_name} ${medicine.strength}`)
-                }
-                placeholder="e.g. 72.00, 145.40, 200.00"
-                disabled={loading}
-                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
-              />
-            </div>
-            <div className="sm:self-end">
-              <button
-                onClick={() => runCheck(`${medicine.brand_name} ${medicine.strength}`)}
-                disabled={loading}
-                className="w-full sm:w-auto bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25"
-              >
-                {loading ? t(language, "mrp.checking") : t(language, "mrp.checkBtn")}
-              </button>
+          <div className="bg-primary/[0.04] p-4 rounded-xl border border-primary/15 space-y-2">
+            <label htmlFor="mrp-price-input" className="block text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+              2. Enter the price you paid at the pharmacy (PKR):
+            </label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <input
+                  id="mrp-price-input"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={priceInput}
+                  onChange={(e) => {
+                    setPriceInput(e.target.value);
+                    setValidationError(null);
+                  }}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" &&
+                    runCheck(`${medicine.brand_name} ${medicine.strength}`)
+                  }
+                  placeholder="e.g. 72.00, 145.40, 610.00"
+                  disabled={loading}
+                  className="w-full bg-surface border-2 border-border focus:border-primary rounded-xl px-4 py-3 text-base font-bold text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-4 focus:ring-primary/15 transition-all shadow-sm"
+                />
+              </div>
+              <div className="sm:self-end">
+                <button
+                  onClick={() => runCheck(`${medicine.brand_name} ${medicine.strength}`)}
+                  disabled={loading}
+                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25"
+                >
+                  {loading ? t(language, "mrp.checking") : t(language, "mrp.checkBtn")}
+                </button>
+              </div>
             </div>
           </div>
 

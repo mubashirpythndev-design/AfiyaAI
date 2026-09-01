@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 def normalize(text: str) -> str:
     """Normalize medicine name for comparison."""
     text = text.lower().strip()
+    # Normalize spaced dosages (e.g., '500 mg' -> '500mg', '10 ml' -> '10ml')
+    text = re.sub(r"(\d+)\s*(mg|ml|mcg|g|iu|iu/ml|%)\b", r"\1\2", text)
     text = re.sub(r"[^\w\s]", "", text)
     text = re.sub(r"\s+", " ", text)
     return text

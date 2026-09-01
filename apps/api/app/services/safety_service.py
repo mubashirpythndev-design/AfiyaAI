@@ -103,8 +103,8 @@ def build_safety_system_prompt(language: str = "en") -> str:
     lang_instruction = ""
     if language == "ur":
         lang_instruction = "Respond in Urdu script (اردو). Preserve medicine names in English."
-    elif language == "roman_ur":
-        lang_instruction = "Respond in Roman Urdu (Urdu written in English script). Preserve medicine names in English."
+    elif language in ("roman_ur", "roman-ur", "ru"):
+        lang_instruction = "Respond in conversational Roman Urdu (Urdu written in English alphabet, e.g. 'Yeh dawai sar dard aur bukhar ke liye istemal hoti hai'). Preserve brand names in English."
     else:
         lang_instruction = "Respond in English."
 

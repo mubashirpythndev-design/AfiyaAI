@@ -13,6 +13,7 @@ interface HeaderProps {
   onSignIn: () => void;
   onSignOut: () => void;
   onOpenCabinet?: () => void;
+  onOpenGuide?: () => void;
   onNavigateHome?: () => void;
 }
 
@@ -23,6 +24,7 @@ export default function Header({
   onSignIn,
   onSignOut,
   onOpenCabinet,
+  onOpenGuide,
   onNavigateHome,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -66,12 +68,23 @@ export default function Header({
 
           {/* Nav links (desktop) */}
           <nav className="hidden md:flex items-center gap-1">
-            <a href="#features" className="px-3.5 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg hover:bg-surface-hover transition-all">
+            <a href="#features" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg hover:bg-surface-hover transition-all">
               {t(language, "nav.features")}
             </a>
-            <a href="#how-it-works" className="px-3.5 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg hover:bg-surface-hover transition-all">
-              {t(language, "nav.howItWorks")}
-            </a>
+            {onOpenGuide ? (
+              <button
+                type="button"
+                onClick={onOpenGuide}
+                className="px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-xl transition-all flex items-center gap-1 shadow-sm"
+              >
+                <span>💡</span>
+                <span>How to Compare</span>
+              </button>
+            ) : (
+              <a href="#how-it-works" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg hover:bg-surface-hover transition-all">
+                {t(language, "nav.howItWorks")}
+              </a>
+            )}
           </nav>
 
           {/* Auth + Language Selector + Theme Toggle + Mobile Menu */}
@@ -108,6 +121,14 @@ export default function Header({
                         <p className="text-sm font-semibold text-foreground truncate">{user.name}</p>
                         <p className="text-xs text-muted truncate">{user.email}</p>
                       </div>
+                      {onOpenGuide && (
+                        <button
+                          onClick={() => { setUserMenuOpen(false); onOpenGuide(); }}
+                          className="w-full text-left px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-hover rounded-lg transition-all flex items-center gap-2"
+                        >
+                          <span>💡</span> How to Compare & Check MRP
+                        </button>
+                      )}
                       {onOpenCabinet && (
                         <button
                           onClick={() => { setUserMenuOpen(false); onOpenCabinet(); }}
@@ -192,6 +213,14 @@ export default function Header({
               >
                 {t(language, "nav.howItWorks")}
               </a>
+              {onOpenGuide && (
+                <button
+                  onClick={() => { setMenuOpen(false); onOpenGuide(); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-lg transition-all text-left"
+                >
+                  <span>💡</span> How to Compare & Check MRP
+                </button>
+              )}
               {user && onOpenCabinet && (
                 <button
                   onClick={() => { setMenuOpen(false); onOpenCabinet(); }}

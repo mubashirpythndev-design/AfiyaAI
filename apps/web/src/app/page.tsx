@@ -19,6 +19,7 @@ import SaveToCabinetButton from "@/components/medicine/SaveToCabinetButton";
 import ChatInterface from "@/components/chat/ChatInterface";
 import AuthModal from "@/components/auth/AuthModal";
 import CabinetModal from "@/components/medicine/CabinetModal";
+import OnboardingGuideModal from "@/components/guide/OnboardingGuideModal";
 import Disclaimer from "@/components/shared/Disclaimer";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type {
@@ -52,9 +53,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [directTab, setDirectTab] = useState<"info" | "prices">("info");
 
-  // Cabinet Modal State
-
+  // Cabinet & Guide Modal State
   const [showCabinetModal, setShowCabinetModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   // === Auth state (single centralized guard — a future whole-app login gate
   // can move these two pieces to one entry point) ===
@@ -101,10 +102,13 @@ export default function Home() {
     }
   };
 
-  const handleAuthSuccess = (user: AuthUser) => {
+  const handleAuthSuccess = (user: AuthUser, isNewSignup?: boolean) => {
     setAuthUser(user);
     const pending = authModal?.pending;
     setAuthModal(null);
+    if (isNewSignup) {
+      setShowGuideModal(true);
+    }
     // Replay the action the guest clicked before signing in.
     if (pending?.kind === "info") void handleViewDetails(pending.id);
     if (pending?.kind === "prices") void handleViewPrices(pending.id);
@@ -260,6 +264,7 @@ export default function Home() {
         onSignIn={() => setAuthModal({})}
         onSignOut={handleSignOut}
         onOpenCabinet={() => setShowCabinetModal(true)}
+        onOpenGuide={() => setShowGuideModal(true)}
         onNavigateHome={() => {
           setView("home");
           setSelectedInfo(null);
@@ -529,7 +534,10 @@ export default function Home() {
                 <p className="text-sm sm:text-base text-muted max-w-md mx-auto">{t(language, "chat.sectionSubtitle")}</p>
               </div>
               <div className="rounded-2xl overflow-hidden shadow-xl shadow-accent/5 border border-border/50">
-                <ChatInterface language={language} />
+                <ChatInterface
+                  language={language}
+                  onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                />
               </div>
               <div className="mt-4">
                 <Disclaimer language={language} />
@@ -583,7 +591,11 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <ChatInterface language={language} medicineId={medicines[0]?.id} />
+                  <ChatInterface
+                    language={language}
+                    medicineId={medicines[0]?.id}
+                    onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                  />
                 </div>
               </div>
             </div>
@@ -739,7 +751,11 @@ export default function Home() {
                       <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
                       <span className="text-xs font-bold text-foreground">AI Medicine Assistant</span>
                     </div>
-                    <ChatInterface language={language} medicineId={selectedPrices.medicine.id} />
+                    <ChatInterface
+                      language={language}
+                      medicineId={selectedPrices.medicine.id}
+                      onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                    />
                   </div>
                 </div>
               )}
@@ -803,6 +819,13 @@ export default function Home() {
         onClose={() => setShowCabinetModal(false)}
         language={language}
       />
+
+      {showGuideModal && (
+        <OnboardingGuideModal
+          language={language}
+          onClose={() => setShowGuideModal(false)}
+        />
+      )}
     </div>
   );
 }

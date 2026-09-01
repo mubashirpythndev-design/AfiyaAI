@@ -16,7 +16,7 @@ type Tab = "signin" | "signup";
 interface AuthModalProps {
   language: Language;
   onClose: () => void;
-  onSuccess: (user: AuthUser) => void;
+  onSuccess: (user: AuthUser, isNewSignup?: boolean) => void;
 }
 
 export default function AuthModal({ language, onClose, onSuccess }: AuthModalProps) {
@@ -31,12 +31,13 @@ export default function AuthModal({ language, onClose, onSuccess }: AuthModalPro
     setError(null);
     setLoading(true);
     try {
+      const isSignup = tab === "signup";
       const session =
-        tab === "signin"
+        !isSignup
           ? await loginUser({ email, password })
           : await registerUser({ name, email, password });
       setSession(session.access_token, session.user);
-      onSuccess(session.user);
+      onSuccess(session.user, isSignup);
     } catch (e) {
       setError(
         e instanceof Error && e.message ? e.message : t(language, "auth.errorGeneric")
