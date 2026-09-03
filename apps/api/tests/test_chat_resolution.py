@@ -99,9 +99,45 @@ def test_diagnostic_safe_bypass_keywords():
     assert is_diagnostic_request("who are the owners of afiya ai") is False
     assert is_diagnostic_request("what medicines are in your database") is False
     assert is_diagnostic_request("compare Panadol and Calpol") is False
-    # True diagnostic queries must still trigger
+    # Symptom inquiries are NOT blocked as diagnostic refusals; they receive safe advisory guidance
+    assert is_diagnostic_request("I am having a headache, and fever so which medicine I should take") is False
+    assert is_diagnostic_request("what should I take for headache") is False
+    # True disease diagnosis queries must still trigger
     assert is_diagnostic_request("I have fever and cough, diagnose me and tell me what disease I have") is True
-    assert is_diagnostic_request("what should I take for fever") is True
+    assert is_diagnostic_request("what disease do I have") is True
+
+
+async def test_chat_symptom_guidance_headache_fever(backfilled_db):
+    """Verify that asking about headache and fever suggests Paracetamol with doctor consultation advice."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "I am having a headache, and fever so which medicine I should take?",
+            db,
+            language="en",
+        )
+        msg = resp.message.lower()
+        # Must mention relevant medicine (Paracetamol or Panadol or Febrol)
+        assert any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
+        # Must instruct to consult doctor / pharmacist
+        assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
+        # Must have disclaimer
+        assert resp.disclaimer
+
+
+async def test_chat_symptom_guidance_roman_urdu(backfilled_db):
+    """Verify that asking in Roman Urdu about sar dard and bukhar suggests medicine and advises doctor consult."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "mujhe sar dard aur bukhar hai konsi dawa lein?",
+            db,
+            language="roman_ur",
+        )
+        msg = resp.message.lower()
+        assert any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
+        assert any(term in msg for term in ["doctor", "pharmacist", "mashwara", "tasdeeq", "mashwarah"])
+        assert resp.disclaimer
 
 
 async def test_chat_answers_owners_with_three_names(backfilled_db):

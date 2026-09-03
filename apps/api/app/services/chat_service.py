@@ -5,7 +5,7 @@ Author / Developer: Mubashir (Lead Developer)
 import re
 import logging
 import google.generativeai as genai
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -100,6 +100,94 @@ async def get_database_catalog_context(db: AsyncSession) -> str:
 
     lines.append("\nUsers can ask about any of these medicines for uses, side effects, dosage, prices, and alternative brands!")
     return "\n".join(lines)
+
+
+SYMPTOM_GROUPS = [
+    {
+        "names": ["headache", "head ache", "head pain", "migraine", "sar dard", "sar me dard", "sar mein dard"],
+        "label": "headache (سر درد)",
+        "generics": ["Paracetamol", "Ibuprofen"],
+    },
+    {
+        "names": ["fever", "high temperature", "bukhar", "bukhaar", "hararat", "tap"],
+        "label": "fever (بخار)",
+        "generics": ["Paracetamol", "Ibuprofen"],
+    },
+    {
+        "names": ["body pain", "body ache", "muscle pain", "jism mein dard", "badan dard", "kamar dard", "back pain", "joint pain", "jodon ka dard", "joint ache"],
+        "label": "body and muscular pain (جسم اور پٹھوں کا درد)",
+        "generics": ["Ibuprofen", "Paracetamol", "Mefenamic Acid", "Diclofenac"],
+    },
+    {
+        "names": ["acidity", "heartburn", "acid reflux", "gerd", "tezabiat", "seene mein jalan", "gas", "pet mein gas", "stomach burning"],
+        "label": "stomach acidity and heartburn (تیزابیت اور سینے کی جلن)",
+        "generics": ["Omeprazole", "Esomeprazole"],
+    },
+    {
+        "names": ["allergy", "allergic", "itching", "kharish", "rash", "hives", "sneezing", "chheenk", "chheenkain", "runny nose", "nazla"],
+        "label": "allergies, sneezing, and runny nose (الرجی اور چھینکیں)",
+        "generics": ["Cetirizine", "Loratadine", "Fexofenadine"],
+    },
+    {
+        "names": ["cough", "khansi", "sore throat", "gale mein dard", "gala kharab"],
+        "label": "cough and sore throat (کھانسی اور گلے کی سوزش)",
+        "generics": ["Paracetamol", "Co-Amoxiclav", "Amoxicillin"],
+    },
+    {
+        "names": ["stomach pain", "stomach ache", "pet dard", "pet mein dard", "cramps", "marrhor"],
+        "label": "stomach pain and cramps (پیٹ درد اور مروڑ)",
+        "generics": ["Mefenamic Acid", "Omeprazole"],
+    },
+    {
+        "names": ["diarrhea", "loose motion", "dast", "pet kharab"],
+        "label": "diarrhea and stomach upset (دست اور پیٹ کی خرابی)",
+        "generics": ["Metronidazole"],
+    },
+]
+
+
+async def get_symptom_guidance_context(
+    message: str, db: AsyncSession, language: str = "en"
+) -> tuple[str, list[SourceSchema], list[str]]:
+    """Detect symptoms or conditions mentioned in the message and retrieve matching verified medicines."""
+    msg_lower = message.lower()
+    matched_symptoms: list[str] = []
+    needed_generics: list[str] = []
+
+    for group in SYMPTOM_GROUPS:
+        if any(name in msg_lower for name in group["names"]):
+            matched_symptoms.append(group["label"])
+            for g in group["generics"]:
+                if g not in needed_generics:
+                    needed_generics.append(g)
+
+    if not matched_symptoms or not needed_generics:
+        return "", [], []
+
+    conditions = [func.lower(Medicine.generic_name).like(f"%{g.lower()}%") for g in needed_generics]
+    result = await db.execute(select(Medicine).where(or_(*conditions)).limit(8))
+    med_rows = result.scalars().all()
+
+    if not med_rows:
+        return "", [], matched_symptoms
+
+    lines = [
+        f"Verified Database Medicines Indicated for Reported Symptoms / Conditions ({', '.join(matched_symptoms)}):"
+    ]
+    sources: list[SourceSchema] = []
+    for med in med_rows:
+        lines.append(
+            f"- Brand: {med.brand_name} {med.strength} {med.dosage_form} (Generic: {med.generic_name}) by {med.manufacturer or 'Registered Pharmaceutical'}"
+        )
+        sources.append(
+            SourceSchema(
+                name=f"{med.brand_name} (DRAP Reference)",
+                url="https://e.dra.gov.pk/public/price",
+                source_type="reference_regulatory",
+            )
+        )
+
+    return "\n".join(lines), sources, matched_symptoms
 
 
 async def build_full_medicine_context(
@@ -318,6 +406,14 @@ async def generate_chat_response(
     is_catalog_question = any(kw in message.lower() for kw in catalog_keywords)
     is_general_alt = is_general_alternatives_query(message) and not context
 
+    # Check for symptom / condition guidance if no explicit medicine context yet
+    detected_symptoms: list[str] = []
+    if not context:
+        symptom_context, sym_sources, detected_symptoms = await get_symptom_guidance_context(message, db, language)
+        if symptom_context:
+            context = symptom_context
+            sources = sym_sources
+
     meta_keywords = ["what is afiya", "who are you", "about afiya", "afiya ai", "what can you do", "your name"]
     is_meta_question = any(kw in message.lower() for kw in meta_keywords)
 
@@ -378,6 +474,13 @@ async def generate_chat_response(
         instructions.append(
             "- The user is asking generally about ALTERNATIVE MEDICINES. "
             "Explain how Afiya AI helps users find verified same-generic alternative brands and save on healthcare costs."
+        )
+    elif detected_symptoms:
+        instructions.append(
+            f"- The user is asking what medicine to take for symptoms or conditions: {', '.join(detected_symptoms)}. "
+            "Suggest the verified medicine(s) from our database generally used for these symptoms (for example, Paracetamol / Panadol / Febrol for fever and headache). "
+            "MANDATORY NON-GUARANTEE ADVISORY RULE: You must provide this as helpful advice, but EXPLICITLY state that you do NOT guarantee that they should take this medicine, as this advice is informational and individual medical factors vary. "
+            "MANDATORY DOCTOR CONFIRMATION RULE: You MUST always instruct the user to consult a doctor or licensed pharmacist for medical confirmation before taking any medication."
         )
     else:
         is_alt_query = any(kw in message.lower() for kw in ["alternative", "substitute", "instead", "replace", "cheaper", "sasta", "mutabadil", "badal"])

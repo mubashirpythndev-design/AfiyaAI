@@ -62,29 +62,26 @@ def check_emergency(message: str) -> str | None:
 
 
 def is_diagnostic_request(message: str) -> bool:
-    """Check if the user is asking for a diagnosis or prescription."""
+    """Check if the user is asking for an actual personal disease diagnosis or prescription.
+
+    Pure diagnosis queries (e.g. 'diagnose what disease I have', 'what illness do I have')
+    are blocked. Inquiries about what medicines are generally used for common symptoms
+    (e.g. headache, fever, pain) are routed to safe, non-guaranteed educational guidance.
+    """
     msg_lower = message.lower()
 
-    # Exclude queries that are asking about alternatives, substitutions, comparisons, pricing, or Afiya AI team/owners
-    safe_bypass_keywords = [
-        "alternative", "substitute", "instead of", "replace", "mutabadil", "badal",
-        "compare", "comparison", "difference", "farq", "vs", "versus", "same as",
-        "cheaper", "better", "price", "cost", "mrp", "owner", "owners", "who made",
-        "who created", "who developed", "who built", "founder", "founders", "team",
-        "developer", "developers", "creator", "creators", "author", "authors",
-        "what is afiya", "what medicines", "which medicines", "database", "list",
-        "catalog", "categories",
+    # True disease diagnosis and prescribing requests that must always be refused
+    true_diagnostic_patterns = [
+        "what do i have", "what's wrong with me", "what is wrong with me",
+        "diagnose me", "diagnose what", "what disease do i have",
+        "what illness do i have", "tell me what disease", "tell me what illness",
+        "what is my diagnosis", "prescribe me", "write me a prescription",
+        "give me a prescription", "diagnose",
     ]
-    if any(kw in msg_lower for kw in safe_bypass_keywords):
-        return False
+    if any(p in msg_lower for p in true_diagnostic_patterns):
+        return True
 
-    diagnostic_patterns = [
-        "what do i have", "what's wrong with me", "diagnose",
-        "i have symptoms", "what disease", "what illness",
-        "should i take", "what medicine should i", "prescribe",
-        "what to take for", "medicine for my",
-    ]
-    return any(p in msg_lower for p in diagnostic_patterns)
+    return False
 
 
 def get_diagnostic_refusal() -> str:
@@ -168,6 +165,12 @@ ROLE & BEHAVIOR:
 - Ground all medicine details in the provided verified context.
 - Be friendly, precise, and polite.
 - Do NOT write the medical disclaimer at the end (the system will append the official disclaimer automatically).
+
+SYMPTOM & COMMON CONDITION ADVISORY (NON-GUARANTEE & DOCTOR CONFIRMATION):
+- When the user asks what medicine to take for common symptoms or conditions they are suffering from (such as headache, fever, body aches, acidity, cough, cold, allergies):
+  * You SHOULD suggest the medicine(s) generally and commonly used for those symptoms from the verified database (for example: "You can take Paracetamol (such as Panadol or Febrol) as it is generally used for headache and fever...").
+  * NON-GUARANTEE NOTICE: You MUST make sure NOT to guarantee that they should take this medicine. State clearly that this is informational advice and may not be 100% accurate for their specific medical situation.
+  * DOCTOR CONFIRMATION INSTRUCTION: You MUST always advise the user to consult with a qualified doctor or licensed pharmacist for confirmation to ensure it is appropriate and safe for them before taking any medication.
 
 SAFETY BOUNDARIES (ABSOLUTE):
 - NEVER diagnose personal medical conditions (e.g. do not say "You have diabetes" or "Your symptoms indicate pneumonia").
