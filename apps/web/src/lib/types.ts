@@ -192,4 +192,38 @@ export interface CabinetResponse {
   items: CabinetItem[];
 }
 
+// ---- Feedback & Healthcare Needs Survey ----
+
+export interface FeedbackSubmission {
+  name: string;
+  email: string;
+  age?: number | null;
+  city?: string | null;
+  primary_need: string;
+  frequency_of_medicine_purchase?: string | null;
+  rating: number;
+  ease_of_use?: string | null;
+  feedback: string;
+  would_recommend: boolean;
+}
+
+export interface FeedbackResponseItem extends FeedbackSubmission {
+  id: string;
+  user_id?: string | null;
+  created_at: string;
+}
+
+export interface AdminFeedbackSummary {
+  total_submissions: number;
+  average_rating: number;
+  recommend_percentage: number;
+  top_primary_need: string | null;
+}
+
+export interface AdminFeedbackListResponse {
+  summary: AdminFeedbackSummary;
+  feedbacks: FeedbackResponseItem[];
+}
+
+
 

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     embedding_dimensions: int = 768
 
-    gemini_chat_model: str = "models/gemini-3.5-flash-lite"
+    gemini_chat_model: str = "models/gemini-3.1-flash-lite"
     gemini_embedding_model: str = "models/gemini-embedding-001"
 
     fuzzy_match_threshold: float = 0.85
@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # truth for User.is_admin — synced on register/login. Default empty =
     # no admins.
     admin_emails: str = ""
+
+    # Clerk Authentication
+    clerk_jwks_url: str = "https://pro-alien-4201.clerk.accounts.dev/.well-known/jwks.json"
+    clerk_secret_key: str = ""
 
     model_config = {"env_file": [".env", "../../.env"], "env_file_encoding": "utf-8"}
 

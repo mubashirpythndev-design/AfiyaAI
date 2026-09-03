@@ -15,6 +15,7 @@ interface HeaderProps {
   onSignOut: () => void;
   onOpenCabinet?: () => void;
   onOpenGuide?: () => void;
+  onOpenFeedback?: () => void;
   onNavigateHome?: () => void;
 }
 
@@ -26,6 +27,7 @@ export default function Header({
   onSignOut,
   onOpenCabinet,
   onOpenGuide,
+  onOpenFeedback,
   onNavigateHome,
 }: HeaderProps) {
   const { isSignedIn, user: clerkUser } = useUser();
@@ -87,6 +89,16 @@ export default function Header({
               <a href="#how-it-works" className="px-3 py-2 text-sm font-medium text-muted hover:text-foreground rounded-lg hover:bg-surface-hover transition-all">
                 {t(language, "nav.howItWorks")}
               </a>
+            )}
+            {onOpenFeedback && (
+              <button
+                type="button"
+                onClick={onOpenFeedback}
+                className="px-3 py-1.5 text-xs font-bold text-accent bg-accent/10 hover:bg-accent/20 border border-accent/20 rounded-xl transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+              >
+                <span>💬</span>
+                <span>Feedback</span>
+              </button>
             )}
           </nav>
 
@@ -196,6 +208,14 @@ export default function Header({
                   className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/10 rounded-lg transition-all text-left"
                 >
                   <span>💡</span> How to Compare & Check MRP
+                </button>
+              )}
+              {onOpenFeedback && (
+                <button
+                  onClick={() => { setMenuOpen(false); onOpenFeedback(); }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-accent hover:bg-accent/10 rounded-lg transition-all text-left"
+                >
+                  <span>💬</span> Share Feedback & Comments
                 </button>
               )}
               {user && onOpenCabinet && (

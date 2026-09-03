@@ -90,3 +90,44 @@ async def test_emergency_gate_intact_no_llm(backfilled_db):
             "fail on quota"
         )
         assert resp.disclaimer
+
+
+def test_diagnostic_safe_bypass_keywords():
+    from app.services.safety_service import is_diagnostic_request
+    assert is_diagnostic_request("what is the alternative of Panadol") is False
+    assert is_diagnostic_request("can I take Febrol instead of Panadol") is False
+    assert is_diagnostic_request("who are the owners of afiya ai") is False
+    assert is_diagnostic_request("what medicines are in your database") is False
+    assert is_diagnostic_request("compare Panadol and Calpol") is False
+    # True diagnostic queries must still trigger
+    assert is_diagnostic_request("I have fever and cough, diagnose me and tell me what disease I have") is True
+    assert is_diagnostic_request("what should I take for fever") is True
+
+
+async def test_chat_answers_owners_with_three_names(backfilled_db):
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "who are the owners of afiya ai",
+            db,
+            language="en",
+        )
+        msg = resp.message
+        assert "Muhammad Taha Khan" in msg
+        assert "Muhammad Mubashir Khalid" in msg
+        assert "Muhammad Sultan Abbasi" in msg
+        assert resp.disclaimer
+
+
+async def test_chat_answers_medicine_alternative(backfilled_db):
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "what is the alternative of Panadol",
+            db,
+            language="en",
+        )
+        msg = resp.message
+        assert "Paracetamol" in msg
+        assert ("Febrol" in msg or "Calpol" in msg)
+        assert resp.disclaimer

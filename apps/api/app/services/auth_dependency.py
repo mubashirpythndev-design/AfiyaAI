@@ -9,9 +9,9 @@ from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_admin_emails_set
+from app.config import get_admin_emails_set, settings
 from app.db.database import User, get_db
-from app.services.auth_service import decode_access_token
+from app.services.auth_service import verify_token_payload, fetch_clerk_user_info
 
 
 async def get_current_user(
@@ -22,40 +22,68 @@ async def get_current_user(
 ) -> User:
     """Resolve ``Authorization: Bearer <token>`` to the logged-in user.
 
-    Supports both Afiya JWT tokens and Clerk authentication.
-    Auto-provisions Clerk users into the database upon first authenticated request.
+    Strictly verifies cryptographic signatures (Afiya HS256 or Clerk RS256 JWKS).
+    Unverified client headers are NEVER trusted for authentication or admin rights.
+    Admin rights are strictly gated by exact match against ADMIN_EMAILS.
     """
-    if not authorization or not authorization.lower().startswith("bearer "):
+    auth = authorization if isinstance(authorization, str) else None
+
+    if not auth or not auth.lower().startswith("bearer "):
         raise HTTPException(
             status_code=401,
             detail="Not authenticated",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = authorization.split(" ", 1)[1].strip()
-    user_id = decode_access_token(token)
-    if user_id is None:
+    token = auth.split(" ", 1)[1].strip()
+    payload = verify_token_payload(token)
+    if not payload:
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    user_id = payload.get("sub") or payload.get("user_id")
+    if not user_id or not isinstance(user_id, str):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
 
-    # If user doesn't exist by ID, check if this is a Clerk user
-    if user is None and (user_id.startswith("clerk_") or user_id.startswith("user_")):
-        email = x_clerk_user_email or f"{user_id}@clerk.user"
-        name = x_clerk_user_name or "Clerk User"
-        # Check if user already exists by email
+    # If user doesn't exist by ID, handle verified Clerk token auto-provisioning
+    if user is None and (user_id.startswith("user_") or "clerk" in payload.get("iss", "")):
+        verified_email: str | None = None
+        verified_name: str | None = None
+
+        # 1. Check verified claims inside the signed JWT
+        if payload.get("email"):
+            verified_email = str(payload["email"]).strip()
+        elif payload.get("primary_email"):
+            verified_email = str(payload["primary_email"]).strip()
+
+        if payload.get("name"):
+            verified_name = str(payload["name"]).strip()
+
+        # 2. If email not in JWT claims and server secret key is configured, verify via Clerk API
+        if not verified_email and settings.clerk_secret_key:
+            clerk_info = await fetch_clerk_user_info(user_id)
+            if clerk_info:
+                verified_email = clerk_info.get("email")
+                verified_name = clerk_info.get("name")
+
+        email = (verified_email or f"{user_id}@clerk.user").lower()
+        name = verified_name or x_clerk_user_name or "Clerk User"
+
+        # Check if user already exists by verified email
         result_email = await db.execute(select(User).where(User.email == email))
         user = result_email.scalar_one_or_none()
         if user is None:
-            admin_emails = get_admin_emails_set()
-            is_admin = (
-                email.lower() in admin_emails
-                or "admin" in email.lower()
-                or email.lower().endswith("@afiya.ai")
-            )
+            # Strictly verify admin: exact match in get_admin_emails_set() only
+            is_admin = bool(verified_email and verified_email.lower() in get_admin_emails_set())
             user = User(
                 id=user_id,
                 name=name,
@@ -75,12 +103,53 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Sync admin status if email is in admin set
-    if not user.is_admin and (
-        user.email.lower() in get_admin_emails_set()
-        or "admin" in user.email.lower()
-    ):
+    # Sync verified email & admin status for existing Clerk users if placeholder or newly granted admin
+    if (user.email.endswith("@clerk.user") or not user.is_admin) and (user.id.startswith("user_") or "clerk" in payload.get("iss", "")):
+        verified_email = None
+        if payload.get("email"):
+            verified_email = str(payload["email"]).strip()
+        elif settings.clerk_secret_key:
+            clerk_info = await fetch_clerk_user_info(user.id)
+            if clerk_info and clerk_info.get("email"):
+                verified_email = clerk_info["email"]
+                if clerk_info.get("name"):
+                    user.name = clerk_info["name"]
+
+        if verified_email:
+            user.email = verified_email.lower()
+            if user.email in get_admin_emails_set():
+                user.is_admin = True
+            await db.commit()
+            await db.refresh(user)
+
+    # Sync admin status: Promote if exact email is in get_admin_emails_set()
+    admin_set = get_admin_emails_set()
+    if not user.is_admin and user.email and user.email.lower() in admin_set:
         user.is_admin = True
         await db.commit()
 
     return user
+
+
+async def get_optional_current_user(
+    authorization: str | None = Header(default=None),
+    x_clerk_user_email: str | None = Header(default=None),
+    x_clerk_user_name: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    """Optional auth dependency: returns User if valid Bearer token provided, None otherwise.
+
+    Allows public endpoints (such as medicine info and price comparison) to remain
+    accessible to guest visitors and judges without failing on expired or missing tokens.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    try:
+        return await get_current_user(
+            authorization=authorization,
+            x_clerk_user_email=x_clerk_user_email,
+            x_clerk_user_name=x_clerk_user_name,
+            db=db,
+        )
+    except HTTPException:
+        return None

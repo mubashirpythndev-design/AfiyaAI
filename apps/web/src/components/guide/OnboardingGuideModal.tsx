@@ -35,9 +35,9 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       badge: "Step 1: Instant Search",
       badgeColor: "bg-primary/10 text-primary border-primary/20",
       title: "Where & How to Search for Any Medicine",
-      subtitle: "Instant access to 100+ DRAP-verified medicines",
+      subtitle: "Instant access to 100+ DRAP-aligned comparison medicines",
       description:
-        "Type any commercial brand name (e.g. Panadol, Brufen, Risek, Augmentin) or generic chemical name (e.g. Paracetamol, Ibuprofen, Omeprazole) in the search bar. Afiya AI instantly retrieves verified clinical guidance and registered alternatives.",
+        "Type any commercial brand name (e.g. Panadol, Brufen, Risek, Augmentin) or generic chemical name (e.g. Paracetamol, Ibuprofen, Omeprazole) in the search bar. Afiya AI instantly retrieves clinical guidance and registered alternatives.",
       previewType: "search",
       actionText: "Try Searching 'Panadol'",
       actionType: "search",
@@ -109,7 +109,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       badge: "Step 6: Multilingual AI Chat",
       badgeColor: "bg-primary/10 text-primary border-primary/20",
       title: "24/7 AI Medical Assistant (English & Roman Urdu)",
-      subtitle: "Grounded in verified DRAP facts with real-time streaming",
+      subtitle: "Grounded in DRAP baseline data with real-time streaming",
       description:
         "Ask questions like 'What are the side effects of Brufen?' or in Roman Urdu 'Panadol ke kya faiday hain?'. Afiya AI provides stream typing answers with clickable badges to view full medicine profiles.",
       previewType: "chat",
@@ -273,7 +273,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
                 <div className="bg-surface p-2.5 rounded-xl border border-border flex items-center justify-between text-xs">
                   <span className="font-bold text-foreground">✨ AI OCR Recognition</span>
                   <span className="text-success font-bold bg-success/10 px-2 py-0.5 rounded-md">
-                    Matches with DRAP Verified DB
+                    Matches with DRAP Baseline DB
                   </span>
                 </div>
               </div>
@@ -300,7 +300,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
                   </span>
                 </div>
                 <p className="text-[11px] text-muted">
-                  💡 Clicking any category filters all 102 verified medicines instantly.
+                  💡 Clicking any category filters all 100+ comparison medicines instantly.
                 </p>
               </div>
             )}

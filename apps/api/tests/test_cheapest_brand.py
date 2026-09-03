@@ -152,3 +152,39 @@ async def test_unknown_medicine_id_rejected(backfilled_db):
     async with factory() as db:
         with pytest.raises(MedicineNotFound):
             await get_cheapest_brands(db, "does-not-exist")
+
+
+async def test_different_dosage_forms_not_mixed(backfilled_db):
+    """Tablets, syrups, injections, etc. must never be compared as substitutes."""
+    from app.db.database import Medicine, MedicinePrice
+    from decimal import Decimal
+
+    _, factory = backfilled_db
+    async with factory() as db:
+        # Add a tablet and a syrup with same generic and strength
+        tab = Medicine(
+            id="tab-med-1",
+            brand_name="TestTab",
+            generic_name="SampleSalt",
+            strength="250mg",
+            dosage_form="Tablet",
+        )
+        syp = Medicine(
+            id="syp-med-1",
+            brand_name="TestSyp",
+            generic_name="SampleSalt",
+            strength="250mg",
+            dosage_form="Syrup",
+        )
+        db.add_all([tab, syp])
+        source_id = "a0000001-0000-0000-0000-000000000001"
+        db.add(MedicinePrice(id="p-tab", medicine_id="tab-med-1", price=Decimal("50"), package_size="10x10's", source_id=source_id))
+        db.add(MedicinePrice(id="p-syp", medicine_id="syp-med-1", price=Decimal("120"), package_size="1 bottle", source_id=source_id))
+        await db.commit()
+
+        # Querying the tablet must only return tablet options, NOT syrup
+        res_tab = await get_cheapest_brands(db, "tab-med-1")
+        option_brands = [opt.brand_name for opt in res_tab.options]
+        assert "TestTab" in option_brands
+        assert "TestSyp" not in option_brands
+

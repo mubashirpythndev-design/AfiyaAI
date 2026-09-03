@@ -14,12 +14,16 @@ interface ImageUploaderProps {
   onImageSelected: (file: File) => void;
   isProcessing: boolean;
   language?: Language;
+  isAuthenticated?: boolean;
+  onRequireAuth?: () => void;
 }
 
 export default function ImageUploader({
   onImageSelected,
   isProcessing,
   language = "en",
+  isAuthenticated = true,
+  onRequireAuth,
 }: ImageUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -45,6 +49,10 @@ export default function ImageUploader({
 
   const handleFile = useCallback(
     (file: File) => {
+      if (!isAuthenticated && onRequireAuth) {
+        onRequireAuth();
+        return;
+      }
       setError(null);
       if (!ALLOWED_FILE_TYPES.includes(file.type)) {
         setError(t(language, "upload.invalidType"));
@@ -59,21 +67,29 @@ export default function ImageUploader({
       reader.readAsDataURL(file);
       onImageSelected(file);
     },
-    [onImageSelected, language]
+    [onImageSelected, language, isAuthenticated, onRequireAuth]
   );
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragOver(false);
+      if (!isAuthenticated && onRequireAuth) {
+        onRequireAuth();
+        return;
+      }
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
     },
-    [handleFile]
+    [handleFile, isAuthenticated, onRequireAuth]
   );
 
   // Generates a quick sample prescription image for instant judge/user demo testing
   const handleSamplePrescription = () => {
+    if (!isAuthenticated && onRequireAuth) {
+      onRequireAuth();
+      return;
+    }
     const canvas = document.createElement("canvas");
     canvas.width = 800;
     canvas.height = 600;
@@ -188,7 +204,13 @@ export default function ImageUploader({
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         onClick={() => {
-          if (!isProcessing) fileInputRef.current?.click();
+          if (!isProcessing) {
+            if (!isAuthenticated && onRequireAuth) {
+              onRequireAuth();
+              return;
+            }
+            fileInputRef.current?.click();
+          }
         }}
         className={`relative cursor-pointer rounded-3xl border-2 transition-all duration-300 overflow-hidden group shadow-xl ${
           dragOver
@@ -251,7 +273,7 @@ export default function ImageUploader({
                     <p className="text-xs text-primary-light font-medium mt-1">
                       {scanStep === 0 && "Analyzing image structure & clarity..."}
                       {scanStep === 1 && "Deciphering handwriting with Gemini Vision..."}
-                      {scanStep === 2 && "Matching against 40+ verified medicines..."}
+                      {scanStep === 2 && "Matching against 100+ comparison medicines..."}
                     </p>
                   </div>
 
@@ -320,6 +342,10 @@ export default function ImageUploader({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!isAuthenticated && onRequireAuth) {
+                    onRequireAuth();
+                    return;
+                  }
                   cameraInputRef.current?.click();
                 }}
                 className="bg-surface hover:bg-surface-hover text-foreground border border-border text-xs font-semibold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"

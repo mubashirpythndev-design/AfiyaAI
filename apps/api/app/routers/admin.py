@@ -9,8 +9,14 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.database import User, get_db
-from app.models.schemas import AdminUserSchema, AdminUsersResponse
+from app.db.database import User, UserFeedback, get_db
+from app.models.schemas import (
+    AdminUserSchema,
+    AdminUsersResponse,
+    AdminFeedbackListResponse,
+    AdminFeedbackSummarySchema,
+    FeedbackResponseSchema,
+)
 from app.services.auth_dependency import get_current_user
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
@@ -58,3 +64,112 @@ async def list_users(
         for u in rows
     ]
     return AdminUsersResponse(total=total, users=users)
+
+
+@router.get("/feedbacks", response_model=AdminFeedbackListResponse)
+async def list_feedbacks(
+    limit: int = Query(default=500, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    search: str | None = Query(default=None),
+    primary_need: str | None = Query(default=None),
+    rating: int | None = Query(default=None, ge=1, le=5),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdminFeedbackListResponse:
+    """Return user feedbacks and aggregated summary stats. Admin-only."""
+    _require_admin(current_user)
+
+    # Base query for stats
+    total_submissions = await db.scalar(select(func.count()).select_from(UserFeedback)) or 0
+
+    if total_submissions > 0:
+        avg_rating = float(await db.scalar(select(func.avg(UserFeedback.rating))) or 5.0)
+        rec_count = await db.scalar(
+            select(func.count()).select_from(UserFeedback).where(UserFeedback.would_recommend.is_(True))
+        ) or 0
+        recommend_percentage = round((rec_count / total_submissions) * 100, 1)
+
+        # Top primary need
+        top_need_res = await db.execute(
+            select(UserFeedback.primary_need, func.count(UserFeedback.id).label("cnt"))
+            .group_by(UserFeedback.primary_need)
+            .order_by(func.count(UserFeedback.id).desc())
+            .limit(1)
+        )
+        top_need_row = top_need_res.first()
+        top_primary_need = top_need_row[0] if top_need_row else None
+    else:
+        avg_rating = 5.0
+        recommend_percentage = 100.0
+        top_primary_need = None
+
+    summary = AdminFeedbackSummarySchema(
+        total_submissions=total_submissions,
+        average_rating=round(avg_rating, 2),
+        recommend_percentage=recommend_percentage,
+        top_primary_need=top_primary_need,
+    )
+
+    # Parameter sanitization for direct unit testing & FastAPI calls
+    limit_val = limit if isinstance(limit, int) else 500
+    offset_val = offset if isinstance(offset, int) else 0
+    search_val = search.strip() if isinstance(search, str) and search.strip() else None
+    primary_need_val = primary_need.strip() if isinstance(primary_need, str) and primary_need.strip() else None
+    rating_val = rating if isinstance(rating, int) else None
+
+    # Filtered list query
+    query = select(UserFeedback)
+    if search_val:
+        s = f"%{search_val.lower()}%"
+        query = query.where(
+            func.lower(UserFeedback.name).like(s)
+            | func.lower(UserFeedback.email).like(s)
+            | func.lower(UserFeedback.city).like(s)
+            | func.lower(UserFeedback.feedback).like(s)
+        )
+    if primary_need_val:
+        query = query.where(UserFeedback.primary_need == primary_need_val)
+    if rating_val:
+        query = query.where(UserFeedback.rating == rating_val)
+
+    query = query.order_by(UserFeedback.created_at.desc()).limit(limit_val).offset(offset_val)
+    result = await db.execute(query)
+    rows = result.scalars().all()
+
+    feedbacks = [
+        FeedbackResponseSchema(
+            id=f.id,
+            user_id=f.user_id,
+            name=f.name,
+            email=f.email,
+            age=f.age,
+            city=f.city,
+            primary_need=f.primary_need,
+            frequency_of_medicine_purchase=f.frequency_of_medicine_purchase,
+            rating=f.rating,
+            ease_of_use=f.ease_of_use,
+            feedback=f.feedback,
+            would_recommend=f.would_recommend,
+            created_at=f.created_at,
+        )
+        for f in rows
+    ]
+
+    return AdminFeedbackListResponse(summary=summary, feedbacks=feedbacks)
+
+
+@router.delete("/feedbacks/{feedback_id}", status_code=204)
+async def delete_feedback(
+    feedback_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a feedback entry. Admin-only."""
+    _require_admin(current_user)
+    result = await db.execute(select(UserFeedback).where(UserFeedback.id == feedback_id))
+    feedback = result.scalar_one_or_none()
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    await db.delete(feedback)
+    await db.commit()
+    return None

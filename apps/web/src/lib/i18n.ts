@@ -127,27 +127,31 @@ export type TranslationKey =
     | "auth.switchToSignUp"
     | "auth.switchToSignIn"
     | "auth.errorGeneric"
-    | "auth.sessionExpired";
+    | "auth.sessionExpired"
+    | "auth.searchRequired"
+    | "auth.categoryRequired"
+    | "auth.uploadRequired"
+    | "auth.infoRequired";
 
 type TranslationMap = Record<TranslationKey, string>;
 
 const en: TranslationMap = {
   "nav.features": "Features",
   "nav.howItWorks": "How it Works",
-  "hero.badge": "Powered by Verified DRAP Data",
+  "hero.badge": "DRAP-Aligned Comparison Dataset",
   "hero.title1": "Your Intelligent",
   "hero.titleHighlight": "Medicine",
   "hero.title2": "Assistant",
-  "hero.description": "Upload a prescription, get instant medicine information, compare prices, and chat in English, Urdu, or Roman Urdu. All data verified by DRAP Pakistan.",
+  "hero.description": "Upload a prescription, get instant medicine information, compare prices, and chat in English, Urdu, or Roman Urdu. DRAP-aligned comparison dataset — verify current availability and prices with official sources.",
   "hero.searchPlaceholder": "Search a medicine name...",
   "hero.searchBtn": "Search",
-  "hero.stat1Num": "40+",
-  "hero.stat1Label": "Verified Medicines",
+  "hero.stat1Num": "100+",
+  "hero.stat1Label": "Comparison Medicines",
   "hero.stat2Num": "3",
   "hero.stat2Label": "Languages",
   "hero.stat3Num": "100%",
   "hero.stat3Label": "Free to Use",
-  "hero.drapBadge": "DRAP Verified Data",
+  "hero.drapBadge": "DRAP Baseline Dataset",
   "category.title": "Browse by Category",
   "category.subtitle": "Explore our verified medicine database across major therapeutic categories",
   "howItWorks.title": "How It Works",
@@ -200,10 +204,10 @@ const en: TranslationMap = {
   "ocr.foundCount": "Found in Prescription",
   "ocr.available": "Available in Database",
   "ocr.unavailable": "Not in Verified DB",
-  "ocr.availableDesc": "Verified by DRAP — full medical info, price comparisons, and alternatives available.",
-  "ocr.unavailableDesc": "Not currently in our verified medicines database. You can search manually or consult your physician.",
+  "ocr.availableDesc": "DRAP-aligned comparison record — clinical info, price comparisons, and alternatives available.",
+  "ocr.unavailableDesc": "Not currently in our comparison medicines database. You can search manually or consult your physician.",
   "footer.disclaimerTitle": "Medical Disclaimer",
-  "footer.drapVerified": "Verified DRAP Data",
+  "footer.drapVerified": "DRAP-Aligned Baseline",
   "footer.builtFor": "Built for Pakistan",
   "footer.safetyFirst": "Safety First",
   "disclaimer.label": "Disclaimer:",
@@ -258,6 +262,10 @@ const en: TranslationMap = {
   "auth.switchToSignIn": "Already have an account? Sign in",
   "auth.errorGeneric": "Something went wrong. Please try again.",
   "auth.sessionExpired": "Your session expired. Please sign in again.",
+  "auth.searchRequired": "Please sign in or sign up first to search medicines.",
+  "auth.categoryRequired": "Please sign in or sign up first to browse medicines by category.",
+  "auth.uploadRequired": "Please sign in or sign up first to upload and scan prescriptions.",
+  "auth.infoRequired": "Please sign in or sign up first to view detailed medicine information and price comparisons.",
 };
 
 const ur: TranslationMap = {
@@ -270,13 +278,13 @@ const ur: TranslationMap = {
   "hero.description": "\u0646\u0633\u062E\u06C1 \u0627\u067E \u0644\u0648\u0688 \u06A9\u0631\u06CC\u06BA\u060C \u0641\u0648\u0631\u06CC \u062F\u0648\u0627 \u06A9\u06CC \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u062D\u0627\u0635\u0644 \u06A9\u0631\u06CC\u06BA\u060C \u0642\u06CC\u0645\u062A\u0648\u06BA \u06A9\u0627 \u0645\u0648\u0627\u0632\u0646\u06C1 \u06A9\u0631\u06CC\u06BA\u060C \u0627\u0648\u0631 \u0686\u06CC\u0679 \u06A9\u0631\u06CC\u06BA\u06D4 \u062A\u0645\u0627\u0645 \u0688\u06CC\u0679\u0627 DRAP \u067E\u0627\u06A9\u0633\u062A\u0627\u0646 \u0633\u06D2 \u0645\u0635\u062F\u0642 \u06C1\u06D2\u06D4",
   "hero.searchPlaceholder": "\u062F\u0648\u0627 \u06A9\u0627 \u0646\u0627\u0645 \u062A\u0644\u0627\u0634 \u06A9\u0631\u06CC\u06BA...",
   "hero.searchBtn": "\u062A\u0644\u0627\u0634",
-  "hero.stat1Num": "\u06F4\u06F0+",
-  "hero.stat1Label": "\u0645\u0635\u062F\u0642 \u062F\u0648\u0627\u0626\u06CC\u06BA",
+  "hero.stat1Num": "100+",
+  "hero.stat1Label": "\u062A\u0642\u0627\u0628\u0644 \u06A9\u06CC \u062F\u0648\u0627\u0626\u06CC\u06BA",
   "hero.stat2Num": "\u06F3",
   "hero.stat2Label": "\u0632\u0628\u0627\u0646\u06CC\u06BA",
   "hero.stat3Num": "\u06F1\u06F0\u06F0\u066A",
   "hero.stat3Label": "\u0645\u0641\u062A \u0627\u0633\u062A\u0639\u0645\u0627\u0644",
-  "hero.drapBadge": "DRAP \u0645\u0635\u062F\u0642 \u0688\u06CC\u0679\u0627",
+  "hero.drapBadge": "DRAP \u0628\u06CC\u0633 \u0644\u0627\u0626\u0646 \u0688\u06CC\u0679\u0627",
   "category.title": "\u0632\u0645\u0631\u06C1 \u06A9\u06D2 \u0645\u0648\u0627\u0628 \u062F\u06CC\u06A9\u06BE\u06CC\u06BA",
   "category.subtitle": "\u0627\u06C1\u0645 \u062A\u06CC\u0631\u0627\u067E\u06CC\u0648\u0679\u06A9 \u0632\u0645\u0631\u0648\u06BA \u0645\u06CC\u06BA \u0645\u0635\u062F\u0642 \u062F\u0648\u0627 \u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u06A9\u0627 \u0645\u0637\u0627\u0644\u0639\u06C1 \u06A9\u0631\u06CC\u06BA",
   "howItWorks.title": "\u06CC\u06C1 \u06A9\u06CC\u0633\u06D2 \u06A9\u0627\u0645 \u06A9\u0631\u062A\u0627 \u06C1\u06D2",
@@ -330,9 +338,9 @@ const ur: TranslationMap = {
   "ocr.available": "\u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u0645\u06CC\u06BA \u062F\u0633\u062A\u06CC\u0627\u0628",
   "ocr.unavailable": "\u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u0645\u06CC\u06BA \u0645\u0648\u062C\u0648\u062F \u0646\u06C1\u06CC\u06BA",
   "ocr.availableDesc": "DRAP \u0633\u06D2 \u062A\u0635\u062F\u06CC\u0642 \u0634\u062F\u06C1 \u2014 \u0645\u06A9\u0645\u0644 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0648\u0631 \u0642\u06CC\u0645\u062A\u0648\u06BA \u06A9\u0627 \u0645\u0648\u0627\u0632\u0646\u06C1 \u062F\u0633\u062A\u06CC\u0627\u0628 \u06C1\u06D2\u06D4",
-  "ocr.unavailableDesc": "\u06CC\u06C1 \u062F\u0648\u0627 \u06C1\u0645\u0627\u0631\u06CC 40+ \u062A\u0635\u062F\u06CC\u0642 \u0634\u062F\u06C1 \u0641\u06C1\u0631\u0633\u062A \u0645\u06CC\u06BA \u0646\u06C1\u06CC\u06BA \u0645\u0644\u06CC\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u0688\u0627\u06A9\u0679\u0631 \u0633\u06D2 \u0631\u062C\u0648\u0639 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "ocr.unavailableDesc": "\u06CC\u06C1 \u062F\u0648\u0627 \u06C1\u0645\u0627\u0631\u06CC 100+ \u062A\u0642\u0627\u0628\u0644 \u0634\u062F\u06C1 \u0641\u06C1\u0631\u0633\u062A \u0645\u06CC\u06BA \u0646\u06C1\u06CC\u06BA \u0645\u0644\u06CC\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u0688\u0627\u06A9\u0679\u0631 \u0633\u06D2 \u0631\u062C\u0648\u0639 \u06A9\u0631\u06CC\u06BA\u06D4",
   "footer.disclaimerTitle": "\u0637\u0628\u06CC \u062F\u0639\u0648\u06CC\u06CC \u0628\u06CC\u0627\u0646",
-  "footer.drapVerified": "\u0645\u0635\u062F\u0642 DRAP \u0688\u06CC\u0679\u0627",
+  "footer.drapVerified": "DRAP \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u0688\u06CC\u0679\u0627",
   "footer.builtFor": "\u067E\u0627\u06A9\u0633\u062A\u0627\u0646 \u06A9\u06D2 \u0644\u06CC\u06D2 \u062A\u0639\u0645\u06CC\u0631",
   "footer.safetyFirst": "\u062D\u0641\u0627\u0638\u062A \u0633\u0628 \u0633\u06D2 \u0627\u0648\u0644",
   "disclaimer.label": "\u062F\u0639\u0648\u06CC\u06CC \u0628\u06CC\u0627\u0646:",
@@ -385,27 +393,31 @@ const ur: TranslationMap = {
   "auth.creating": "\u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646 \u0631\u06C1\u0627 \u06C1\u06D2...",
   "auth.switchToSignUp": "\u0646\u0626\u06D2 \u06C1\u06CC\u06BA\u061F \u0627\u06A9\u0627\u0624\u0646\u0679 \u0628\u0646\u0627\u0626\u06CC\u06BA",
   "auth.switchToSignIn": "\u067E\u06C1\u0644\u06D2 \u0633\u06D2 \u0627\u06A9\u0627\u0624\u0646\u0679 \u06C1\u06D2\u061F \u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA",
-  "auth.errorGeneric": "\u06A9\u0686\u06BE \u063A\u0644\u0637 \u06C1\u0648 \u06AF\u06CC\u0627\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u06A9\u0648\u0634\u0634 \u06A9\u0631\u06CC\u06BA\u06D4",
-  "auth.sessionExpired": "\u0622\u067E \u06A9\u0627 \u0633\u06CC\u0634\u0646 \u062E\u062A\u0645 \u06C1\u0648 \u06AF\u06CC\u0627 \u06C1\u06D2\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u062F\u0648\u0628\u0627\u0631\u06C1 \u0644\u0627\u06AF \u0627\u06CC\u0646 \u06A9\u0631\u06CC\u06BA\u06D4",
+  "auth.errorGeneric": "کچھ غلط ہو گیا۔ براہ مہربانی دوبارہ کوشش کریں۔",
+  "auth.sessionExpired": "آپ کا سیشن ختم ہو گیا ہے۔ براہ مہربانی دوبارہ لاگ ان کریں۔",
+  "auth.searchRequired": "ادویات تلاش کرنے کے لیے پہلے سائن ان یا سائن اپ کریں۔",
+  "auth.categoryRequired": "کیٹیگری کے مطابق ادویات دیکھنے کے لیے پہلے سائن ان یا سائن اپ کریں۔",
+  "auth.uploadRequired": "نسخہ (Prescription) اپلوڈ اور اسکین کرنے کے لیے پہلے سائن ان یا سائن اپ کریں۔",
+  "auth.infoRequired": "دوا کی مکمل تفصیلات اور قیمتوں کا موازنہ دیکھنے کے لیے پہلے سائن ان یا سائن اپ کریں۔",
 };
 
 const romanUr: TranslationMap = {
   "nav.features": "Khubiyan",
   "nav.howItWorks": "Yeh kaise kaam karta hai",
-  "hero.badge": "Mustanad DRAP Data se taqatwar",
+  "hero.badge": "DRAP-Aligned Comparison Dataset",
   "hero.title1": "Aap ka zaheen",
   "hero.titleHighlight": "Dawai",
   "hero.title2": "Madadgaar",
   "hero.description": "Nuskha app load karein, fori dawai ki maloomat hasil karein, qeematon ka muqabla karein, aur chat karein. Tamam data DRAP Pakistan se mustanad hai.",
   "hero.searchPlaceholder": "Dawai ka naam talash karein...",
   "hero.searchBtn": "Talash",
-  "hero.stat1Num": "40+",
-  "hero.stat1Label": "Mustanad Dawain",
+  "hero.stat1Num": "100+",
+  "hero.stat1Label": "Comparison Dawain",
   "hero.stat2Num": "3",
   "hero.stat2Label": "Zabanain",
   "hero.stat3Num": "100%",
   "hero.stat3Label": "Muft istemaal",
-  "hero.drapBadge": "DRAP Mustanad Data",
+  "hero.drapBadge": "DRAP Baseline Data",
   "category.title": "Zamray ke mutabiq dekhein",
   "category.subtitle": "Aham therapeutic zamron mein mustanad dawai database ka mutala karein",
   "howItWorks.title": "Yeh Kaise Kaam Karta Hai",
@@ -459,9 +471,9 @@ const romanUr: TranslationMap = {
   "ocr.available": "Database mein dastiyab",
   "ocr.unavailable": "Database mein mojood nahi",
   "ocr.availableDesc": "DRAP se tasdeeq shuda — mukammal maloomat aur qeematon ka muqabla dastiyab hai.",
-  "ocr.unavailableDesc": "Yeh dawai hamari 40+ tasdeeq shuda list mein nahi mili. Barah-e-karam doctor se rujoo karein.",
+  "ocr.unavailableDesc": "Yeh dawai hamari 100+ comparison list mein nahi mili. Barah-e-karam doctor se rujoo karein.",
   "footer.disclaimerTitle": "Tibbi Dawiya Bayan",
-  "footer.drapVerified": "Mustanad DRAP Data",
+  "footer.drapVerified": "DRAP-Aligned Data",
   "footer.builtFor": "Pakistan ke liye tameer",
   "footer.safetyFirst": "Hifazat Sab Se Pehle",
   "disclaimer.label": "Dawiyah Bayan:",
@@ -516,6 +528,10 @@ const romanUr: TranslationMap = {
   "auth.switchToSignIn": "Pehle se account hai? Sign in karein",
   "auth.errorGeneric": "Kuch ghalat ho gaya. Barah-e-meharbani dobara koshish karein.",
   "auth.sessionExpired": "Aap ka session khatam ho gaya hai. Barah-e-meharbani dobara sign in karein.",
+  "auth.searchRequired": "Dawaiyan talash karne ke liye pehle sign in ya sign up karein.",
+  "auth.categoryRequired": "Category ke mutabiq dawaiyan dekhne ke liye pehle sign in ya sign up karein.",
+  "auth.uploadRequired": "Nuskha (Prescription) upload aur scan karne ke liye pehle sign in ya sign up karein.",
+  "auth.infoRequired": "Dawa ki mukammal tafseelat aur prices dekhne ke liye pehle sign in ya sign up karein.",
 };
 
 export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {

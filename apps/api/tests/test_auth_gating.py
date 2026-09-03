@@ -87,10 +87,7 @@ def _auth(token: str) -> dict:
 
 
 def test_gated_endpoints_return_401_without_token(client):
-    med_id = _panadol_id(client)
-
-    assert client.get(f"/api/medicines/{med_id}/info").status_code == 401
-    assert client.get(f"/api/medicines/{med_id}/prices").status_code == 401
+    """Action endpoints like price-check strictly require authentication."""
     assert (
         client.post(
             "/api/v1/price-check",
@@ -101,9 +98,11 @@ def test_gated_endpoints_return_401_without_token(client):
 
 
 def test_gated_endpoint_rejects_garbage_token(client):
-    med_id = _panadol_id(client)
-    resp = client.get(
-        f"/api/medicines/{med_id}/prices", headers=_auth("garbage.token.here")
+    """Gated endpoints strictly reject invalid or forged tokens."""
+    resp = client.post(
+        "/api/v1/price-check",
+        json={"medicine_query": "Panadol", "price_paid": 400},
+        headers=_auth("garbage.token.here"),
     )
     assert resp.status_code == 401
 
@@ -155,6 +154,12 @@ def test_public_endpoints_stay_open_without_token(client):
 
     resp = client.post("/api/medicines/match", json={"candidate": "Panadol"})
     assert resp.status_code == 200
+    med_id = resp.json()["medicine"]["id"]
 
     resp = client.get("/api/medicines/by-category", params={"category": "Analgesic"})
     assert resp.status_code == 200
+
+    # Public medicine info & price comparison should be open to visitors and judges without token
+    assert client.get(f"/api/medicines/{med_id}/info").status_code == 200
+    assert client.get(f"/api/medicines/{med_id}/prices").status_code == 200
+

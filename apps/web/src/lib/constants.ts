@@ -1,10 +1,23 @@
 // Application constants
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Resolve API_BASE_URL: Prefer NEXT_PUBLIC_API_URL if set; otherwise in browser outside localhost use Railway production backend.
+const getApiBaseUrl = (): string => {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return "https://afiyaai-production.up.railway.app";
+    }
+  }
+  return "http://localhost:8000";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export const MEDICAL_DISCLAIMER =
-  "This information is for educational purposes only and is not a substitute for professional medical advice. Always consult a qualified healthcare provider for diagnosis, treatment, and answers to your personal medical questions.";
+  "This information is for educational and price comparison purposes only and is not a substitute for professional medical advice. Comparison data is aligned with DRAP baseline references; always verify current pharmacy availability and prices with official sources. Always consult a qualified healthcare provider for diagnosis and treatment.";
 
 export const LANGUAGES = [
   { code: "en" as const, label: "English", flag: "EN" },

@@ -237,3 +237,49 @@ class CabinetResponse(BaseModel):
     items: list[CabinetItemSchema]
 
 
+class FeedbackCreateRequest(BaseModel):
+    """User feedback and community health needs submission."""
+    name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    age: Optional[int] = Field(None, ge=1, le=120)
+    city: Optional[str] = Field(None, max_length=100)
+    primary_need: str = Field(..., min_length=2, max_length=150)
+    frequency_of_medicine_purchase: Optional[str] = Field(None, max_length=100)
+    rating: int = Field(5, ge=1, le=5)
+    ease_of_use: Optional[str] = Field(None, max_length=50)
+    feedback: str = Field(..., min_length=3, max_length=2000)
+    would_recommend: bool = True
+
+
+class FeedbackResponseSchema(BaseModel):
+    """Public schema for a feedback response item."""
+    id: str
+    user_id: Optional[str] = None
+    name: str
+    email: str
+    age: Optional[int] = None
+    city: Optional[str] = None
+    primary_need: str
+    frequency_of_medicine_purchase: Optional[str] = None
+    rating: int
+    ease_of_use: Optional[str] = None
+    feedback: str
+    would_recommend: bool = True
+    created_at: Optional[datetime] = None
+
+
+class AdminFeedbackSummarySchema(BaseModel):
+    """Aggregated stats on community feedback."""
+    total_submissions: int
+    average_rating: float
+    recommend_percentage: float
+    top_primary_need: Optional[str] = None
+
+
+class AdminFeedbackListResponse(BaseModel):
+    """Admin feedback view with summary stats and paginated list."""
+    summary: AdminFeedbackSummarySchema
+    feedbacks: list[FeedbackResponseSchema]
+
+
+

@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db, Medicine, MedicinePrice, KnowledgeChunk, Source, User
-from app.services.auth_dependency import get_current_user
+from app.services.auth_dependency import get_optional_current_user
 from app.services.matching_service import match_medicine, medicine_to_schema
 from app.services.price_service import get_price_comparison
 from app.services.rag_service import retrieve_context
@@ -61,9 +61,9 @@ async def get_medicine(medicine_id: str, db: AsyncSession = Depends(get_db)):
 async def get_prices(
     medicine_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_current_user),
 ):
-    """Get price comparison for a verified medicine (requires login)."""
+    """Get price comparison for a verified medicine."""
     comparison = await get_price_comparison(medicine_id, db)
     if not comparison:
         raise HTTPException(status_code=404, detail="Medicine or prices not found")
@@ -75,9 +75,9 @@ async def get_medicine_info(
     medicine_id: str,
     language: str = Query(default="en"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_optional_current_user),
 ):
-    """Get RAG-powered medicine information (requires login)."""
+    """Get RAG-powered medicine information."""
     # Get medicine
     result = await db.execute(
         select(Medicine).where(Medicine.id == medicine_id)

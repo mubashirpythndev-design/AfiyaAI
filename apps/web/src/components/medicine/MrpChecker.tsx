@@ -405,7 +405,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
               {/* Provenance source */}
               <div className="flex items-center justify-between text-xs text-muted pt-1">
-                <span>Verified against DRAP Pakistan Price Baseline</span>
+                <span>Referenced against DRAP Pakistan Price Baseline</span>
                 <a
                   href="https://e.dra.gov.pk/public/price"
                   target="_blank"

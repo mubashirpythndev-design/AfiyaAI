@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, Date, Numeric, Boolean, ForeignKey, Index, text, JSON
+    Column, String, Text, DateTime, Date, Numeric, Boolean, Integer, ForeignKey, Index, text, JSON
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -220,6 +220,32 @@ class UserCabinet(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     medicine = relationship("Medicine")
+    user = relationship("User")
+
+
+class UserFeedback(Base):
+    """User feedback and community healthcare needs survey responses.
+
+    Created by alembic revision 0009.
+    Stores feedback, ratings, user background (age, city), primary healthcare needs,
+    and medicine usage frequency to help optimize Afiya AI's features.
+    """
+    __tablename__ = "user_feedback"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    name = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False, index=True)
+    age = Column(Integer, nullable=True)
+    city = Column(String(100), nullable=True)
+    primary_need = Column(String(150), nullable=False)
+    frequency_of_medicine_purchase = Column(String(100), nullable=True)
+    rating = Column(Integer, nullable=False, default=5)
+    ease_of_use = Column(String(50), nullable=True)
+    feedback = Column(Text, nullable=False)
+    would_recommend = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
     user = relationship("User")
 
 

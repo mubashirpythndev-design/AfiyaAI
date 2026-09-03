@@ -72,7 +72,7 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
               {medicine.generic_name}
             </h3>
             <p className="text-sm text-muted">
-              Category: {medicine.category} &bull; Verified DRAP Clinical Profile
+              Category: {medicine.category} &bull; DRAP-Aligned Clinical Profile
             </p>
           </div>
         ) : (

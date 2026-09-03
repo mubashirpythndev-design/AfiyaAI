@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import ocr, medicines, chat, price_check, auth, admin, cabinet
+from app.routers import ocr, medicines, chat, price_check, auth, admin, cabinet, feedback
 from app.models.schemas import HealthResponse
 from sqlalchemy import select, func
 from app.db.database import init_db, is_sqlite, async_session, Medicine
@@ -79,6 +79,7 @@ app.add_middleware(
 app.include_router(auth.router)  # email + password auth (JWT bearer tokens)
 app.include_router(admin.router)  # admin-only views (RBAC-gated)
 app.include_router(cabinet.router)  # digital medicine cabinet
+app.include_router(feedback.router)  # community healthcare feedback & survey
 app.include_router(ocr.router)
 app.include_router(medicines.router)
 app.include_router(chat.router)

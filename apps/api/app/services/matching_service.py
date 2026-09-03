@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from thefuzz import fuzz
 
 from app.config import settings
-from app.db.database import Medicine
+from app.db.database import Medicine, MedicinePrice
 from app.models.schemas import MedicineSchema
 
 logger = logging.getLogger(__name__)
@@ -81,12 +81,30 @@ async def match_medicine(candidate: str, db: AsyncSession) -> dict:
             if filtered_by_strength:
                 generic_meds = filtered_by_strength
 
+        # If candidate explicitly specified dosage form (e.g. tablet, syrup, suspension, capsule, drop, injection)
+        for form_word in ["tablet", "capsule", "syrup", "suspension", "injection", "drops"]:
+            if form_word in normalized:
+                filtered_by_form = [m for m in generic_meds if form_word in normalize(m.dosage_form)]
+                if filtered_by_form:
+                    generic_meds = filtered_by_form
+                break
+
+        if len(generic_meds) > 1:
+            med_ids = [m.id for m in generic_meds]
+            prices_res = await db.execute(
+                select(MedicinePrice.medicine_id, func.min(MedicinePrice.price)).where(
+                    MedicinePrice.medicine_id.in_(med_ids)
+                ).group_by(MedicinePrice.medicine_id)
+            )
+            price_map = {row[0]: row[1] for row in prices_res.all()}
+            generic_meds.sort(key=lambda m: price_map.get(m.id, float("inf")))
+
         if len(generic_meds) == 1:
             med = generic_meds[0]
             logger.info(f"Single generic match: '{candidate}' -> {med.brand_name}")
             return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
 
-        logger.info(f"Generic match: '{candidate}' -> {len(generic_meds)} brands")
+        logger.info(f"Generic match: '{candidate}' -> {len(generic_meds)} brands (cheapest: {generic_meds[0].brand_name})")
         return {
             "medicine": None,
             "confidence": 1.0,

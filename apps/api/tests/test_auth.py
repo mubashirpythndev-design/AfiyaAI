@@ -254,3 +254,32 @@ async def test_get_current_user_unknown_user_401(auth_db):
         with pytest.raises(HTTPException) as exc:
             await get_current_user(authorization=f"Bearer {token}", db=db)
     assert exc.value.status_code == 401
+
+
+async def test_fake_clerk_token_rejected_401(auth_db):
+    """P0 Security: Fake clerk tokens or unsigned RS256 JWTs must be strictly rejected."""
+    async with auth_db() as db:
+        # 1. Plain string token bypass attempt
+        with pytest.raises(HTTPException) as exc:
+            await get_current_user(authorization="Bearer clerk_user_fake123", db=db)
+        assert exc.value.status_code == 401
+
+        # 2. Unsigned / spoofed RS256 JWT attempt
+        fake_jwt = "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZha2UifQ.eyJzdWIiOiJ1c2VyX2JhZGd1eSJ9.ZmFrZXNpZ25hdHVyZQ"
+        with pytest.raises(HTTPException) as exc2:
+            await get_current_user(authorization=f"Bearer {fake_jwt}", db=db)
+        assert exc2.value.status_code == 401
+
+
+async def test_spoofed_headers_cannot_grant_admin(auth_db):
+    """P0 Security: Unverified client headers like X-Clerk-User-Email cannot bypass auth or grant admin."""
+    async with auth_db() as db:
+        with pytest.raises(HTTPException) as exc:
+            await get_current_user(
+                authorization="Bearer clerk_user_fake",
+                x_clerk_user_email="admin@afiya.ai",
+                x_clerk_user_name="Fake Admin",
+                db=db,
+            )
+        assert exc.value.status_code == 401
+

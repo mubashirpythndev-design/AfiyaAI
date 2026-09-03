@@ -20,6 +20,8 @@ import SaveToCabinetButton from "@/components/medicine/SaveToCabinetButton";
 import ChatInterface from "@/components/chat/ChatInterface";
 import CabinetModal from "@/components/medicine/CabinetModal";
 import OnboardingGuideModal from "@/components/guide/OnboardingGuideModal";
+import FeedbackModal from "@/components/feedback/FeedbackModal";
+import FeedbackCard from "@/components/feedback/FeedbackCard";
 import Disclaimer from "@/components/shared/Disclaimer";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
 import type {
@@ -41,7 +43,10 @@ type View = "home" | "results" | "info" | "prices" | "direct_search";
 type PendingAction =
   | { kind: "info"; id: string }
   | { kind: "prices"; id: string }
-  | { kind: "direct_search"; id: string };
+  | { kind: "direct_search"; id: string }
+  | { kind: "search"; query: string }
+  | { kind: "category"; category: string }
+  | { kind: "upload" };
 
 export default function Home() {
   const { isSignedIn, user: clerkUser } = useUser();
@@ -58,13 +63,17 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [directTab, setDirectTab] = useState<"info" | "prices">("info");
   const [isGenericQuery, setIsGenericQuery] = useState(false);
+  const [switchingBrandId, setSwitchingBrandId] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Cabinet & Guide Modal State
+  // Cabinet, Guide & Feedback Modal State
   const [showCabinetModal, setShowCabinetModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // === Auth state ===
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authPromptMessage, setAuthPromptMessage] = useState<string | null>(null);
   const pendingRef = useRef<PendingAction | null>(null);
 
   // Sync Clerk user
@@ -83,32 +92,63 @@ export default function Home() {
       if (pendingRef.current) {
         const pending = pendingRef.current;
         pendingRef.current = null;
+        setAuthPromptMessage(null);
         if (pending.kind === "info") void handleViewDetails(pending.id);
         if (pending.kind === "prices") void handleViewPrices(pending.id);
         if (pending.kind === "direct_search") void loadDirectSearchData(pending.id);
+        if (pending.kind === "search") {
+          setSearchQuery(pending.query);
+          void executeSearch(pending.query);
+        }
+        if (pending.kind === "category") void executeCategorySearch(pending.category);
       }
     } else if (!isSignedIn) {
       setAuthUser(getCurrentUser());
     }
   }, [isSignedIn, clerkUser]);
 
-  const requestAuth = (pending?: PendingAction) => {
+  const requestAuth = (pending?: PendingAction, reason?: string) => {
     if (pending) {
       pendingRef.current = pending;
     }
-    clerk.openSignIn();
+    const message = reason || t(language, "auth.infoRequired");
+    setAuthPromptMessage(message);
+
+    if (isSignedIn || authUser) {
+      // User is already authenticated in Clerk / local session - execute action immediately
+      setAuthPromptMessage(null);
+      if (pending) {
+        pendingRef.current = null;
+        if (pending.kind === "info") void handleViewDetails(pending.id);
+        if (pending.kind === "prices") void handleViewPrices(pending.id);
+        if (pending.kind === "direct_search") void loadDirectSearchData(pending.id);
+        if (pending.kind === "search") {
+          setSearchQuery(pending.query);
+          void executeSearch(pending.query);
+        }
+        if (pending.kind === "category") void executeCategorySearch(pending.category);
+      }
+      return;
+    }
+    try {
+      clerk.openSignIn();
+    } catch {}
   };
 
   // Hydrate the session from localStorage after mount & trigger guide on first visit
   useEffect(() => {
     setAuthUser(getCurrentUser());
-    try {
-      const seen = localStorage.getItem("afiya_guide_seen");
-      if (!seen) {
-        setShowGuideModal(true);
-      }
-    } catch {}
   }, []);
+
+  // Strict route/view guard: unauthenticated users cannot view info, prices, direct_search or results
+  useEffect(() => {
+    if (!isSignedIn && !authUser && (view === "info" || view === "prices" || view === "direct_search" || view === "results")) {
+      setView("home");
+      setSelectedInfo(null);
+      setSelectedPrices(null);
+      setMedicines([]);
+    }
+  }, [isSignedIn, authUser, view]);
 
   // Always reset scroll to top when changing views
   useEffect(() => {
@@ -121,36 +161,30 @@ export default function Home() {
   useEffect(() => {
     setOnUnauthorized(() => {
       setAuthUser(null);
-      requestAuth();
+      requestAuth(undefined, t(language, "auth.sessionExpired"));
     });
-  }, []);
+  }, [language]);
 
   const handleGuideAction = (actionType: "search" | "category" | "upload" | "chat", payload?: string) => {
     setShowGuideModal(false);
     if (actionType === "search" && payload) {
       setSearchQuery(payload);
-      void (async () => {
-        setIsProcessing(true);
-        try {
-          const match = await matchMedicine(payload);
-          const targetMed = match.medicine || (match.alternatives && match.alternatives[0]);
-          if (targetMed) {
-            setIsGenericQuery(!match.medicine);
-            const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
-            if (!isAuthenticated) {
-              requestAuth({ kind: "direct_search", id: targetMed.id });
-              return;
-            }
-            if (!match.medicine) setDirectTab("prices");
-            await loadDirectSearchData(targetMed.id);
-          }
-        } finally {
-          setIsProcessing(false);
-        }
-      })();
+      if (!isSignedIn && !authUser) {
+        requestAuth({ kind: "search", query: payload }, t(language, "auth.searchRequired"));
+        return;
+      }
+      void executeSearch(payload);
     } else if (actionType === "category" && payload) {
-      void handleCategorySearch(payload);
+      if (!isSignedIn && !authUser) {
+        requestAuth({ kind: "category", category: payload }, t(language, "auth.categoryRequired"));
+        return;
+      }
+      void executeCategorySearch(payload);
     } else if (actionType === "upload") {
+      if (!isSignedIn && !authUser) {
+        requestAuth({ kind: "upload" }, t(language, "auth.uploadRequired"));
+        return;
+      }
       const el = document.getElementById("features");
       if (el) el.scrollIntoView({ behavior: "smooth" });
     } else if (actionType === "chat") {
@@ -159,13 +193,35 @@ export default function Home() {
     }
   };
 
-  const loadDirectSearchData = async (id: string) => {
+  const loadDirectSearchData = async (id: string, isGeneric = false) => {
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "direct_search", id }, t(language, "auth.infoRequired"));
+      return;
+    }
     setIsProcessing(true);
+    setError(null);
     try {
       const [info, prices] = await Promise.all([
         getMedicineInfo(id, language),
         getPrices(id),
       ]);
+
+      // When searching by generic formula, ensure the cheapest brand is displayed first
+      if (isGeneric && info.cheapest_brands && info.cheapest_brands.options.length > 0) {
+        const cheapestOpt = info.cheapest_brands.options[0];
+        if (cheapestOpt.medicine_id !== id) {
+          const [cheapestInfo, cheapestPrices] = await Promise.all([
+            getMedicineInfo(cheapestOpt.medicine_id, language),
+            getPrices(cheapestOpt.medicine_id),
+          ]);
+          setSelectedInfo(cheapestInfo);
+          setSelectedPrices(cheapestPrices);
+          setView("direct_search");
+          window.scrollTo({ top: 0, behavior: "instant" });
+          return;
+        }
+      }
+
       setSelectedInfo(info);
       setSelectedPrices(prices);
       setView("direct_search");
@@ -177,12 +233,44 @@ export default function Home() {
     }
   };
 
+  const handleBrandSwitch = async (id: string) => {
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "info", id }, t(language, "auth.infoRequired"));
+      return;
+    }
+    if (switchingBrandId || (selectedPrices && selectedPrices.medicine.id === id)) return;
+    setSwitchingBrandId(id);
+    setError(null);
+    try {
+      const [info, prices] = await Promise.all([
+        getMedicineInfo(id, language),
+        getPrices(id),
+      ]);
+      setSelectedInfo(info);
+      setSelectedPrices(prices);
+      // Note: Do not reset isGenericQuery to false so the generic heading persists when comparing brands!
+      setMedicines([info.medicine]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t(language, "error.loadInfo"));
+    } finally {
+      setSwitchingBrandId(null);
+    }
+  };
+
   const handleSignOut = () => {
     clearSession();
     setAuthUser(null);
+    setView("home");
+    setSelectedInfo(null);
+    setSelectedPrices(null);
+    setMedicines([]);
   };
 
   const handleImageSelected = async (file: File) => {
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "upload" }, t(language, "auth.uploadRequired"));
+      return;
+    }
     setIsProcessing(true);
     setError(null);
     try {
@@ -238,32 +326,29 @@ export default function Home() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const executeSearch = async (q: string) => {
+    setIsSearching(true);
     setIsProcessing(true);
     setError(null);
     try {
-      const match = await matchMedicine(searchQuery.trim());
-      const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
+      const match = await matchMedicine(q);
       if (match.medicine) {
-        setIsGenericQuery(false);
-        setMedicines([match.medicine]);
-        if (!isAuthenticated) {
-          requestAuth({ kind: "direct_search", id: match.medicine.id });
-          return;
+        const qLower = q.toLowerCase();
+        const genLower = match.medicine.generic_name.toLowerCase();
+        const isGeneric = genLower.includes(qLower) || qLower.includes(genLower);
+        setIsGenericQuery(isGeneric);
+        if (isGeneric) {
+          setDirectTab("prices");
         }
-        await loadDirectSearchData(match.medicine.id);
+        setMedicines([match.medicine]);
+        await loadDirectSearchData(match.medicine.id, isGeneric);
       } else if (match.alternatives && match.alternatives.length > 0) {
         // Multi-brand generic match (e.g. Paracetamol, Ibuprofen, Omeprazole)
         setIsGenericQuery(true);
         setMedicines(match.alternatives);
         const topMedId = match.alternatives[0].id;
-        if (!isAuthenticated) {
-          requestAuth({ kind: "direct_search", id: topMedId });
-          return;
-        }
         setDirectTab("prices");
-        await loadDirectSearchData(topMedId);
+        await loadDirectSearchData(topMedId, true);
       } else {
         setError(t(language, "error.noMatch"));
       }
@@ -271,16 +356,26 @@ export default function Home() {
       setError(e instanceof Error ? e.message : t(language, "error.searchFailed"));
     } finally {
       setIsProcessing(false);
+      setIsSearching(false);
     }
   };
 
-  const handleViewDetails = async (id: string) => {
-    setIsGenericQuery(false);
-    const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
-    if (!isAuthenticated) {
-      requestAuth({ kind: "info", id });
+  const handleSearch = async () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "search", query: q }, t(language, "auth.searchRequired"));
       return;
     }
+    await executeSearch(q);
+  };
+
+  const handleViewDetails = async (id: string) => {
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "info", id }, t(language, "auth.infoRequired"));
+      return;
+    }
+    setIsGenericQuery(false);
     setIsProcessing(true);
     try {
       const info = await getMedicineInfo(id, language);
@@ -295,12 +390,11 @@ export default function Home() {
   };
 
   const handleViewPrices = async (id: string) => {
-    setIsGenericQuery(false);
-    const isAuthenticated = Boolean(isSignedIn || authUser || isLoggedIn());
-    if (!isAuthenticated) {
-      requestAuth({ kind: "prices", id });
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "prices", id }, t(language, "auth.infoRequired"));
       return;
     }
+    setIsGenericQuery(false);
     setIsProcessing(true);
     try {
       const prices = await getPrices(id);
@@ -314,7 +408,7 @@ export default function Home() {
     }
   };
 
-  const handleCategorySearch = async (category: string) => {
+  const executeCategorySearch = async (category: string) => {
     setIsGenericQuery(false);
     setIsProcessing(true);
     setError(null);
@@ -334,6 +428,14 @@ export default function Home() {
     }
   };
 
+  const handleCategorySearch = async (category: string) => {
+    if (!isSignedIn && !authUser) {
+      requestAuth({ kind: "category", category }, t(language, "auth.categoryRequired"));
+      return;
+    }
+    await executeCategorySearch(category);
+  };
+
 
   return (
     <div dir={language === "ur" ? "rtl" : "ltr"} suppressHydrationWarning>
@@ -345,6 +447,7 @@ export default function Home() {
         onSignOut={handleSignOut}
         onOpenCabinet={() => setShowCabinetModal(true)}
         onOpenGuide={() => setShowGuideModal(true)}
+        onOpenFeedback={() => setShowFeedbackModal(true)}
         onNavigateHome={() => {
           setView("home");
           setSelectedInfo(null);
@@ -355,6 +458,48 @@ export default function Home() {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
+
+      {/* Mandatory Sign-In Alert Banner */}
+      {authPromptMessage && !isSignedIn && !authUser && (
+        <div className="sticky top-16 z-40 bg-gradient-to-r from-amber-500/15 via-primary/10 to-amber-500/15 border-b border-amber-500/30 backdrop-blur-md px-4 py-3 sm:py-3.5 shadow-md animate-slide-down">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 font-bold text-base shadow-sm">
+                🔒
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-foreground">
+                  {language === "ur" ? "سائن ان یا سائن اپ ضروری ہے" : language === "roman_ur" ? "Sign In / Sign Up Zaroori Hai" : "Sign In / Sign Up Required"}
+                </p>
+                <p className="text-[11px] sm:text-xs text-muted font-medium">
+                  {authPromptMessage}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    clerk.openSignIn();
+                  } catch {}
+                }}
+                className="bg-primary hover:bg-primary-dark text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-md shadow-primary/20 hover:scale-105 cursor-pointer"
+              >
+                {t(language, "nav.signIn")} / {t(language, "auth.signUpTab")} →
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthPromptMessage(null)}
+                className="text-muted hover:text-foreground text-xs p-2 rounded-lg hover:bg-surface transition-colors cursor-pointer"
+                aria-label="Dismiss alert"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         {/* ====== HERO SECTION ====== */}
@@ -444,9 +589,9 @@ export default function Home() {
                   </p>
 
                   {/* Search bar */}
-                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 max-w-md mb-6 sm:mb-8">
+                  <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 max-w-md mb-3 sm:mb-4">
                     <div className="relative flex-1">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isSearching ? "text-primary animate-pulse" : "text-muted"}`}>
                         <circle cx="11" cy="11" r="8" />
                         <line x1="21" y1="21" x2="16.65" y2="16.65" />
                       </svg>
@@ -454,19 +599,74 @@ export default function Home() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                        onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleSearch()}
                         placeholder={t(language, "hero.searchPlaceholder")}
-                        className="w-full bg-surface/80 backdrop-blur-sm border border-border rounded-2xl pl-11 pr-4 py-3 sm:py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+                        disabled={isSearching}
+                        className={`w-full bg-surface/80 backdrop-blur-sm border rounded-2xl pl-11 pr-10 py-3 sm:py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm ${
+                          isSearching ? "border-primary/50 ring-2 ring-primary/20 bg-surface" : "border-border focus:border-primary"
+                        }`}
                       />
+                      {isSearching && (
+                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={handleSearch}
                       disabled={isProcessing || !searchQuery.trim()}
-                      className="bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 shrink-0 w-full sm:w-auto"
+                      className={`bg-primary hover:bg-primary-dark disabled:opacity-60 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 ${
+                        isSearching ? "ring-2 ring-primary/40 shadow-lg shadow-primary/30" : ""
+                      }`}
                     >
-                      {t(language, "hero.searchBtn")}
+                      {isSearching ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span>
+                            {language === "ur"
+                              ? "تلاش جاری ہے..."
+                              : language === "roman_ur"
+                              ? "Talash..."
+                              : "Searching..."}
+                          </span>
+                        </>
+                      ) : (
+                        t(language, "hero.searchBtn")
+                      )}
                     </button>
                   </div>
+
+                  {/* Dynamic search progress feedback banner */}
+                  {isSearching && (
+                    <div className="w-full max-w-md mb-6 p-3 bg-surface/95 border border-primary/30 rounded-2xl shadow-lg backdrop-blur-md animate-fade-in flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <svg className="animate-spin w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-foreground truncate">
+                            {language === "ur"
+                              ? `ڈیٹا بیس میں تلاش ہو رہی ہے: "${searchQuery}"`
+                              : language === "roman_ur"
+                              ? `Database mein talash ho rahi hai: "${searchQuery}"`
+                              : `Searching database for "${searchQuery}"...`}
+                          </span>
+                          <span className="text-[10px] text-primary font-mono font-bold shrink-0 ml-2 animate-pulse">
+                            DRAP Baseline
+                          </span>
+                        </div>
+                        <div className="w-full bg-surface-hover h-1.5 rounded-full overflow-hidden mt-1.5">
+                          <div className="h-full bg-gradient-to-r from-primary via-accent to-primary animate-shimmer rounded-full w-full" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-6 text-xs sm:text-sm">
@@ -518,6 +718,8 @@ export default function Home() {
                     onImageSelected={handleImageSelected}
                     isProcessing={isProcessing}
                     language={language}
+                    isAuthenticated={Boolean(isSignedIn || authUser)}
+                    onRequireAuth={() => requestAuth({ kind: "upload" }, t(language, "auth.uploadRequired"))}
                   />
                 </div>
               </div>
@@ -676,11 +878,22 @@ export default function Home() {
               <div className="rounded-2xl overflow-hidden shadow-xl shadow-accent/5 border border-border/50">
                 <ChatInterface
                   language={language}
-                  onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                  onSelectMedicine={(med: any) => {
+                    if (!isSignedIn && !authUser) {
+                      requestAuth({ kind: "direct_search", id: med.id }, t(language, "auth.infoRequired"));
+                      return;
+                    }
+                    loadDirectSearchData(med.id);
+                  }}
                 />
               </div>
               <div className="mt-4">
                 <Disclaimer language={language} />
+              </div>
+
+              {/* Community Feedback Card */}
+              <div className="mt-12">
+                <FeedbackCard onOpenModal={() => setShowFeedbackModal(true)} language={language} />
               </div>
             </div>
           </section>
@@ -734,7 +947,13 @@ export default function Home() {
                   <ChatInterface
                     language={language}
                     medicineId={medicines[0]?.id}
-                    onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                    onSelectMedicine={(med: any) => {
+                      if (!isSignedIn && !authUser) {
+                        requestAuth({ kind: "direct_search", id: med.id }, t(language, "auth.infoRequired"));
+                        return;
+                      }
+                      loadDirectSearchData(med.id);
+                    }}
                   />
                 </div>
               </div>
@@ -806,7 +1025,12 @@ export default function Home() {
               </div>
 
               {/* Price Table */}
-              <PriceTable comparison={selectedPrices} />
+              <PriceTable
+                comparison={selectedPrices}
+                cheapestBrands={selectedInfo?.cheapest_brands}
+                onSelectBrand={handleBrandSwitch}
+                switchingId={switchingBrandId}
+              />
               {/* Phase-1 Feature A: check the paid price vs the DRAP MRP */}
               <MrpChecker medicine={selectedPrices.medicine} language={language} />
               <div className="mt-6">
@@ -861,6 +1085,34 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Main Heading for Generic Molecule Search */}
+              {isGenericQuery && (
+                <div className="mb-6 sm:mb-8 bg-gradient-to-br from-surface via-surface to-primary/5 rounded-3xl border border-primary/20 p-6 sm:p-8 shadow-sm animate-fade-in">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/25 flex items-center gap-1.5 shadow-sm">
+                      <span>🧪</span>
+                      <span>Generic Formula / فعال جزو</span>
+                    </span>
+                    <span className="text-xs font-semibold text-muted bg-surface px-2.5 py-1 rounded-full border border-border">
+                      {selectedInfo.cheapest_brands?.options?.length || selectedPrices.prices.length} Registered Brands in Pakistan
+                    </span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-foreground tracking-tight">
+                    {selectedPrices.medicine.generic_name}{" "}
+                    <span className="text-primary font-bold text-xl sm:text-2xl md:text-3xl lg:text-4xl">
+                      ({selectedPrices.medicine.strength})
+                    </span>
+                  </h1>
+                  <p className="text-xs sm:text-sm md:text-base text-muted mt-2.5 max-w-3xl leading-relaxed">
+                    {language === "ur"
+                      ? `${selectedPrices.medicine.generic_name} فارمولے والی تمام تصدیق شدہ ادویات اور برانڈز کا باضابطہ موازنہ نیچے ملاحظہ فرمائیں۔ کم ترین قیمت والے معیاری متبادل کا انتخاب کریں۔`
+                      : language === "roman_ur"
+                      ? `${selectedPrices.medicine.generic_name} formula wali tamam verified medicines aur brands ka official mawazna neeche mulahiza farmayein. Sab se saste mutabadil ka intekhab karein.`
+                      : `Official comparative price index for ${selectedPrices.medicine.generic_name} (${selectedPrices.medicine.strength} ${selectedPrices.medicine.dosage_form}). Below is a comparison of all bioequivalent brands registered in Pakistan.`}
+                  </p>
+                </div>
+              )}
+
               {/* Layout depending on active tab */}
               {directTab === "prices" && (
                 <div className="max-w-4xl mx-auto space-y-6">
@@ -868,19 +1120,20 @@ export default function Home() {
                   <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     {isGenericQuery ? (
                       <div>
-                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
-                            🧪 Generic Molecule Search
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-accent/15 text-accent border border-accent/25">
+                            Active Selected Brand
                           </span>
-                          <span className="text-[11px] font-semibold text-muted">
-                            {selectedPrices.prices.length} Brands Registered
+                          <span className="text-xs text-muted">
+                            {selectedPrices.medicine.manufacturer}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-foreground">
-                          {selectedPrices.medicine.generic_name} ({selectedPrices.medicine.strength})
+                        <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                          <span>{selectedPrices.medicine.brand_name}</span>
+                          <span className="text-xs font-normal text-muted">({selectedPrices.medicine.dosage_form})</span>
                         </h3>
-                        <p className="text-xs text-muted mt-1">
-                          Showing verified bioequivalent brands in Pakistan &bull; Ranked from lowest to highest price
+                        <p className="text-xs text-muted mt-0.5">
+                          DRAP Reg: {selectedPrices.medicine.registration_info || "DRAP Verified"} &bull; Pack: {selectedPrices.prices[0]?.package_size || "Standard"}
                         </p>
                       </div>
                     ) : (
@@ -911,7 +1164,7 @@ export default function Home() {
                           <span className="text-base">⚖️</span>
                           <h4 className="text-sm font-bold text-foreground">
                             {isGenericQuery
-                              ? "Registered Brands & Bioequivalent Alternatives"
+                              ? `Compare All Brands for ${selectedPrices.medicine.generic_name} (${selectedPrices.medicine.strength})`
                               : `Alternative Brands for ${selectedPrices.medicine.generic_name} ${selectedPrices.medicine.strength}`}
                           </h4>
                         </div>
@@ -928,13 +1181,15 @@ export default function Home() {
                         {selectedInfo.cheapest_brands.options.map((opt, idx) => {
                           const isSelected = opt.medicine_id === selectedPrices.medicine.id;
                           const isCheapest = idx === 0;
+                          const isSwitchingThis = switchingBrandId === opt.medicine_id;
                           return (
                             <button
                               key={opt.medicine_id}
                               type="button"
                               onClick={() => {
-                                void loadDirectSearchData(opt.medicine_id);
+                                void handleBrandSwitch(opt.medicine_id);
                               }}
+                              disabled={isSwitchingThis}
                               className={`text-start p-3.5 rounded-xl border transition-all text-left flex flex-col justify-between cursor-pointer ${
                                 isSelected
                                   ? "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-sm scale-[1.02]"
@@ -963,13 +1218,13 @@ export default function Home() {
                                   <span className="text-[10px] text-muted"> / unit</span>
                                 </div>
                                 <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                  className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md transition-all ${
                                     isSelected
-                                      ? "bg-primary text-white"
-                                      : "bg-surface text-muted border border-border"
+                                      ? "bg-primary text-white shadow-sm"
+                                      : "bg-surface text-muted border border-border hover:border-primary"
                                   }`}
                                 >
-                                  {isSelected ? "✓ Active" : "Select"}
+                                  {isSwitchingThis ? "Loading..." : isSelected ? "✓ Active" : "Select"}
                                 </span>
                               </div>
                             </button>
@@ -980,7 +1235,12 @@ export default function Home() {
                   )}
 
                   {/* Price Comparison Table & Custom Quantity Calculator */}
-                  <PriceTable comparison={selectedPrices} />
+                  <PriceTable
+                    comparison={selectedPrices}
+                    cheapestBrands={selectedInfo.cheapest_brands}
+                    onSelectBrand={handleBrandSwitch}
+                    switchingId={switchingBrandId}
+                  />
 
                   {/* MRP / Overcharge Checker */}
                   <MrpChecker medicine={selectedPrices.medicine} language={language} />
@@ -994,7 +1254,10 @@ export default function Home() {
                     <ChatInterface
                       language={language}
                       medicineId={selectedPrices.medicine.id}
-                      onSelectMedicine={(med: any) => loadDirectSearchData(med.id)}
+                      onSelectMedicine={(med: any) => {
+                        void handleBrandSwitch(med.id);
+                        setDirectTab("prices");
+                      }}
                     />
                   </div>
                 </div>
@@ -1007,7 +1270,7 @@ export default function Home() {
                     language={language}
                     isGenericSearch={isGenericQuery}
                     onSelectMedicine={(id) => {
-                      void loadDirectSearchData(id);
+                      void handleBrandSwitch(id);
                       setDirectTab("prices");
                     }}
                     onRequireAuth={() => requestAuth({ kind: "direct_search", id: selectedInfo.medicine.id })}
@@ -1064,6 +1327,12 @@ export default function Home() {
           onAction={handleGuideAction}
         />
       )}
+
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        language={language}
+      />
     </div>
   );
 }

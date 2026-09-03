@@ -146,12 +146,39 @@ async def seed_or_sync_drap_data(db: AsyncSession):
         if isinstance(price_val, str):
             price_val = float(price_val.replace(",", ""))
 
-        # Lookup existing medicine by deterministic ID or drap_reg_no
-        res = await db.execute(select(Medicine).where(Medicine.id == med_id))
-        med = res.scalar_one_or_none()
-        if not med and reg_no:
+        # 1. Lookup existing medicine by drap_reg_no / registration_info
+        med = None
+        if reg_no:
             res = await db.execute(select(Medicine).where(Medicine.drap_reg_no == reg_no))
             med = res.scalar_one_or_none()
+            if not med:
+                res = await db.execute(select(Medicine).where(Medicine.registration_info == reg_no))
+                med = res.scalar_one_or_none()
+
+        # 2. Lookup existing medicine by exact product identity (brand + strength + dosage_form)
+        if not med:
+            res = await db.execute(
+                select(Medicine).where(
+                    func.lower(Medicine.brand_name) == brand_name.lower(),
+                    func.lower(Medicine.strength) == strength.lower(),
+                    func.lower(Medicine.dosage_form) == dosage_form.lower(),
+                )
+            )
+            med = res.scalar_one_or_none()
+
+        # 3. If still not found, check if med_id from index is already used by a DIFFERENT medicine
+        if not med:
+            res = await db.execute(select(Medicine).where(Medicine.id == med_id))
+            existing_by_id = res.scalar_one_or_none()
+            if existing_by_id:
+                if existing_by_id.brand_name.lower() == brand_name.lower():
+                    med = existing_by_id
+                else:
+                    # Slot conflict with different medicine: use stable uuid5 derived from product identity
+                    import uuid
+                    seed_key = reg_no or f"{brand_name.strip().lower()}:{strength.strip().lower()}:{dosage_form.strip().lower()}"
+                    med_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"med:{seed_key}"))
+                    price_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"price:{med_id}"))
 
         if med:
             med.brand_name = brand_name
@@ -164,11 +191,9 @@ async def seed_or_sync_drap_data(db: AsyncSession):
             med.category = category
             med.aliases = [generic_name, product_name]
 
-            price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.id == price_id))
+            # Lookup existing price row strictly by medicine_id
+            price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.medicine_id == med.id))
             price_obj = price_res.scalar_one_or_none()
-            if not price_obj:
-                price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.medicine_id == med.id))
-                price_obj = price_res.scalar_one_or_none()
 
             if price_obj:
                 price_obj.price = Decimal(str(price_val))
@@ -199,6 +224,8 @@ async def seed_or_sync_drap_data(db: AsyncSession):
                 category=category,
             )
             db.add(new_med)
+            await db.flush()
+
             db.add(MedicinePrice(
                 id=price_id,
                 medicine_id=med_id,

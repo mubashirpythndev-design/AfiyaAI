@@ -56,6 +56,32 @@ def _normalize(text: str) -> str:
     return (text or "").strip().lower()
 
 
+def _normalize_dosage_form(form: str | None) -> str:
+    """Normalize dosage form for bioequivalent substitute grouping.
+
+    Tablets, capsules, syrups/liquids, injections, drops, and topicals must
+    NEVER be treated as substitutable alternatives merely because the strength matches.
+    """
+    if not form:
+        return ""
+    f = form.strip().lower()
+    if "tablet" in f or "caplet" in f or "tab" in f:
+        return "tablet"
+    if "capsule" in f or "cap" in f:
+        return "capsule"
+    if "syrup" in f or "suspension" in f or "liquid" in f or "solution" in f or "syp" in f:
+        return "liquid"
+    if "inject" in f or "ampoule" in f or "vial" in f or "iv" in f or "infusion" in f:
+        return "injection"
+    if "drop" in f:
+        return "drops"
+    if "inhal" in f or "resp" in f or "rotacap" in f:
+        return "inhaler"
+    if "cream" in f or "ointment" in f or "gel" in f:
+        return "topical"
+    return f
+
+
 # --- Pack-size parsing -------------------------------------------------------
 
 _PACK_MULT_RE = re.compile(r"^\s*(\d+)\s*x\s*(\d+)")  # "1x14's", "10x10's"
@@ -163,12 +189,14 @@ async def get_cheapest_brands(
 
     generic_key = _normalize(queried.generic_name)
     strength_key = _normalize(queried.strength)
+    form_key = _normalize_dosage_form(queried.dosage_form)
     if not generic_key or not strength_key:
         raise MedicineNotFound(
             "Medicine is missing generic name or strength; cannot group."
         )
 
-    # Group by (generic, strength) — never generic alone, never Category.
+    # Group strictly by (generic, strength, dosage_form) — tablet, syrup, capsule,
+    # and injection must never be compared as substitutes (spec 04).
     stmt = (
         select(Medicine)
         .where(Medicine.generic_name.isnot(None))
@@ -180,6 +208,7 @@ async def get_cheapest_brands(
         for m in result.scalars().all()
         if _normalize(m.generic_name) == generic_key
         and _normalize(m.strength) == strength_key
+        and (not form_key or _normalize_dosage_form(m.dosage_form) == form_key)
     ]
 
     options: list[BrandOption] = []

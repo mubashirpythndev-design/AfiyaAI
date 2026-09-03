@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -14,15 +14,17 @@ export default function ClerkAuthSync() {
 
     if (isSignedIn && user) {
       void (async () => {
-        const token = (await getToken()) || `clerk_${user.id}`;
-        const email = user.primaryEmailAddress?.emailAddress || "";
-        const authUser: AuthUser = {
-          id: user.id,
-          name: user.fullName || user.firstName || email.split("@")[0] || "User",
-          email: email,
-          is_admin: user.publicMetadata?.role === "admin" || false,
-        };
-        setSession(token, authUser);
+        const token = await getToken();
+        if (token) {
+          const email = user.primaryEmailAddress?.emailAddress || "";
+          const authUser: AuthUser = {
+            id: user.id,
+            name: user.fullName || user.firstName || email.split("@")[0] || "User",
+            email: email,
+            is_admin: user.publicMetadata?.role === "admin" || false,
+          };
+          setSession(token, authUser);
+        }
       })();
     } else {
       clearSession();

@@ -1,7 +1,7 @@
 // Typed API client for Afiya AI backend
 
 import { API_BASE_URL } from "./constants";
-import { clearSession, getToken, getCurrentUser } from "./auth";
+import { clearSession, getToken, getCurrentUser, getAuthToken } from "./auth";
 import type {
   OCRResponse,
   MatchResponse,
@@ -17,11 +17,19 @@ import type {
   AuthUser,
   CabinetItem,
   CabinetResponse,
+  FeedbackSubmission,
+  FeedbackResponseItem,
+  AdminFeedbackSummary,
+  AdminFeedbackListResponse,
 } from "./types";
 
 export type {
   CabinetItem,
   CabinetResponse,
+  FeedbackSubmission,
+  FeedbackResponseItem,
+  AdminFeedbackSummary,
+  AdminFeedbackListResponse,
 };
 
 // Invoked once a request comes back 401 (expired/invalid token): the app
@@ -36,8 +44,8 @@ function handleUnauthorized(): void {
   onUnauthorized?.();
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getToken();
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getAuthToken();
   const user = getCurrentUser();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -51,29 +59,54 @@ async function apiFetch<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const auth = await authHeaders();
+  const reqHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...auth,
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-      ...options?.headers,
-    },
+    headers: reqHeaders,
   });
+
   if (!res.ok) {
+    if (res.status === 401) {
+      clearSession();
+      // If request failed because of an invalid/expired token on a public endpoint, retry once without token
+      if (reqHeaders["Authorization"]) {
+        const retryHeaders = { ...reqHeaders };
+        delete retryHeaders["Authorization"];
+        const retryRes = await fetch(url, { ...options, headers: retryHeaders });
+        if (retryRes.ok) {
+          if (retryRes.status === 204) return undefined as unknown as T;
+          const text = await retryRes.text();
+          return (text ? JSON.parse(text) : undefined) as T;
+        }
+      }
+      handleUnauthorized();
+    }
     const error = await res.json().catch(() => ({ detail: "Unknown error" }));
-    if (res.status === 401) handleUnauthorized();
     throw new Error(error.detail || `API error: ${res.status}`);
   }
-  return res.json();
+
+  // Handle 204 No Content (e.g. DELETE requests) or empty bodies
+  if (res.status === 204) {
+    return undefined as unknown as T;
+  }
+  const text = await res.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 // OCR: Upload prescription image
 export async function extractFromImage(file: File): Promise<OCRResponse> {
   const formData = new FormData();
   formData.append("image", file);
+  const auth = await authHeaders();
   const res = await fetch(`${API_BASE_URL}/api/ocr/extract`, {
     method: "POST",
-    headers: { ...authHeaders() },
+    headers: { ...auth },
     body: formData,
   });
   if (!res.ok) {
@@ -208,15 +241,9 @@ export async function addToCabinet(
 }
 
 export async function removeFromCabinet(medicineId: string): Promise<void> {
-  const url = `${API_BASE_URL}/api/v1/cabinet/${medicineId}`;
-  const res = await fetch(url, {
+  await apiFetch<void>(`/api/v1/cabinet/${medicineId}`, {
     method: "DELETE",
-    headers: { ...authHeaders() },
   });
-  if (!res.ok && res.status !== 204) {
-    if (res.status === 401) handleUnauthorized();
-    throw new Error("Failed to remove medicine from cabinet.");
-  }
 }
 
 export async function fetchCabinet(): Promise<CabinetResponse> {
@@ -228,6 +255,39 @@ export async function checkCabinetStatus(
 ): Promise<{ in_cabinet: boolean }> {
   return apiFetch<{ in_cabinet: boolean }>(`/api/v1/cabinet/check/${medicineId}`);
 }
+
+// ---- Community Feedback & Healthcare Needs Survey ----
+
+export async function submitUserFeedback(data: FeedbackSubmission): Promise<FeedbackResponseItem> {
+  return apiFetch<FeedbackResponseItem>("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function fetchAdminFeedbacks(params?: {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  primary_need?: string;
+  rating?: number;
+}): Promise<AdminFeedbackListResponse> {
+  const query = new URLSearchParams();
+  if (params?.limit) query.set("limit", String(params.limit));
+  if (params?.offset) query.set("offset", String(params.offset));
+  if (params?.search) query.set("search", params.search);
+  if (params?.primary_need) query.set("primary_need", params.primary_need);
+  if (params?.rating) query.set("rating", String(params.rating));
+  const qs = query.toString();
+  return apiFetch<AdminFeedbackListResponse>(`/api/admin/feedbacks${qs ? `?${qs}` : ""}`);
+}
+
+export async function deleteAdminFeedback(id: string): Promise<void> {
+  await apiFetch<void>(`/api/admin/feedbacks/${id}`, {
+    method: "DELETE",
+  });
+}
+
 
 
 
