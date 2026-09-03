@@ -11,7 +11,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.6-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![pgvector](https://img.shields.io/badge/pgvector-0.8.6-green?style=flat-square&logo=vector&logoColor=white)](https://github.com/pgvector/pgvector)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash-8E75B2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tests](https://img.shields.io/badge/Tests-131%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Tests](https://img.shields.io/badge/Tests-134%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 
 **Afiya AI is an AI-powered medicine assistant designed for Pakistan.** It extracts medicine names from doctor prescription images via multimodal vision, verifies them against authoritative Drug Regulatory Authority of Pakistan (DRAP) records across **100+ medicines in 36 comparison groups**, discovers verified same-generic alternative brands to unlock massive healthcare savings, checks government-notified Maximum Retail Prices (MRP), compares retail pharmacy prices, and delivers multilingual medical explanations in **English, Urdu (اردو), and Roman Urdu** using vector RAG.
 
@@ -120,7 +120,7 @@ graph TD
 | **Database & Vector Search**  | [Neon Serverless PostgreSQL](https://neon.tech/) (v18.6), [pgvector](https://github.com/pgvector/pgvector) (0.8.6), [SQLAlchemy 2.0 Async](https://www.sqlalchemy.org/), [Alembic](https://alembic.sqlalchemy.org/) |
 | **AI / OCR / Embeddings**     | [Google Gemini 3.5 Flash](https://ai.google.dev/) (Multimodal OCR & Multilingual Chat), [Gemini Embedding-001](https://ai.google.dev/) (768-dim Vector Embeddings)                                                  |
 | **Authentication & Security** | [Clerk](https://clerk.com/) & PyJWT (Signed Bearer Tokens), Passlib (Bcrypt Hashing), Role-Based Access Control (RBAC)                                                                                              |
-| **Testing**                   | [Pytest](https://pytest.org/), [Pytest-Asyncio](https://pytest-asyncio.readthedocs.io/) (131 Automated Unit & Integration Tests)                                                                                    |
+| **Testing**                   | [Pytest](https://pytest.org/), [Pytest-Asyncio](https://pytest-asyncio.readthedocs.io/) (134 Automated Unit & Integration Tests)                                                                                    |
 | **Deployment**                | [Vercel](https://vercel.com/) (Frontend), [Railway](https://railway.app/) / [Render](https://render.com/) (Backend), [Neon](https://neon.tech/) (Database)                                                          |
 
 ---
@@ -141,10 +141,10 @@ AfiyaAI/
 │   │   │   │   └── seed_embeddings.py# 768-dim Gemini vector embeddings generator
 │   │   │   ├── models/               # Pydantic request/response schemas
 │   │   │   ├── routers/              # API endpoints (auth, ocr, medicines, chat, price_check, cabinet, feedback, admin)
-│   │   │   ├── services/             # Core business logic (OCR, matching, RAG, safety, alternatives)
+│   │   │   ├── services/             # Core business logic (OCR, matching, RAG, safety, disease advisory, alternatives)
 │   │   │   ├── config.py             # App environment configuration
 │   │   │   └── main.py               # FastAPI entrypoint, lifespan & CORS
-│   │   ├── tests/                    # 131 unit and integration test suite
+│   │   ├── tests/                    # 134 unit and integration test suite
 │   │   ├── requirements.txt          # Python dependencies
 │   │   └── alembic.ini               # Alembic database configuration
 │   │
@@ -269,13 +269,13 @@ npm run dev
 
 ## 🧪 Testing & Quality Assurance
 
-Afiya AI includes a comprehensive automated test suite with **131 unit and integration tests** covering:
+Afiya AI includes a comprehensive automated test suite with **134 unit and integration tests** covering:
 
 - Prescription OCR candidate extraction and parsing
 - Fuzzy medicine name matching and DRAP registration verification
 - Bioequivalent alternative brands grouping, price comparisons, and % savings calculations
 - Vector similarity search and pgvector RAG context retrieval
-- Symptom and common condition medicine advisory with mandatory non-guarantee and doctor confirmation directives
+- Disease, illness, and symptom medicine advisory with mandatory non-guarantee and doctor confirmation directives across all 11 therapeutic categories
 - Emergency keyword detection and diagnostic refusal safety guardrails
 - Price gouging detection and DRAP MRP baseline validations
 - Mandatory authentication gating across search, categories, upload, and clinical views
@@ -289,7 +289,7 @@ pytest -q
 ```
 
 ```
-========================= 131 passed in 103.81s =========================
+========================= 134 passed in 103.46s =========================
 ```
 
 ---
@@ -300,7 +300,7 @@ pytest -q
 > **Afiya AI is strictly an educational information assistant and NOT a medical practitioner.**
 >
 > - **Zero Prescriptions / Disease Diagnosis**: The system is programmatically barred from providing clinical diagnoses or prescribing treatments.
-> - **Symptom & Condition Advisory**: When users ask what medicine to take for common symptoms (e.g., headache, fever, pain, acidity), the assistant suggests commonly used medicines from the database as informational advice, explicitly disclaims any 100% guarantee, and instructs the user to consult a doctor or pharmacist for confirmation before taking any medication.
+> - **Disease & Symptom Advisory**: When users ask what medicine to take for diseases, illnesses, or symptoms (e.g. diabetes, hypertension, asthma, infections, fever, headache, pain, acidity), the assistant suggests verified medicines indicated in authoritative DRAP records as informational advice, explicitly disclaims any 100% guarantee, and instructs the user to consult a doctor or pharmacist for confirmation before taking any medication.
 > - **Grounded Fact Retrieval**: Structured medicine facts (ingredients, manufacturer, MRP, prices, alternative brands) originate strictly from authoritative DRAP records, never from generative hallucination.
 > - **DRAP Reference Grounding**: Price comparisons are presented as DRAP-aligned baseline references, noting that statutory enforcement requires official published Gazette SRO citations.
 > - **Emergency Interception**: Any critical medical query (e.g., chest pain, overdose, difficulty breathing, poisoning) immediately triggers an urgent emergency deflection advising the user to call 1122 or visit the nearest hospital.
@@ -314,7 +314,7 @@ pytest -q
 | Name                         | Role                                              | Responsibilities & Contributions                                                                                                                                                                                                                                                                                                                                                                                    |
 | :--------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Muhammad Taha Khan**       | **Team Lead & Project Visionary**                 | • Conceptualized the original project idea<br>• Project planning, strategic direction & team management<br>• Pitch deck preparation & presentation delivery                                                                                                                                                                                                                                                         |
-| **Muhammad Mubashir Khalid** | **Sole Full-Stack Developer & Software Engineer** | • **Engineered the complete technical codebase end-to-end**<br>• Designed & implemented the Next.js 16 UI and interactive components<br>• Built the Python FastAPI backend, REST endpoints & middleware<br>• Architected the PostgreSQL + pgvector (768-dim) RAG pipeline<br>• Integrated Gemini Multimodal Vision OCR with fallback cascades<br>• Authored all 9 Alembic database migrations & 131 automated tests |
+| **Muhammad Mubashir Khalid** | **Sole Full-Stack Developer & Software Engineer** | • **Engineered the complete technical codebase end-to-end**<br>• Designed & implemented the Next.js 16 UI and interactive components<br>• Built the Python FastAPI backend, REST endpoints & middleware<br>• Architected the PostgreSQL + pgvector (768-dim) RAG pipeline<br>• Integrated Gemini Multimodal Vision OCR with fallback cascades<br>• Authored all 9 Alembic database migrations & 134 automated tests |
 | **Muhammad Sultan Abbasi**   | **Research & Quality Assurance**                  | • DRAP official medicine pricing & registration dataset research<br>• User acceptance testing & edge-case scenario validation<br>• Pharmaceutical data verification & documentation review                                                                                                                                                                                                                          |
 
 </div>

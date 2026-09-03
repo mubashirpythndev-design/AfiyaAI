@@ -23,6 +23,7 @@ from app.services.safety_service import (
 )
 from app.services.rag_service import retrieve_context
 from app.services.chat_resolution import resolve_medicine_from_message
+from app.services.disease_advisory_service import find_medicines_for_condition, get_sources_for_condition
 from app.services.price_check_messages import localize
 from app.models.schemas import ChatResponse, SourceSchema, MedicineSchema
 
@@ -406,13 +407,20 @@ async def generate_chat_response(
     is_catalog_question = any(kw in message.lower() for kw in catalog_keywords)
     is_general_alt = is_general_alternatives_query(message) and not context
 
-    # Check for symptom / condition guidance if no explicit medicine context yet
-    detected_symptoms: list[str] = []
+    # Check for disease, illness, condition, or symptom guidance if no explicit medicine context yet
+    detected_condition_name = ""
     if not context:
-        symptom_context, sym_sources, detected_symptoms = await get_symptom_guidance_context(message, db, language)
-        if symptom_context:
-            context = symptom_context
-            sources = sym_sources
+        cond_name, cond_meds, cond_ctx = find_medicines_for_condition(message)
+        if cond_ctx:
+            context = cond_ctx
+            sources = get_sources_for_condition(cond_meds)
+            detected_condition_name = cond_name
+        else:
+            symptom_context, sym_sources, detected_symptoms = await get_symptom_guidance_context(message, db, language)
+            if symptom_context:
+                context = symptom_context
+                sources = sym_sources
+                detected_condition_name = ", ".join(detected_symptoms)
 
     meta_keywords = ["what is afiya", "who are you", "about afiya", "afiya ai", "what can you do", "your name"]
     is_meta_question = any(kw in message.lower() for kw in meta_keywords)
@@ -475,12 +483,12 @@ async def generate_chat_response(
             "- The user is asking generally about ALTERNATIVE MEDICINES. "
             "Explain how Afiya AI helps users find verified same-generic alternative brands and save on healthcare costs."
         )
-    elif detected_symptoms:
+    elif detected_condition_name:
         instructions.append(
-            f"- The user is asking what medicine to take for symptoms or conditions: {', '.join(detected_symptoms)}. "
-            "Suggest the verified medicine(s) from our database generally used for these symptoms (for example, Paracetamol / Panadol / Febrol for fever and headache). "
-            "MANDATORY NON-GUARANTEE ADVISORY RULE: You must provide this as helpful advice, but EXPLICITLY state that you do NOT guarantee that they should take this medicine, as this advice is informational and individual medical factors vary. "
-            "MANDATORY DOCTOR CONFIRMATION RULE: You MUST always instruct the user to consult a doctor or licensed pharmacist for medical confirmation before taking any medication."
+            f"- The user is asking what medicine to take for the disease, illness, or condition: '{detected_condition_name}'. "
+            "You MUST recommend the verified medicine(s) from our dataset indicated for this condition (including their active generic molecule, popular brand names in the context, and their approved clinical 'when to use' facts). "
+            "MANDATORY NON-GUARANTEE ADVISORY RULE: You must provide this as helpful informational advice, but EXPLICITLY state that you do NOT guarantee that they should take this medicine, as individual medical conditions vary and this advice may not be 100% accurate. "
+            "MANDATORY DOCTOR CONFIRMATION RULE: You MUST always instruct the user to consult a qualified doctor or licensed healthcare professional for medical confirmation and proper dosage before taking any medicine, particularly for prescription medications and chronic illnesses."
         )
     else:
         is_alt_query = any(kw in message.lower() for kw in ["alternative", "substitute", "instead", "replace", "cheaper", "sasta", "mutabadil", "badal"])

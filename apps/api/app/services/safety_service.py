@@ -62,21 +62,35 @@ def check_emergency(message: str) -> str | None:
 
 
 def is_diagnostic_request(message: str) -> bool:
-    """Check if the user is asking for an actual personal disease diagnosis or prescription.
+    """Check if the user is asking the AI to diagnose an unknown personal disease or prescribe treatments.
 
-    Pure diagnosis queries (e.g. 'diagnose what disease I have', 'what illness do I have')
-    are blocked. Inquiries about what medicines are generally used for common symptoms
-    (e.g. headache, fever, pain) are routed to safe, non-guaranteed educational guidance.
+    Pure clinical diagnosis requests (e.g. 'diagnose what disease I have', 'what disease do I have')
+    are blocked. Inquiries about which medicines are indicated or used for a known disease, illness,
+    or symptom (e.g., 'which medicine for diabetes', 'what should I take if having asthma') are
+    educational medicine queries and routed to authoritative guidance with mandatory non-guarantee
+    and doctor confirmation advisories.
     """
     msg_lower = message.lower()
 
-    # True disease diagnosis and prescribing requests that must always be refused
+    # Queries asking about which medicines to take for a disease, illness, or condition
+    medicine_inquiry_phrases = [
+        "which medicine", "what medicine", "medicine for", "konsi medicine", "konsi dawa",
+        "konsi dawai", "what to take", "which to take", "what should i take", "which should i take",
+        "can i take", "should i take", "treatment for", "used for", "when to use",
+        "kab istemal", "kis bimari", "kis marz", "for which disease", "for which illness",
+    ]
+    if any(phrase in msg_lower for phrase in medicine_inquiry_phrases):
+        if "diagnose me" in msg_lower or "diagnose what disease" in msg_lower or "diagnose what illness" in msg_lower:
+            return True
+        return False
+
+    # True clinical disease diagnosis and prescribing requests that must always be refused
     true_diagnostic_patterns = [
         "what do i have", "what's wrong with me", "what is wrong with me",
-        "diagnose me", "diagnose what", "what disease do i have",
-        "what illness do i have", "tell me what disease", "tell me what illness",
-        "what is my diagnosis", "prescribe me", "write me a prescription",
-        "give me a prescription", "diagnose",
+        "diagnose me", "diagnose what disease", "diagnose what illness",
+        "what disease do i have", "what illness do i have", "tell me what disease i have",
+        "tell me what illness i have", "what is my diagnosis", "give me a diagnosis",
+        "prescribe me", "write me a prescription", "give me a prescription",
     ]
     if any(p in msg_lower for p in true_diagnostic_patterns):
         return True

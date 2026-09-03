@@ -140,6 +140,51 @@ async def test_chat_symptom_guidance_roman_urdu(backfilled_db):
         assert resp.disclaimer
 
 
+async def test_chat_disease_guidance_diabetes(backfilled_db):
+    """Verify that asking about diabetes suggests Metformin / Glucophage with doctor consult."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "which medicine should I take for diabetes?",
+            db,
+            language="en",
+        )
+        msg = resp.message.lower()
+        assert any(term in msg for term in ["metformin", "glucophage", "amaryl", "diamicron", "sugar"])
+        assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
+        assert resp.disclaimer
+
+
+async def test_chat_disease_guidance_asthma(backfilled_db):
+    """Verify that asking about asthma suggests Salbutamol / Ventolin with doctor consult."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "which medicine should I take for asthma?",
+            db,
+            language="en",
+        )
+        msg = resp.message.lower()
+        assert any(term in msg for term in ["salbutamol", "ventolin", "inhaler", "symbicort", "singulair"])
+        assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
+        assert resp.disclaimer
+
+
+async def test_chat_disease_guidance_blood_pressure(backfilled_db):
+    """Verify that asking about high blood pressure suggests Amlodipine / Concor with doctor consult."""
+    db_file, factory = backfilled_db
+    async with factory() as db:
+        resp = await generate_chat_response(
+            "which medicine for high blood pressure?",
+            db,
+            language="en",
+        )
+        msg = resp.message.lower()
+        assert any(term in msg for term in ["amlodipine", "norvasc", "concor", "bisoprolol", "eziday", "losartan"])
+        assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
+        assert resp.disclaimer
+
+
 async def test_chat_answers_owners_with_three_names(backfilled_db):
     db_file, factory = backfilled_db
     async with factory() as db:
