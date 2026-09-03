@@ -14,8 +14,25 @@ from app.models.schemas import SourceSchema
 
 logger = logging.getLogger(__name__)
 
-# Path to the curated DRAP clean dataset
-DATA_PATH = Path(__file__).resolve().parents[4] / "afiya_medicine_comparison_dataset_clean.json"
+def get_dataset_path(filename: str = "afiya_medicine_comparison_dataset_clean.json") -> Path:
+    """Safely locate the dataset file across local, container, and cloud environments."""
+    # 1. Check current working directory and subdirectories
+    for base in [Path.cwd(), Path.cwd() / "data", Path.cwd() / "apps" / "api", Path.cwd() / "apps" / "api" / "data"]:
+        candidate = base / filename
+        if candidate.is_file():
+            return candidate
+
+    # 2. Walk up parent directories from current file safely without fixed indexing
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        for sub in [parent, parent / "data", parent / "apps" / "api", parent / "apps" / "api" / "data"]:
+            candidate = sub / filename
+            if candidate.is_file():
+                return candidate
+
+    # 3. Fallback
+    return Path(filename)
+
 
 # In-memory dataset cache
 _MEDICINES_DATA: list[dict[str, Any]] = []
@@ -27,16 +44,17 @@ def load_dataset() -> list[dict[str, Any]]:
     if _MEDICINES_DATA:
         return _MEDICINES_DATA
 
-    if not DATA_PATH.exists():
-        logger.warning(f"DRAP clean dataset not found at {DATA_PATH}")
+    data_file = get_dataset_path()
+    if not data_file.exists():
+        logger.warning(f"DRAP clean dataset not found at {data_file}")
         return []
 
     try:
-        with open(DATA_PATH, "r", encoding="utf-8") as f:
+        with open(data_file, "r", encoding="utf-8") as f:
             _MEDICINES_DATA = json.load(f)
         logger.info(f"Loaded {len(_MEDICINES_DATA)} medicines with medical info for disease advisory.")
     except Exception as e:
-        logger.error(f"Failed to load medicine dataset: {e}")
+        logger.error(f"Failed to load medicine dataset from {data_file}: {e}")
         _MEDICINES_DATA = []
 
     return _MEDICINES_DATA
