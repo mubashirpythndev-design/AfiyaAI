@@ -76,7 +76,7 @@ async def get_current_user(
                 verified_name = clerk_info.get("name")
 
         email = (verified_email or f"{user_id}@clerk.user").lower()
-        name = verified_name or x_clerk_user_name or "Clerk User"
+        name = verified_name or "User"
 
         # Check if user already exists by verified email
         result_email = await db.execute(select(User).where(User.email == email))

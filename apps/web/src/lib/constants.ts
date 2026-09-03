@@ -1,17 +1,23 @@
 // Application constants
 
-// Resolve API_BASE_URL: Prefer NEXT_PUBLIC_API_URL if set; otherwise in browser outside localhost use Railway production backend.
+// Resolve API_BASE_URL: Explicitly requires NEXT_PUBLIC_API_URL in production.
 const getApiBaseUrl = (): string => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/$/, "");
   }
+  // In development / local environment, default to local backend
+  if (process.env.NODE_ENV !== "production") {
+    return "http://localhost:8000";
+  }
+  // In production, fail clearly if NEXT_PUBLIC_API_URL is missing
   if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host !== "localhost" && host !== "127.0.0.1") {
-      return "https://afiyaai-production.up.railway.app";
-    }
+    console.error(
+      "[Afiya AI] Configuration Error: NEXT_PUBLIC_API_URL is not set. " +
+      "Please set NEXT_PUBLIC_API_URL in your Vercel environment variables."
+    );
   }
-  return "http://localhost:8000";
+  return "";
 };
 
 export const API_BASE_URL = getApiBaseUrl();

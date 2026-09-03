@@ -1,7 +1,7 @@
 // Typed API client for Afiya AI backend
 
 import { API_BASE_URL } from "./constants";
-import { clearSession, getToken, getCurrentUser, getAuthToken } from "./auth";
+import { clearSession, getAuthToken } from "./auth";
 import type {
   OCRResponse,
   MatchResponse,
@@ -46,11 +46,8 @@ function handleUnauthorized(): void {
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getAuthToken();
-  const user = getCurrentUser();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
-  if (user?.email) headers["X-Clerk-User-Email"] = user.email;
-  if (user?.name) headers["X-Clerk-User-Name"] = user.name;
   return headers;
 }
 
@@ -58,6 +55,11 @@ async function apiFetch<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  if (!API_BASE_URL && process.env.NODE_ENV === "production") {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is not configured. Please set NEXT_PUBLIC_API_URL in your Vercel environment variables."
+    );
+  }
   const url = `${API_BASE_URL}${path}`;
   const auth = await authHeaders();
   const reqHeaders: Record<string, string> = {

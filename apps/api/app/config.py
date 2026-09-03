@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     # Clerk Authentication
     clerk_jwks_url: str = "https://pro-alien-4201.clerk.accounts.dev/.well-known/jwks.json"
     clerk_secret_key: str = ""
+    clerk_issuer: str = ""
+    clerk_audience: str = ""
 
     model_config = {"env_file": [".env", "../../.env"], "env_file_encoding": "utf-8"}
 

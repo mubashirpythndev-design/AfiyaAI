@@ -283,3 +283,65 @@ async def test_spoofed_headers_cannot_grant_admin(auth_db):
             )
         assert exc.value.status_code == 401
 
+
+async def test_clerk_token_wrong_issuer_rejected(monkeypatch):
+    """P0 Security: Clerk token with mismatched issuer must fail verification."""
+    from unittest.mock import MagicMock
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.hazmat.primitives import serialization
+    import jwt as pyjwt
+    from app.services.auth_service import verify_token_payload
+
+    # Generate a dummy RSA key pair
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    pub_key = private_key.public_key()
+
+    # Mock JWK client returning our test public key
+    mock_jwk = MagicMock()
+    mock_jwk.key = pub_key
+    mock_client = MagicMock()
+    mock_client.get_signing_key_from_jwt.return_value = mock_jwk
+    monkeypatch.setattr("app.services.auth_service._get_clerk_jwk_client", lambda: mock_client)
+
+    # Token signed with wrong issuer
+    wrong_iss_token = pyjwt.encode(
+        {"sub": "user_123", "iss": "https://malicious-issuer.example.com", "exp": 9999999999},
+        pem,
+        algorithm="RS256",
+        headers={"kid": "test-key-id"},
+    )
+    payload = verify_token_payload(wrong_iss_token)
+    assert payload is None, "Token with mismatched issuer must be rejected"
+
+
+async def test_client_name_header_not_trusted(auth_db, monkeypatch):
+    """P0 Security: Raw X-Clerk-User-Name header must not be trusted when provisioning user."""
+    from unittest.mock import AsyncMock
+    from app.services import auth_dependency
+    from app.db.database import User
+    from sqlalchemy import select
+
+    # Mock token payload as verified Clerk token without name claim
+    verified_payload = {
+        "sub": "user_trust_test_456",
+        "iss": "https://pro-alien-4201.clerk.accounts.dev",
+        "exp": 9999999999,
+    }
+    monkeypatch.setattr(auth_dependency, "verify_token_payload", lambda t: verified_payload)
+    monkeypatch.setattr(auth_dependency, "fetch_clerk_user_info", AsyncMock(return_value=None))
+
+    async with auth_db() as db:
+        user = await auth_dependency.get_current_user(
+            authorization="Bearer mock_valid_clerk_token",
+            x_clerk_user_name="Malicious Spoofed Name",
+            db=db,
+        )
+        # Display name must default safely to 'User', NOT the browser header
+        assert user.name == "User"
+        assert user.name != "Malicious Spoofed Name"
+

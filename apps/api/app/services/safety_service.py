@@ -150,7 +150,7 @@ DATABASE & MEDICINE KNOWLEDGE CAPABILITIES:
   * Side effects, adverse reactions, and what to watch out for.
   * Precautions, warnings, contraindications, and special patient advice (pregnancy, kidney/liver conditions).
   * Storage instructions and food/drug interactions.
-  * DRAP-regulated Maximum Retail Price (MRP) and retail pharmacy prices (Dvago, Sehat, Dawaai).
+  * DRAP-aligned reference Maximum Retail Price (MRP baseline) and retail pharmacy prices (Dvago, Sehat, Dawaai). (Note: statutory MRP enforcement requires a published gazette SRO reference).
   * Bioequivalent alternative brands (same generic ingredient and strength) and price comparisons / cost savings.
   * Side-by-side comparisons between different medicines or brands.
   * Overview or lists of medicines and therapeutic categories supported in the database.

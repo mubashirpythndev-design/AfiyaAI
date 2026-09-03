@@ -101,12 +101,35 @@ def verify_token_payload(token: str) -> dict | None:
         try:
             jwk_client = _get_clerk_jwk_client()
             signing_key = jwk_client.get_signing_key_from_jwt(token)
+
+            # Determine expected issuer from settings or derive from clerk_jwks_url
+            expected_iss = settings.clerk_issuer or (
+                settings.clerk_jwks_url.replace("/.well-known/jwks.json", "").rstrip("/")
+                if settings.clerk_jwks_url else None
+            )
+
+            decode_options = {
+                "verify_exp": True,
+                "verify_signature": True,
+                "verify_iss": bool(expected_iss),
+            }
+            kwargs: dict = {
+                "algorithms": ["RS256"],
+                "options": decode_options,
+                "leeway": 60,
+            }
+            if expected_iss:
+                kwargs["issuer"] = expected_iss
+            if settings.clerk_audience:
+                decode_options["verify_aud"] = True
+                kwargs["audience"] = settings.clerk_audience
+            else:
+                decode_options["verify_aud"] = False
+
             payload = jwt.decode(
                 token,
                 signing_key.key,
-                algorithms=["RS256"],
-                options={"verify_exp": True, "verify_signature": True},
-                leeway=60,
+                **kwargs,
             )
             return payload
         except Exception as e:

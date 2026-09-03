@@ -535,12 +535,12 @@ export default function Home() {
                               className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
                               title="DRAP سرکاری پرائس پورٹل"
                             >
-                              مصدقہ DRAP ڈیٹا ↗
+                              DRAP حوالہ ڈیٹا ↗
                             </a>
                           </>
                         ) : language === "roman_ur" ? (
                           <>
-                            <span>Mustanad </span>
+                            <span>DRAP Aligned </span>
                             <a
                               href="https://e.dra.gov.pk/public/price"
                               target="_blank"
@@ -548,9 +548,8 @@ export default function Home() {
                               className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
                               title="Verify on DRAP Public Price Portal"
                             >
-                              DRAP Data ↗
+                              Reference Data ↗
                             </a>
-                            <span> se Taqatwar</span>
                           </>
                         ) : (
                           <>
@@ -562,7 +561,7 @@ export default function Home() {
                               className="underline hover:text-primary-dark font-bold inline-flex items-center gap-0.5 ml-1"
                               title="Verify on DRAP Public Price Portal"
                             >
-                              Verified DRAP Data ↗
+                              DRAP Baseline Reference Data ↗
                             </a>
                           </>
                         )}

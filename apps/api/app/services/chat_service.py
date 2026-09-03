@@ -130,11 +130,11 @@ async def build_full_medicine_context(
         f"- Strength: {med_row.strength}",
         f"- Dosage Form: {med_row.dosage_form}",
         f"- Manufacturer: {med_row.manufacturer or 'Registered Pharmaceutical Manufacturer'}",
-        f"- DRAP Registration No: {med_row.drap_reg_no or med_row.registration_info or 'Verified DRAP Registration'}",
+        f"- DRAP Registration No: {med_row.drap_reg_no or med_row.registration_info or 'Registered with DRAP'}",
         f"- Therapeutic Category: {med_row.category or 'General'}",
     ]
 
-    # Regulated MRP & Pharmacy Prices
+    # DRAP Reference MRP & Retail Pharmacy Prices
     try:
         comparison = await get_price_comparison(medicine_id, db)
         if comparison and comparison.prices:
@@ -144,7 +144,7 @@ async def build_full_medicine_context(
                 if p.pharmacy_name not in seen_sources:
                     seen_sources.add(p.pharmacy_name)
                     sources.append(SourceSchema(name=p.pharmacy_name, url=p.source_url or "", source_type="pharmacy_retail"))
-            lines.append(f"- Regulated MRP & Pharmacy Prices: {'; '.join(price_parts)}")
+            lines.append(f"- DRAP Reference MRP & Retail Pharmacy Prices: {'; '.join(price_parts)}")
     except Exception as e:
         logger.debug(f"Error fetching prices for medicine {medicine_id}: {e}")
 

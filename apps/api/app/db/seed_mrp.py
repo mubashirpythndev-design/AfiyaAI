@@ -42,7 +42,7 @@ DRAP_DATA_PATH = Path(__file__).resolve().parents[4] / "afiya_medicine_compariso
 
 # Provenance source for all seeded MRP rows (spec 09 §16 records this exact
 # name so rollback can remove it surgically).
-PRICE_PORTAL_SOURCE_NAME = "DRAP Price Portal"
+PRICE_PORTAL_SOURCE_NAME = "DRAP Aligned Price Reference"
 PRICE_PORTAL_SOURCE_ID = "a0000002-0000-0000-0000-000000000001"
 
 
@@ -75,18 +75,24 @@ def parse_effective_date(value) -> Optional[date]:
 
 
 async def ensure_price_portal_source(db: AsyncSession, url: Optional[str]) -> Source:
-    """Get-or-create the 'DRAP Price Portal' provenance source row."""
+    """Get-or-create the 'DRAP Aligned Price Reference' provenance source row."""
     result = await db.execute(
-        select(Source).where(Source.name == PRICE_PORTAL_SOURCE_NAME)
+        select(Source).where(
+            (Source.id == PRICE_PORTAL_SOURCE_ID) | 
+            (Source.name == PRICE_PORTAL_SOURCE_NAME) | 
+            (Source.name == "DRAP Price Portal")
+        )
     )
     source = result.scalar_one_or_none()
     if source:
+        source.name = PRICE_PORTAL_SOURCE_NAME
+        source.source_type = "reference_regulatory"
         return source
     source = Source(
         id=PRICE_PORTAL_SOURCE_ID,
         name=PRICE_PORTAL_SOURCE_NAME,
-        url=url,
-        source_type="government_regulatory",
+        url=url or "https://e.dra.gov.pk/public/price",
+        source_type="reference_regulatory",
     )
     db.add(source)
     await db.flush()

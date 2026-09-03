@@ -361,13 +361,13 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   {/* Verdict Message */}
                   <p className="text-sm text-foreground/90 mt-1 leading-relaxed">
                     {customCalculation.status === "BELOW_MRP" && (
-                      <>Good news! You paid <strong className="text-success">Rs. {customCalculation.diff.toFixed(2)} LESS</strong> ({customCalculation.diffPercent}% discount) than the official DRAP MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>Good news! You paid <strong className="text-success">Rs. {customCalculation.diff.toFixed(2)} LESS</strong> ({customCalculation.diffPercent}% discount) than the DRAP Reference MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                     {customCalculation.status === "OK_AT_MRP" && (
-                      <>Fair price! You paid exactly the official DRAP-notified MRP of <strong className="text-success">Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>Fair price! You paid exactly the DRAP Reference MRP baseline of <strong className="text-success">Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                     {customCalculation.status === "OVERCHARGED" && (
-                      <>Warning! You were charged <strong className="text-danger">Rs. {customCalculation.diff.toFixed(2)} MORE</strong> (+{customCalculation.diffPercent}% overcharge) above the official DRAP MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>Notice: You paid <strong className="text-danger">Rs. {customCalculation.diff.toFixed(2)} MORE</strong> (+{customCalculation.diffPercent}%) above the DRAP Reference MRP baseline of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                   </p>
                 </div>
@@ -382,21 +382,19 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   </p>
                 </div>
                 <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                  <p className="text-muted mb-0.5">Official DRAP MRP</p>
+                  <p className="text-muted mb-0.5">DRAP Reference MRP</p>
                   <p className="font-bold text-foreground">
                     Rs. {customCalculation.expectedMrp.toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                  <p className="text-muted mb-0.5">
-                    {customCalculation.status === "OVERCHARGED" ? "Overcharge" : "Savings"}
-                  </p>
-                  <p className={`font-bold ${customCalculation.status === "OVERCHARGED" ? "text-danger" : "text-success"}`}>
-                    Rs. {customCalculation.diff.toFixed(2)} ({customCalculation.diffPercent}%)
+                  <p className="text-muted mb-0.5">Rate / Unit</p>
+                  <p className="font-semibold text-foreground">
+                    Rs. {customCalculation.ratePerUnit.toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                  <p className="text-muted mb-0.5">Rate Breakdown</p>
+                  <p className="text-muted mb-0.5">Rate / Strip</p>
                   <p className="font-semibold text-foreground">
                     Rs. {customCalculation.ratePerStrip.toFixed(2)}/strip
                   </p>
@@ -418,7 +416,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
               {/* Mandatory disclaimer */}
               <p className="text-[11px] text-muted border-t border-border/60 pt-2 leading-relaxed">
-                MRP can change via new DRAP notifications (SRO) — verify from the latest DRAP notification. This is not legal advice.
+                Referenced against DRAP-aligned pricing data. Official statutory enforcement requires a published Statutory Regulatory Order (SRO) gazette reference. Always verify with official DRAP publications.
               </p>
             </div>
           )}
