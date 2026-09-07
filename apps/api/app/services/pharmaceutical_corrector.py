@@ -8,7 +8,15 @@ import json
 import logging
 import re
 from typing import Any, Optional
-from rapidfuzz import process, fuzz
+
+try:
+    from rapidfuzz import process, fuzz
+except ImportError:
+    try:
+        from thefuzz import process, fuzz
+    except ImportError:
+        process = None
+        fuzz = None
 
 from app.services.disease_advisory_service import get_dataset_path
 
@@ -208,7 +216,7 @@ def correct_and_normalize_candidate(
             generic_name = cleaned_name.title()
             best_name = generic_name
             best_score = 100.0
-        else:
+        elif process is not None and fuzz is not None:
             fuzzy_res = process.extractOne(cleaned_name, _NAME_LOOKUP_LIST, scorer=fuzz.ratio)
             if fuzzy_res:
                 matched_candidate_name, score, _ = fuzzy_res

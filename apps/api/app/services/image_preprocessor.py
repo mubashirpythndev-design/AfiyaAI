@@ -1,6 +1,10 @@
 import io
 import logging
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+try:
+    from PIL import Image, ImageOps, ImageEnhance, ImageFilter
+    _HAS_PIL = True
+except ImportError:
+    _HAS_PIL = False
 
 logger = logging.getLogger(__name__)
 
@@ -9,6 +13,10 @@ MIN_DIMENSION = 800
 
 def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jpeg') -> tuple[bytes, str]:
     if not image_bytes:
+        return image_bytes, mime_type
+
+    if not _HAS_PIL:
+        logger.warning("Pillow not installed; skipping image preprocessing.")
         return image_bytes, mime_type
 
     try:
