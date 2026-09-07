@@ -91,8 +91,8 @@ export default function AdminPortalPage() {
         });
       }
       if (selectedFeedback?.id === id) setSelectedFeedback(null);
-    } catch (err: any) {
-      alert(err?.message || "Failed to delete feedback.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to delete feedback.");
     }
   };
 

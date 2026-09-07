@@ -283,7 +283,11 @@ export default function Home() {
 
       for (const candidate of result.candidates) {
         try {
-          const match = await matchMedicine(candidate.raw_text);
+          let match = await matchMedicine(candidate.raw_text);
+          if (!match.medicine && candidate.detected_brand) {
+            const cleanQuery = `${candidate.detected_brand} ${candidate.detected_strength || ""}`.trim();
+            match = await matchMedicine(cleanQuery);
+          }
           // Strict accuracy check: only consider available if high confidence match returned
           const isStrongMatch = Boolean(match.medicine && (!match.needs_confirmation || match.confidence >= 0.8));
 
@@ -301,7 +305,7 @@ export default function Home() {
           } else {
             enrichedCandidates.push({
               ...candidate,
-              confidence: match.confidence || candidate.confidence,
+              confidence: candidate.confidence,
               is_verified: false,
               matched_medicine: null,
             });
@@ -877,7 +881,7 @@ export default function Home() {
               <div className="rounded-2xl overflow-hidden shadow-xl shadow-accent/5 border border-border/50">
                 <ChatInterface
                   language={language}
-                  onSelectMedicine={(med: any) => {
+                  onSelectMedicine={(med: MedicineDetail) => {
                     if (!isSignedIn && !authUser) {
                       requestAuth({ kind: "direct_search", id: med.id }, t(language, "auth.infoRequired"));
                       return;
@@ -946,7 +950,7 @@ export default function Home() {
                   <ChatInterface
                     language={language}
                     medicineId={medicines[0]?.id}
-                    onSelectMedicine={(med: any) => {
+                    onSelectMedicine={(med: MedicineDetail) => {
                       if (!isSignedIn && !authUser) {
                         requestAuth({ kind: "direct_search", id: med.id }, t(language, "auth.infoRequired"));
                         return;
@@ -1253,7 +1257,7 @@ export default function Home() {
                     <ChatInterface
                       language={language}
                       medicineId={selectedPrices.medicine.id}
-                      onSelectMedicine={(med: any) => {
+                      onSelectMedicine={(med: MedicineDetail) => {
                         void handleBrandSwitch(med.id);
                         setDirectTab("prices");
                       }}

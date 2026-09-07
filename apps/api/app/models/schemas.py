@@ -32,6 +32,13 @@ class MedicineCandidate(BaseModel):
     confidence: float
     is_verified: bool
     matched_medicine: Optional[MedicineSchema] = None
+    detected_brand: Optional[str] = None
+    detected_generic: Optional[str] = None
+    detected_strength: Optional[str] = None
+    detected_form: Optional[str] = None
+    dosage_instruction: Optional[str] = None
+    raw_line: Optional[str] = None
+    needs_confirmation: Optional[bool] = False
 
 
 class OCRResponse(BaseModel):

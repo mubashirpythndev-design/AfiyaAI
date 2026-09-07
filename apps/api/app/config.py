@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     clerk_issuer: str = ""
     clerk_audience: str = ""
 
-    model_config = {"env_file": [".env", "../../.env"], "env_file_encoding": "utf-8"}
+    model_config = {"env_file": [".env", "apps/api/.env", "../../.env"], "env_file_encoding": "utf-8"}
 
 
 settings = Settings()

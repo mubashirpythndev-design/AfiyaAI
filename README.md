@@ -11,7 +11,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.6-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![pgvector](https://img.shields.io/badge/pgvector-0.8.6-green?style=flat-square&logo=vector&logoColor=white)](https://github.com/pgvector/pgvector)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash-8E75B2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tests](https://img.shields.io/badge/Tests-134%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
+[![Tests](https://img.shields.io/badge/Tests-146%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
 
 **Afiya AI is an AI-powered medicine assistant designed for Pakistan.** It extracts medicine names from doctor prescription images via multimodal vision, verifies them against authoritative Drug Regulatory Authority of Pakistan (DRAP) records across **100+ medicines in 36 comparison groups**, discovers verified same-generic alternative brands to unlock massive healthcare savings, checks government-notified Maximum Retail Prices (MRP), compares retail pharmacy prices, and delivers multilingual medical explanations in **English, Urdu (اردو), and Roman Urdu** using vector RAG.
 
@@ -48,7 +48,9 @@ In Pakistan and developing healthcare systems:
 ## ✨ Key Features
 
 ```
-├── 📷 Multimodal Prescription OCR       ── Instant drug extraction from handwritten/printed prescriptions
+├── 📷 Multimodal Clinical OCR            ── OpenCV adaptive preprocessing, CLAHE contrast & Gemini Vision
+├── 🔤 Pharmaceutical Spell Corrector     ── Levenshtein phonetic correction & clinical shorthand parsing
+├── ⚡ Deterministic Repeat Scan Cache     ── SHA-256 cryptographic image hashing for reproducible scans
 ├── 💡 Bioequivalent Brand Alternatives   ── Cheaper same-generic alternatives with unit prices & % savings
 ├── ⚖️ Multi-Pharmacy Price Comparison   ── Real-time price tracking across top Pakistani pharmacies
 ├── 🛡️ DRAP MRP Overcharge Checker       ── Compares pharmacy prices against DRAP baseline price references
@@ -67,7 +69,7 @@ In Pakistan and developing healthcare systems:
 
 ```mermaid
 graph TD
-    subgraph Client ["Frontend Layer (Next.js 15 + TypeScript)"]
+    subgraph Client ["Frontend Layer (Next.js 16 + TypeScript)"]
         UI["Modern Responsive UI (Tailwind CSS)"]
         OCR_UI["Prescription Dropzone & Preview"]
         Chat_UI["Multilingual Chat (EN / UR / Roman UR)"]
@@ -77,7 +79,10 @@ graph TD
 
     subgraph API ["Backend Layer (Python + FastAPI)"]
         Router["FastAPI Gateway & Auth Middleware"]
+        Prep_Svc["OpenCV Image Preprocessor (CLAHE & Unsharp)"]
         OCR_Svc["Gemini Vision OCR Extraction"]
+        Cache_Svc["Deterministic SHA-256 Repeat Cache"]
+        Spell_Svc["Pharmaceutical Spell & Shorthand Corrector"]
         Match_Svc["DRAP Fuzzy Match Engine (thefuzz)"]
         RAG_Svc["RAG Retrieval & Guardrail Engine"]
         Safety_Svc["Emergency & Diagnostic Interceptor"]
@@ -96,12 +101,15 @@ graph TD
     end
 
     UI --> Router
-    Router --> OCR_Svc
-    Router --> Match_Svc
+    Router --> Prep_Svc
+    Prep_Svc --> Cache_Svc
+    Cache_Svc --> OCR_Svc
+    OCR_Svc --> Gemini_Vision
+    OCR_Svc --> Spell_Svc
+    Spell_Svc --> Match_Svc
     Router --> RAG_Svc
     Router --> Safety_Svc
 
-    OCR_Svc --> Gemini_Vision
     RAG_Svc --> Gemini_Embed
     RAG_Svc --> VEC
     RAG_Svc --> Gemini_Chat
@@ -120,7 +128,7 @@ graph TD
 | **Database & Vector Search**  | [Neon Serverless PostgreSQL](https://neon.tech/) (v18.6), [pgvector](https://github.com/pgvector/pgvector) (0.8.6), [SQLAlchemy 2.0 Async](https://www.sqlalchemy.org/), [Alembic](https://alembic.sqlalchemy.org/) |
 | **AI / OCR / Embeddings**     | [Google Gemini 3.5 Flash](https://ai.google.dev/) (Multimodal OCR & Multilingual Chat), [Gemini Embedding-001](https://ai.google.dev/) (768-dim Vector Embeddings)                                                  |
 | **Authentication & Security** | [Clerk](https://clerk.com/) & PyJWT (Signed Bearer Tokens), Passlib (Bcrypt Hashing), Role-Based Access Control (RBAC)                                                                                              |
-| **Testing**                   | [Pytest](https://pytest.org/), [Pytest-Asyncio](https://pytest-asyncio.readthedocs.io/) (134 Automated Unit & Integration Tests)                                                                                    |
+| **Testing**                   | [Pytest](https://pytest.org/), [Pytest-Asyncio](https://pytest-asyncio.readthedocs.io/) (146 Automated Unit & Integration Tests)                                                                                    |
 | **Deployment**                | [Vercel](https://vercel.com/) (Frontend), [Railway](https://railway.app/) / [Render](https://render.com/) (Backend), [Neon](https://neon.tech/) (Database)                                                          |
 
 ---
@@ -141,10 +149,10 @@ AfiyaAI/
 │   │   │   │   └── seed_embeddings.py# 768-dim Gemini vector embeddings generator
 │   │   │   ├── models/               # Pydantic request/response schemas
 │   │   │   ├── routers/              # API endpoints (auth, ocr, medicines, chat, price_check, cabinet, feedback, admin)
-│   │   │   ├── services/             # Core business logic (OCR, matching, RAG, safety, disease advisory, alternatives)
+│   │   │   ├── services/             # Core business logic (OCR, OpenCV preprocessor, spell corrector, matching, RAG, safety, disease advisory, alternatives)
 │   │   │   ├── config.py             # App environment configuration
 │   │   │   └── main.py               # FastAPI entrypoint, lifespan & CORS
-│   │   ├── tests/                    # 134 unit and integration test suite
+│   │   ├── tests/                    # 146 unit and integration test suite (incl. OCR pipeline)
 │   │   ├── requirements.txt          # Python dependencies
 │   │   └── alembic.ini               # Alembic database configuration
 │   │
@@ -260,7 +268,7 @@ npm run dev
 
 | Component | Platform | Configuration / Build Command | Live URL |
 | :--- | :--- | :--- | :--- |
-| **Frontend Web App** | [Vercel](https://vercel.com/) | Next.js 15 App (`apps/web`) | [**`https://afiya-ai.vercel.app`**](https://afiya-ai.vercel.app) |
+| **Frontend Web App** | [Vercel](https://vercel.com/) | Next.js 16 App (`apps/web`) | [**`https://afiya-ai.vercel.app`**](https://afiya-ai.vercel.app) |
 | **Backend REST API** | [Railway](https://railway.app/) | FastAPI Python 3.12 (`apps/api`) | [**`https://afiyaai-production.up.railway.app`**](https://afiyaai-production.up.railway.app) |
 | **Interactive API Docs** | [Swagger UI](https://swagger.io/) | Auto-generated OpenAPI 3.1 | [**`https://afiyaai-production.up.railway.app/docs`**](https://afiyaai-production.up.railway.app/docs) |
 | **Vector Database** | [Neon](https://neon.tech/) | PostgreSQL 18.6 + `pgvector` 0.8.6 (768-dim) | *Managed Cloud (Live)* |
@@ -269,9 +277,12 @@ npm run dev
 
 ## 🧪 Testing & Quality Assurance
 
-Afiya AI includes a comprehensive automated test suite with **134 unit and integration tests** covering:
+Afiya AI includes a comprehensive automated test suite with **146 unit and integration tests** covering:
 
-- Prescription OCR candidate extraction and parsing
+- Multimodal prescription OCR candidate extraction, schema integrity, and fallback cascades
+- Computer vision image preprocessing (grayscale normalization, CLAHE contrast enhancement, ink sharpening, corrupt-byte fallback)
+- Pharmaceutical optical typo correction and doctor shorthand parsing (`Tab`, `Cap`, `Syp`, `Inj`, `1x daily`, `BID`, `TID`, `PRN`)
+- Deterministic repeat scan caching with bounded SHA-256 cryptographic hashing and FIFO eviction
 - Fuzzy medicine name matching and DRAP registration verification
 - Bioequivalent alternative brands grouping, price comparisons, and % savings calculations
 - Vector similarity search and pgvector RAG context retrieval
@@ -289,7 +300,7 @@ pytest -q
 ```
 
 ```
-========================= 134 passed in 103.46s =========================
+========================= 146 passed in 108.20s =========================
 ```
 
 ---
@@ -314,7 +325,7 @@ pytest -q
 | Name                         | Role                                              | Responsibilities & Contributions                                                                                                                                                                                                                                                                                                                                                                                    |
 | :--------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Muhammad Taha Khan**       | **Team Lead & Project Visionary**                 | • Conceptualized the original project idea<br>• Project planning, strategic direction & team management<br>• Pitch deck preparation & presentation delivery                                                                                                                                                                                                                                                         |
-| **Muhammad Mubashir Khalid** | **Sole Full-Stack Developer & Software Engineer** | • **Engineered the complete technical codebase end-to-end**<br>• Designed & implemented the Next.js 16 UI and interactive components<br>• Built the Python FastAPI backend, REST endpoints & middleware<br>• Architected the PostgreSQL + pgvector (768-dim) RAG pipeline<br>• Integrated Gemini Multimodal Vision OCR with fallback cascades<br>• Authored all 9 Alembic database migrations & 134 automated tests |
+| **Muhammad Mubashir Khalid** | **Sole Full-Stack Developer & Software Engineer** | • **Engineered the complete technical codebase end-to-end**<br>• Designed & implemented the Next.js 16 UI and interactive components<br>• Built the Python FastAPI backend, REST endpoints & middleware<br>• Architected the PostgreSQL + pgvector (768-dim) RAG pipeline<br>• Integrated Gemini Multimodal Vision OCR with fallback cascades<br>• Authored all 9 Alembic database migrations & 146 automated tests |
 | **Muhammad Sultan Abbasi**   | **Research & Quality Assurance**                  | • DRAP official medicine pricing & registration dataset research<br>• User acceptance testing & edge-case scenario validation<br>• Pharmaceutical data verification & documentation review                                                                                                                                                                                                                          |
 
 </div>

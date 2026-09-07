@@ -97,22 +97,23 @@ async def get_medicine_info(
     knowledge_chunks = []
     sources_set = {}
     for chunk in chunks:
+        src_name = chunk.source.name if chunk.source else "Afiya Verified DB"
+        src_url = chunk.source.url if chunk.source else None
+        src_type = chunk.source.source_type if chunk.source else "verified_db"
+
+        source_schema = SourceSchema(
+            name=src_name,
+            url=src_url,
+            source_type=src_type,
+        )
         knowledge_chunks.append(KnowledgeChunkSchema(
             id=str(chunk.id),
             content=chunk.content,
             chunk_type=chunk.chunk_type,
-            source=SourceSchema(
-                name=chunk.source.name,
-                url=chunk.source.url,
-                source_type=chunk.source.source_type,
-            ),
+            source=source_schema,
         ))
-        if chunk.source.name not in sources_set:
-            sources_set[chunk.source.name] = SourceSchema(
-                name=chunk.source.name,
-                url=chunk.source.url,
-                source_type=chunk.source.source_type,
-            )
+        if src_name not in sources_set:
+            sources_set[src_name] = source_schema
 
     # Get prices
     comparison = await get_price_comparison(medicine_id, db)

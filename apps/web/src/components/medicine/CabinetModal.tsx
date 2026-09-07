@@ -24,8 +24,8 @@ export default function CabinetModal({
     try {
       const res = await fetchCabinet();
       setData(res);
-    } catch (e: any) {
-      setError(e.message || "Failed to load medicine cabinet.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load medicine cabinet.");
     } finally {
       setLoading(false);
     }
@@ -43,8 +43,8 @@ export default function CabinetModal({
     try {
       await removeFromCabinet(medicineId);
       await loadCabinetData();
-    } catch (e: any) {
-      setError(e.message || "Failed to remove item.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to remove item.");
     }
   };
 
@@ -97,7 +97,7 @@ export default function CabinetModal({
               <span className="text-4xl block">🗄️</span>
               <p className="text-sm font-medium text-foreground">Your cabinet is empty</p>
               <p className="text-xs max-w-xs mx-auto text-muted">
-                Search for any medicine and click <strong>"⭐ Save to Cabinet"</strong> to keep track of your regular medications.
+                Search for any medicine and click <strong>&ldquo;⭐ Save to Cabinet&rdquo;</strong> to keep track of your regular medications.
               </p>
             </div>
           )}

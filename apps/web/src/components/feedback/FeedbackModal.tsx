@@ -99,8 +99,8 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
     try {
       await submitUserFeedback(payload);
       setIsSuccess(true);
-    } catch (err: any) {
-      setError(err?.message || "Failed to submit feedback. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to submit feedback. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

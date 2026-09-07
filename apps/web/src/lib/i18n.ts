@@ -72,6 +72,15 @@ export type TranslationKey =
   | "ocr.unavailable"
   | "ocr.availableDesc"
   | "ocr.unavailableDesc"
+  | "ocr.directions"
+  | "form.injection"
+  | "form.capsule"
+  | "form.tablet"
+  | "form.syrup"
+  | "form.suspension"
+  | "form.inhaler"
+  | "form.drops"
+  | "form.cream"
   | "footer.disclaimerTitle"
   | "footer.drapVerified"
   | "footer.builtFor"
@@ -206,6 +215,15 @@ const en: TranslationMap = {
   "ocr.unavailable": "Not in Verified DB",
   "ocr.availableDesc": "DRAP-aligned comparison record — clinical info, price comparisons, and alternatives available.",
   "ocr.unavailableDesc": "Not currently in our comparison medicines database. You can search manually or consult your physician.",
+  "ocr.directions": "Directions",
+  "form.injection": "Injection",
+  "form.capsule": "Capsule",
+  "form.tablet": "Tablet",
+  "form.syrup": "Syrup",
+  "form.suspension": "Suspension",
+  "form.inhaler": "Inhaler",
+  "form.drops": "Drops",
+  "form.cream": "Cream / Ointment",
   "footer.disclaimerTitle": "Medical Disclaimer",
   "footer.drapVerified": "DRAP-Aligned Baseline",
   "footer.builtFor": "Built for Pakistan",
@@ -337,9 +355,18 @@ const ur: TranslationMap = {
   "ocr.foundCount": "\u0646\u0633\u062E\u06D2 \u0645\u06CC\u06BA \u062F\u0631\u06CC\u0627\u0641\u062A \u0634\u062F\u06C1",
   "ocr.available": "\u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u0645\u06CC\u06BA \u062F\u0633\u062A\u06CC\u0627\u0628",
   "ocr.unavailable": "\u0688\u06CC\u0679\u0627 \u0628\u06CC\u0633 \u0645\u06CC\u06BA \u0645\u0648\u062C\u0648\u062F \u0646\u06C1\u06CC\u06BA",
-  "ocr.availableDesc": "DRAP \u0633\u06D2 \u062A\u0635\u062F\u06CC\u0642 \u0634\u062F\u06C1 \u2014 \u0645\u06A9\u0645\u0644 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0627\u0648\u0631 \u0642\u06CC\u0645\u062A\u0648\u06BA \u06A9\u0627 \u0645\u0648\u0627\u0632\u0646\u06C1 \u062F\u0633\u062A\u06CC\u0627\u0628 \u06C1\u06D2\u06D4",
-  "ocr.unavailableDesc": "\u06CC\u06C1 \u062F\u0648\u0627 \u06C1\u0645\u0627\u0631\u06CC 100+ \u062A\u0642\u0627\u0628\u0644 \u0634\u062F\u06C1 \u0641\u06C1\u0631\u0633\u062A \u0645\u06CC\u06BA \u0646\u06C1\u06CC\u06BA \u0645\u0644\u06CC\u06D4 \u0628\u0631\u0627\u06C1 \u0645\u06C1\u0631\u0628\u0627\u0646\u06CC \u0688\u0627\u06A9\u0679\u0631 \u0633\u06D2 \u0631\u062C\u0648\u0639 \u06A9\u0631\u06CC\u06BA\u06D4",
-  "footer.disclaimerTitle": "\u0637\u0628\u06CC \u062F\u0639\u0648\u06CC\u06CC \u0628\u06CC\u0627\u0646",
+  "ocr.availableDesc": "DRAP سے تصدیق شدہ — مکمل معلومات اور قیمتوں کا موازنہ دستیاب ہے۔",
+  "ocr.unavailableDesc": "یہ دوا ہماری 100+ تقابل شدہ فہرست میں نہیں ملی۔ براہ مہربانی ڈاکٹر سے رجوع کریں۔",
+  "ocr.directions": "طریقہ استعمال / ہدایات",
+  "form.injection": "انجکشن",
+  "form.capsule": "کیپسول",
+  "form.tablet": "گولی (ٹیبلٹ)",
+  "form.syrup": "شربت (سیرپ)",
+  "form.suspension": "معلق شربت (سسپنشن)",
+  "form.inhaler": "انہیلر",
+  "form.drops": "قطرے",
+  "form.cream": "مرہم / کریم",
+  "footer.disclaimerTitle": "طبی دعویٰ بیان",
   "footer.drapVerified": "DRAP \u06A9\u06D2 \u0645\u0637\u0627\u0628\u0642 \u0688\u06CC\u0679\u0627",
   "footer.builtFor": "\u067E\u0627\u06A9\u0633\u062A\u0627\u0646 \u06A9\u06D2 \u0644\u06CC\u06D2 \u062A\u0639\u0645\u06CC\u0631",
   "footer.safetyFirst": "\u062D\u0641\u0627\u0638\u062A \u0633\u0628 \u0633\u06D2 \u0627\u0648\u0644",
@@ -472,6 +499,15 @@ const romanUr: TranslationMap = {
   "ocr.unavailable": "Database mein mojood nahi",
   "ocr.availableDesc": "DRAP se tasdeeq shuda — mukammal maloomat aur qeematon ka muqabla dastiyab hai.",
   "ocr.unavailableDesc": "Yeh dawai hamari 100+ comparison list mein nahi mili. Barah-e-karam doctor se rujoo karein.",
+  "ocr.directions": "Tariqa-e-Istemal / Hidayat",
+  "form.injection": "Injection",
+  "form.capsule": "Capsule",
+  "form.tablet": "Goli (Tablet)",
+  "form.syrup": "Sharbat (Syrup)",
+  "form.suspension": "Suspension",
+  "form.inhaler": "Inhaler",
+  "form.drops": "Qatre (Drops)",
+  "form.cream": "Marham / Cream",
   "footer.disclaimerTitle": "Tibbi Dawiya Bayan",
   "footer.drapVerified": "DRAP-Aligned Data",
   "footer.builtFor": "Pakistan ke liye tameer",
@@ -543,4 +579,173 @@ export const translations: Record<"en" | "ur" | "roman_ur", TranslationMap> = {
 /** Helper to get a translation by key and language */
 export function t(lang: "en" | "ur" | "roman_ur", key: TranslationKey): string {
   return translations[lang]?.[key] ?? translations.en[key] ?? key;
+}
+
+/** Expand cryptic doctor prescription shorthand (TDS, BD, 1-0-1, pc, ac, IV, IM, etc.) into clean human-friendly English */
+export function humanizeDirections(raw: string, form?: string | null): string {
+  if (!raw) return "";
+  let t = raw.trim();
+
+  const isInjection = form?.toLowerCase() === "injection" || /\b(?:inj|injection|amp|vial|iv|im)\b/i.test(t) || /\b(?:inj|injection)\b/i.test(form || "");
+  const isCapsule = form?.toLowerCase() === "capsule" || /\b(?:cap|capsule)\b/i.test(t);
+  const isSyrup = form?.toLowerCase() === "syrup" || form?.toLowerCase() === "suspension" || /\b(?:syp|syrup|susp|tsp)\b/i.test(t);
+  const isInhaler = form?.toLowerCase() === "inhaler" || /\b(?:inh|inhaler|puff)\b/i.test(t);
+  const isDrops = form?.toLowerCase() === "drops" || /\b(?:drops?|gtts?)\b/i.test(t);
+
+  const unitWord = isInjection ? "1 injection" : isCapsule ? "1 capsule" : isSyrup ? "1 teaspoon (5ml)" : isInhaler ? "2 puffs" : isDrops ? "2 drops" : "1 tablet";
+
+  // Shorthand frequency digits (e.g. 1-1-1, 1-0-1, 1-0-0, 0-0-1)
+  t = t.replace(/\b1-1-1\b/g, `${unitWord} 3 times daily (morning, afternoon & night)`);
+  t = t.replace(/\b1-0-1\b/g, `${unitWord} twice daily (morning & night)`);
+  t = t.replace(/\b1-0-0\b/g, `${unitWord} once daily in morning`);
+  t = t.replace(/\b0-0-1\b/g, `${unitWord} at bedtime (night)`);
+  t = t.replace(/\b0-1-0\b/g, `${unitWord} in afternoon`);
+
+  // Injection specific administration
+  if (isInjection) {
+    t = t.replace(/\b(?:iv|i\.v\.)\b/gi, "intravenously (IV)");
+    t = t.replace(/\b(?:im|i\.m\.)\b/gi, "intramuscularly (IM)");
+    t = t.replace(/\b(?:amp|ampoule)s?\b/gi, "ampoule");
+    t = t.replace(/\bvials?\b/gi, "vial");
+  }
+
+  // Latin clinical frequency abbreviations
+  t = t.replace(/\b(?:tds|tid|t\.d\.s\.)\b/gi, "3 times daily");
+  t = t.replace(/\b(?:bd|bid|b\.i\.d\.)\b/gi, "twice daily");
+  t = t.replace(/\b(?:od|qd|o\.d\.)\b/gi, "once daily");
+  t = t.replace(/\b(?:qds|qid|q\.d\.s\.)\b/gi, "4 times daily");
+  t = t.replace(/\b(?:hs|h\.s\.)\b/gi, "at bedtime");
+  t = t.replace(/\b(?:sos|prn|p\.r\.n\.)\b/gi, "as needed");
+  t = t.replace(/\bstat\b/gi, "immediately (stat)");
+
+  // Meal timing abbreviations
+  t = t.replace(/\b(?:pc|p\.c\.)\b/gi, "after meals");
+  t = t.replace(/\b(?:ac|a\.c\.)\b/gi, "before meals (empty stomach)");
+  t = t.replace(/\b(?:bbf|b\.b\.f\.)\b/gi, "before breakfast (empty stomach)");
+  t = t.replace(/\bafter food\b/gi, "after meals");
+  t = t.replace(/\bbefore food\b/gi, "before meals");
+
+  // Durations (e.g. x 5/7, 5/7, x 5d, x 2/52)
+  t = t.replace(/(?:x|for)?\s*(\d+)\s*\/\s*7\b/gi, "for $1 days");
+  t = t.replace(/(?:x|for)?\s*(\d+)\s*d(?:ays)?\b/gi, "for $1 days");
+  t = t.replace(/(?:x|for)?\s*(\d+)\s*\/\s*52\b/gi, "for $1 weeks");
+  t = t.replace(/(?:x|for)?\s*(\d+)\s*\/\s*12\b/gi, "for $1 months");
+
+  // Dosage units and forms
+  if (!isInjection && !isCapsule && !isSyrup && !isInhaler && !isDrops) {
+    t = t.replace(/\b1\s*tabs?\b/gi, "1 tablet");
+    t = t.replace(/\b(\d+)\s*tabs?\b/gi, "$1 tablets");
+  } else if (isCapsule) {
+    t = t.replace(/\b1\s*(?:tab|cap)s?\b/gi, "1 capsule");
+    t = t.replace(/\b(\d+)\s*(?:tabs|caps)?\b/gi, "$1 capsules");
+  } else if (isInjection) {
+    t = t.replace(/\b1\s*(?:tab|amp|vial)s?\b/gi, "1 ampoule/vial");
+  }
+
+  t = t.replace(/\b1\s*caps?\b/gi, "1 capsule");
+  t = t.replace(/\b(\d+)\s*caps?\b/gi, "$1 capsules");
+  t = t.replace(/\b1\s*tsp\b/gi, "1 teaspoon (5ml)");
+  t = t.replace(/\b(\d+)\s*tsps?\b/gi, "$1 teaspoons");
+  t = t.replace(/\b(\d+)\s*puffs?\b/gi, "$1 puffs");
+  t = t.replace(/\b(\d+)\s*drops?\b/gi, "$1 drops");
+
+  // Clean duplicate "for for" or consecutive spaces
+  t = t.replace(/\bfor\s+for\b/gi, "for");
+  t = t.replace(/\s+/g, " ").trim();
+  return t;
+}
+
+/** Localize clinical prescription directions into clear, patient-friendly English, Urdu, and Roman Urdu */
+export function localizeDirections(text: string, lang: "en" | "ur" | "roman_ur", form?: string | null): string {
+  if (!text) return "";
+  const en = humanizeDirections(text, form);
+  if (lang === "en") return en;
+
+  let res = en;
+  if (lang === "ur") {
+    res = res
+      .replace(/3 times daily \(morning, afternoon & night\)/gi, "دن میں 3 بار (صبح، دوپہر اور رات)")
+      .replace(/twice daily \(morning & night\)/gi, "دن میں 2 بار (صبح اور رات)")
+      .replace(/3 times daily/gi, "دن میں 3 بار")
+      .replace(/twice daily/gi, "دن میں 2 بار (صبح اور رات)")
+      .replace(/2 times daily/gi, "دن میں 2 بار (صبح اور رات)")
+      .replace(/once daily in morning/gi, "روزانہ صبح 1 بار")
+      .replace(/once daily/gi, "روزانہ 1 بار")
+      .replace(/4 times daily/gi, "دن میں 4 بار")
+      .replace(/at bedtime \(night\)/gi, "رات کو سوتے وقت")
+      .replace(/at bedtime/gi, "رات کو سوتے وقت")
+      .replace(/at night/gi, "رات کو")
+      .replace(/in morning/gi, "صبح کے وقت")
+      .replace(/in afternoon/gi, "دوپہر کے وقت")
+      .replace(/as needed/gi, "ضرورت پڑنے پر")
+      .replace(/immediately \(stat\)/gi, "فوری طور پر (stat)")
+      .replace(/immediately/gi, "فوری طور پر")
+      .replace(/intravenously \(IV\)/gi, "رگ میں (IV)")
+      .replace(/intramuscularly \(IM\)/gi, "پٹھے / گوشت میں (IM)")
+      .replace(/ampoule/gi, "ایمپول")
+      .replace(/vial/gi, "وائل")
+      .replace(/1 injection/gi, "1 انجکشن")
+      .replace(/after meals/gi, "کھانے کے بعد")
+      .replace(/before meals \(empty stomach\)/gi, "نہار منہ (کھانے سے پہلے)")
+      .replace(/before meals/gi, "کھانے سے پہلے")
+      .replace(/before breakfast \(empty stomach\)/gi, "ناشتے سے پہلے (نہار منہ)")
+      .replace(/before breakfast/gi, "ناشتے سے پہلے")
+      .replace(/with meals/gi, "کھانے کے ساتھ")
+      .replace(/with water/gi, "پانی کے ساتھ")
+      .replace(/for (\d+) days/gi, "$1 دن کے لیے")
+      .replace(/for (\d+) weeks/gi, "$1 ہفتوں کے لیے")
+      .replace(/for (\d+) months/gi, "$1 مہینے کے لیے")
+      .replace(/\b1 tablet\b/gi, "1 گولی")
+      .replace(/\b(\d+) tablets\b/gi, "$1 گولیاں")
+      .replace(/\b1 capsule\b/gi, "1 کیپسول")
+      .replace(/\b(\d+) capsules\b/gi, "$1 کیپسول")
+      .replace(/\b1 teaspoon \(5ml\)\b/gi, "1 چائے کا چمچ (5 ملی لیٹر)")
+      .replace(/\b1 teaspoon\b/gi, "1 چائے کا چمچ")
+      .replace(/\b(\d+) teaspoons\b/gi, "$1 چمچ")
+      .replace(/\b(\d+) puffs?\b/gi, "$1 پف")
+      .replace(/\b(\d+) drops?\b/gi, "$1 قطرے");
+  } else if (lang === "roman_ur") {
+    res = res
+      .replace(/3 times daily \(morning, afternoon & night\)/gi, "din mein 3 martaba (subah, dopahar aur raat)")
+      .replace(/twice daily \(morning & night\)/gi, "din mein 2 martaba (subah aur raat)")
+      .replace(/3 times daily/gi, "din mein 3 martaba")
+      .replace(/twice daily/gi, "din mein 2 martaba (subah aur raat)")
+      .replace(/2 times daily/gi, "din mein 2 martaba (subah aur raat)")
+      .replace(/once daily in morning/gi, "rozana subah 1 martaba")
+      .replace(/once daily/gi, "rozana 1 martaba")
+      .replace(/4 times daily/gi, "din mein 4 martaba")
+      .replace(/at bedtime \(night\)/gi, "raat ko sotay waqt")
+      .replace(/at bedtime/gi, "raat ko sotay waqt")
+      .replace(/at night/gi, "raat ko")
+      .replace(/in morning/gi, "subah ke waqt")
+      .replace(/in afternoon/gi, "dopahar ke waqt")
+      .replace(/as needed/gi, "zaroorat parne par")
+      .replace(/immediately \(stat\)/gi, "fori tor par (stat)")
+      .replace(/immediately/gi, "fori tor par")
+      .replace(/intravenously \(IV\)/gi, "vein / ragg mein (IV)")
+      .replace(/intramuscularly \(IM\)/gi, "muscle / gosht mein (IM)")
+      .replace(/ampoule/gi, "ampoule")
+      .replace(/vial/gi, "vial")
+      .replace(/1 injection/gi, "1 injection")
+      .replace(/after meals/gi, "khaney ke baad")
+      .replace(/before meals \(empty stomach\)/gi, "niharr munh (khaney se pehle)")
+      .replace(/before meals/gi, "khaney se pehle")
+      .replace(/before breakfast \(empty stomach\)/gi, "nashtay se pehle (niharr munh)")
+      .replace(/before breakfast/gi, "nashtay se pehle")
+      .replace(/with meals/gi, "khaney ke saath")
+      .replace(/with water/gi, "paani ke saath")
+      .replace(/for (\d+) days/gi, "$1 din ke liye")
+      .replace(/for (\d+) weeks/gi, "$1 hafton ke liye")
+      .replace(/for (\d+) months/gi, "$1 mahine ke liye")
+      .replace(/\b1 tablet\b/gi, "1 goli")
+      .replace(/\b(\d+) tablets\b/gi, "$1 goliyan")
+      .replace(/\b1 capsule\b/gi, "1 capsule")
+      .replace(/\b(\d+) capsules\b/gi, "$1 capsules")
+      .replace(/\b1 teaspoon \(5ml\)\b/gi, "1 chamach (5ml)")
+      .replace(/\b1 teaspoon\b/gi, "1 chamach")
+      .replace(/\b(\d+) teaspoons\b/gi, "$1 chamach")
+      .replace(/\b(\d+) puffs?\b/gi, "$1 puffs")
+      .replace(/\b(\d+) drops?\b/gi, "$1 qatre");
+  }
+  return res;
 }

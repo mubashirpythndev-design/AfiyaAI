@@ -53,8 +53,10 @@ export default function ImageUploader({
         onRequireAuth();
         return;
       }
-      setError(null);
-      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      const isValidType =
+        ALLOWED_FILE_TYPES.includes((file.type || "").toLowerCase()) ||
+        /\.(jpe?g|png|webp)$/i.test(file.name);
+      if (!isValidType) {
         setError(t(language, "upload.invalidType"));
         return;
       }

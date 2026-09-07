@@ -42,13 +42,14 @@ def user_to_schema(user: User) -> UserSchema:
 @router.post("/register", response_model=AuthResponse, status_code=201)
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     """Create an account and auto-login (returns a fresh access token)."""
-    email = req.email.lower()
+    email = req.email.strip().lower()
+    name = req.name.strip()
     result = await db.execute(select(User).where(User.email == email))
     if result.scalar_one_or_none() is not None:
         raise HTTPException(status_code=409, detail="Email already registered")
 
     user = User(
-        name=req.name,
+        name=name,
         email=email,
         password_hash=hash_password(req.password),
         # RBAC: ADMIN_EMAILS is the single source of truth for is_admin.
@@ -67,7 +68,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     The failure message is deliberately GENERIC — it must never reveal
     whether the email exists.
     """
-    email = req.email.lower()
+    email = req.email.strip().lower()
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
     if user is None or not verify_password(req.password, user.password_hash):

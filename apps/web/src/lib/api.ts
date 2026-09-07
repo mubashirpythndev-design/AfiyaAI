@@ -106,11 +106,21 @@ export async function extractFromImage(file: File): Promise<OCRResponse> {
   const formData = new FormData();
   formData.append("image", file);
   const auth = await authHeaders();
-  const res = await fetch(`${API_BASE_URL}/api/ocr/extract`, {
-    method: "POST",
-    headers: { ...auth },
-    body: formData,
-  });
+  const url = `${API_BASE_URL || ""}/api/ocr/extract`;
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { ...auth },
+      body: formData,
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect to the Afiya AI backend server. Please verify your connection or ensure the API server is running."
+    );
+  }
+
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: "Upload failed" }));
     if (res.status === 401) handleUnauthorized();

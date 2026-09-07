@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 
 type Theme = "light" | "dark";
 
+function applyTheme(t: Theme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (t === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
+}
+
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
@@ -20,15 +30,6 @@ export default function ThemeToggle() {
       applyTheme("dark");
     }
   }, []);
-
-  const applyTheme = (t: Theme) => {
-    const root = document.documentElement;
-    if (t === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-  };
 
   const toggle = () => {
     const next = theme === "light" ? "dark" : "light";

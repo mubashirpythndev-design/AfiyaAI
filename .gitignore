@@ -65,11 +65,16 @@ desktop.ini
 *.pem
 *.key
 
-# Test artifacts (screenshots / synthetic inputs) — never commit to repo root
+# Test artifacts (screenshots / synthetic inputs / prescriptions / PDFs) — never commit to repo root
+*.pdf
+/prescription*
 /e2e_test_*.png
 /test1_*.png
 /chat_meta_question_*.png
 /alert_check_swagger_final.png
 /[0-9][0-9]_*.png
 /Screenshot*.png
+/*.jpeg
+/*.jpg
+
 

@@ -42,22 +42,63 @@ def medicine_to_schema(med: Medicine) -> MedicineSchema:
     )
 
 
+def strip_prescription_affixes(text: str) -> str:
+    """Strip prescription prefix labels (Inj, Tab, Cap, Syp, etc.) and numbering."""
+    t = re.sub(r"^(?:[0-9]+[\.\)\-\:]|#\d+)\s*", "", text.strip())
+    t = re.sub(
+        r"^(?:tab(?:let)?|cap(?:sule)?|syp|syrup|susp(?:ension)?|inj(?:ection)?|amp(?:oule)?|vial|drops?|inh(?:aler)?|cream|gel|lotion)\.?\s+",
+        "",
+        t,
+        flags=re.IGNORECASE,
+    ).strip()
+    return t
+
+
 async def match_medicine(candidate: str, db: AsyncSession) -> dict:
     """Match a candidate name against the verified medicine database."""
     normalized = normalize(candidate)
-    if not normalized:
+    clean_cand = normalize(strip_prescription_affixes(candidate))
+    if not normalized and not clean_cand:
         return {"medicine": None, "confidence": 0.0, "needs_confirmation": True, "alternatives": []}
 
-    cand_tokens = set(re.findall(r"\b[a-z0-9]+\b", normalized))
-
-    # 1. Exact match on brand_name
-    result = await db.execute(
-        select(Medicine).where(func.lower(Medicine.brand_name) == normalized)
+    cand_tokens = set(re.findall(r"\b[a-z0-9]+\b", normalized)).union(
+        re.findall(r"\b[a-z0-9]+\b", clean_cand)
     )
-    med = result.scalar_one_or_none()
-    if med:
-        logger.info(f"Exact brand match: '{candidate}' -> {med.brand_name}")
-        return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
+
+    # 1. Exact match on brand_name (trying normalized, clean_cand)
+    for q in dict.fromkeys([normalized, clean_cand]):
+        if not q:
+            continue
+        result = await db.execute(
+            select(Medicine).where(func.lower(Medicine.brand_name) == q)
+        )
+        med = result.scalar_one_or_none()
+        if med:
+            logger.info(f"Exact brand match: '{candidate}' (query: '{q}') -> {med.brand_name}")
+            return {"medicine": medicine_to_schema(med), "confidence": 1.0, "needs_confirmation": False, "alternatives": []}
+
+    # 1b. Exact match on brand_name without dosage strength (e.g. 'Panadol 500mg' -> 'Panadol')
+    for q in dict.fromkeys([clean_cand, normalized]):
+        if not q:
+            continue
+        clean_brand_only = re.sub(r"\b\d+\s*(mg|ml|mcg|g|iu|iu/ml|%)\b", "", q).strip()
+        if clean_brand_only and clean_brand_only != q:
+            result = await db.execute(
+                select(Medicine).where(func.lower(Medicine.brand_name) == clean_brand_only)
+            )
+            meds = result.scalars().all()
+            if len(meds) == 1:
+                logger.info(f"Exact brand match without strength: '{candidate}' -> {meds[0].brand_name}")
+                return {"medicine": medicine_to_schema(meds[0]), "confidence": 0.98, "needs_confirmation": False, "alternatives": []}
+            elif len(meds) > 1:
+                cand_strength_tokens = set(re.findall(r"\b\d+[a-z]*\b", q))
+                if cand_strength_tokens:
+                    filtered = [
+                        m for m in meds
+                        if set(re.findall(r"\b\d+[a-z]*\b", normalize(m.strength))).intersection(cand_strength_tokens)
+                    ]
+                    if len(filtered) == 1:
+                        return {"medicine": medicine_to_schema(filtered[0]), "confidence": 0.98, "needs_confirmation": False, "alternatives": []}
 
     # 2. Match on generic_name (exact or stripped of dosage tokens)
     clean_gen_query = re.sub(r"\b\d+\s*(mg|ml|mcg|g|iu|iu/ml|%)\b", "", normalized).strip()

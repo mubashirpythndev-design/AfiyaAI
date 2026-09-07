@@ -14,6 +14,13 @@ export interface MedicineCandidate {
   confidence: number;
   is_verified: boolean;
   matched_medicine?: MedicineDetail | null;
+  detected_brand?: string | null;
+  detected_generic?: string | null;
+  detected_strength?: string | null;
+  detected_form?: string | null;
+  dosage_instruction?: string | null;
+  raw_line?: string | null;
+  needs_confirmation?: boolean;
 }
 
 export interface MedicineDetail {
