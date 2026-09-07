@@ -39,11 +39,13 @@ class MedicineCandidate(BaseModel):
     dosage_instruction: Optional[str] = None
     raw_line: Optional[str] = None
     needs_confirmation: Optional[bool] = False
+    clinical_purpose: Optional[str] = None
 
 
 class OCRResponse(BaseModel):
     candidates: list[MedicineCandidate]
     raw_text: str
+    clinical_summary: Optional[str] = None
 
 
 class MatchRequest(BaseModel):
@@ -126,6 +128,7 @@ class ChatRequest(BaseModel):
     medicine_id: Optional[str] = None
     language: str = "en"
     conversation_history: list[ChatMessage] = []
+    prescription_context: Optional[str] = None
 
 
 class ChatResponse(BaseModel):

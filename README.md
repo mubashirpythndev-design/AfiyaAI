@@ -55,6 +55,7 @@ In Pakistan and developing healthcare systems:
 ├── ⚖️ Multi-Pharmacy Price Comparison   ── Real-time price tracking across top Pakistani pharmacies
 ├── 🛡️ DRAP MRP Overcharge Checker       ── Compares pharmacy prices against DRAP baseline price references
 ├── 🩺 Symptom & Condition Advisory      ── Guardrailed medicine advice for symptoms with doctor confirmation
+├── 🎙️ Hands-Free Voice Search & Chat    ── Dual-engine voice input (Web Speech API + Gemini Audio) in Urdu & English with TTS
 ├── 🧠 Multilingual Chat RAG (pgvector)  ── Grounded AI responses in English, Urdu (اردو), and Roman Urdu
 ├── 🔒 Mandatory Authentication Gates    ── Protected search, categories, upload & info with guest chat access
 ├── 🗄️ Digital Medicine Cabinet          ── Personal prescription manager with DRAP recall watchdog alerts
@@ -167,9 +168,9 @@ AfiyaAI/
 │       │   │   ├── guide/            # Interactive onboarding tour
 │       │   │   ├── layout/           # Header, Footer, Navigation
 │       │   │   ├── medicine/         # MedicineCard, PriceTable, MrpChecker, CabinetModal
-│       │   │   ├── shared/           # CustomCursor, ThemeToggle, Toast, Disclaimer
-│       │   │   └── upload/           # Prescription ImageUploader & OCRResults
-│       │   └── lib/                  # API client, auth helpers, types, i18n localization
+│       │   │   ├── shared/           # CustomCursor, ThemeToggle, Toast, Disclaimer, VoiceButton
+│       │   │   └── upload/           # Prescription ImageUploader & OCRResults (Doctor's Guidance card)
+│       │   └── lib/                  # API client, auth helpers, types, i18n, useSpeechRecognition
 │       ├── package.json              # Node.js dependencies
 │       ├── tailwind.config.ts        # Tailwind styling & dark mode setup
 │       └── tsconfig.json             # TypeScript compiler settings

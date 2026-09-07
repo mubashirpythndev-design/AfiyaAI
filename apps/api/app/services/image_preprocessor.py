@@ -42,21 +42,15 @@ def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jp
                 target_h = int(orig_h * scale)
                 img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
-            # Multi-channel adaptive contrast to eliminate uneven yellow lighting and shadows
-            r, g, b = img.split()
-            r = ImageOps.autocontrast(r, cutoff=1.5)
-            g = ImageOps.autocontrast(g, cutoff=1.5)
-            b = ImageOps.autocontrast(b, cutoff=1.5)
-            img = Image.merge('RGB', (r, g, b))
-
+            # Natural global autocontrast (without splitting channels to avoid color distortion)
+            img = ImageOps.autocontrast(img, cutoff=0.5)
             contrast_enhancer = ImageEnhance.Contrast(img)
-            img = contrast_enhancer.enhance(1.25)
+            img = contrast_enhancer.enhance(1.08)
             sharpness_enhancer = ImageEnhance.Sharpness(img)
-            img = sharpness_enhancer.enhance(1.30)
-            img = img.filter(ImageFilter.UnsharpMask(radius=1.8, percent=140, threshold=2))
+            img = sharpness_enhancer.enhance(1.10)
 
             out_buffer = io.BytesIO()
-            img.save(out_buffer, format='JPEG', quality=92, optimize=True)
+            img.save(out_buffer, format='JPEG', quality=95, optimize=True)
             processed_bytes = out_buffer.getvalue()
 
             logger.info(f'OCR image preprocessed: {orig_w}x{orig_h} -> {target_w}x{target_h}')

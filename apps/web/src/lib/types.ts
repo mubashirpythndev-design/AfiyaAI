@@ -21,6 +21,7 @@ export interface MedicineCandidate {
   dosage_instruction?: string | null;
   raw_line?: string | null;
   needs_confirmation?: boolean;
+  clinical_purpose?: string | null;
 }
 
 export interface MedicineDetail {
@@ -103,6 +104,7 @@ export interface ChatRequest {
   medicine_id?: string;
   language: Language;
   conversation_history?: { role: "user" | "assistant"; content: string }[];
+  prescription_context?: string;
 }
 
 export interface ChatResponse {
@@ -115,6 +117,7 @@ export interface ChatResponse {
 export interface OCRResponse {
   candidates: MedicineCandidate[];
   raw_text: string;
+  clinical_summary?: string | null;
 }
 
 export interface MatchResponse {

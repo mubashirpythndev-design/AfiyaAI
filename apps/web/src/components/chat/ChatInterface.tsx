@@ -4,14 +4,23 @@ import { useState, useRef, useEffect } from "react";
 import type { ChatMessage as ChatMsg, Language, Source, MedicineDetail } from "@/lib/types";
 import { sendMessage } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import VoiceButton from "@/components/shared/VoiceButton";
 
 interface ChatInterfaceProps {
   language: Language;
   medicineId?: string;
   onSelectMedicine?: (medicine: MedicineDetail) => void;
+  externalPrompt?: string;
+  prescriptionContext?: string;
 }
 
-export default function ChatInterface({ language, medicineId, onSelectMedicine }: ChatInterfaceProps) {
+export default function ChatInterface({
+  language,
+  medicineId,
+  onSelectMedicine,
+  externalPrompt,
+  prescriptionContext,
+}: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,6 +30,7 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
   const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const abortStreamRef = useRef<boolean>(false);
+  const isSubmittingRef = useRef<boolean>(false);
 
   const initialSuggestedQuestions = [
     t(language, "chat.suggestion1"),
@@ -28,6 +38,34 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
     t(language, "chat.suggestion3"),
     t(language, "chat.suggestion4"),
   ];
+
+  const prescriptionSuggestions = language === "ur"
+    ? [
+        "یہ دوائیں کس وقت اور کیسے لینی ہیں؟",
+        "کیا یہ کھانے سے پہلے یا بعد میں لینی ہیں؟",
+        "کیا ان کے کوئی خاص سائیڈ ایفیکٹس ہیں؟",
+        "کیا ان کے سستے متبادل برانڈز دستیاب ہیں؟",
+      ]
+    : language === "roman_ur"
+    ? [
+        "Yeh dawaiyan kab aur kaise leni hain?",
+        "Khane se pehle ya baad mein leni hain?",
+        "Kya koi side effects ya ehtiyat hain?",
+        "Kya inke koi saste alternatives hain?",
+      ]
+    : [
+        "How & when should I take these medicines?",
+        "Should I take them before or after meals?",
+        "Are there any side effects or precautions?",
+        "Can I find cheaper alternatives for these?",
+      ];
+
+  // Handle external prompts (e.g. clicking "Ask AI" on an OCR medicine card)
+  useEffect(() => {
+    if (externalPrompt && externalPrompt.trim()) {
+      void handleSend(externalPrompt.trim());
+    }
+  }, [externalPrompt]);
 
   useEffect(() => {
     // Scroll only the chat messages container smoothly
@@ -72,8 +110,9 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
 
   const handleSend = async (text?: string) => {
     const messageText = text ?? input.trim();
-    if (!messageText || loading || isStreaming) return;
+    if (!messageText || loading || isStreaming || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
     abortStreamRef.current = false;
     const userMsg: ChatMsg = {
       id: crypto.randomUUID(),
@@ -92,6 +131,7 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
         medicine_id: medicineId,
         language,
         conversation_history: history,
+        prescription_context: prescriptionContext,
       });
 
       setLoading(false);
@@ -163,6 +203,8 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 
@@ -237,18 +279,22 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 py-6">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10 flex items-center justify-center mb-3 shadow-inner">
-              <span className="text-2xl">🩺</span>
+              <span className="text-2xl">{prescriptionContext ? "📋" : "🩺"}</span>
             </div>
             <p className="text-sm sm:text-base font-bold text-foreground mb-1">
-              {t(language, "chat.emptyTitle")}
+              {prescriptionContext
+                ? (language === "ur" ? "نسخے کے متعلق رہنمائی" : language === "roman_ur" ? "Prescription AI Assistant" : "Prescription Assistant Ready")
+                : t(language, "chat.emptyTitle")}
             </p>
             <p className="text-xs text-muted max-w-sm mb-5 leading-relaxed">
-              {t(language, "chat.emptySubtitle")}
+              {prescriptionContext
+                ? (language === "ur" ? "دوائیوں کے اوقات، کھانے سے پہلے یا بعد، احتیاطی تدابیر، یا سستے متبادل کے بارے میں پوچھیں۔" : language === "roman_ur" ? "Dawaiyon ke auqaat, khane se pehle ya baad, ehtiyat, ya saste generic alternatives ke bare mein poochein." : "Ask about dosages, meal timings (before/after food), precautions, or cheaper generic alternatives.")
+                : t(language, "chat.emptySubtitle")}
             </p>
 
             {/* Starter Suggestion Chips */}
             <div className="flex flex-wrap justify-center gap-2 max-w-md">
-              {initialSuggestedQuestions.map((q) => (
+              {(prescriptionContext ? prescriptionSuggestions : initialSuggestedQuestions).map((q) => (
                 <button
                   key={q}
                   onClick={() => handleSend(q)}
@@ -438,6 +484,26 @@ export default function ChatInterface({ language, medicineId, onSelectMedicine }
             }
             className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-inner"
             disabled={loading}
+          />
+          <VoiceButton
+            language={language}
+            onTranscript={(spokenText) => {
+              const trimmed = spokenText.trim();
+              if (trimmed) {
+                setInput(trimmed);
+                handleSend(trimmed);
+              }
+            }}
+            onInterimTranscript={(interim) => {
+              setInput(interim);
+            }}
+            title={
+              language === "ur"
+                ? "بول کر سوال پوچھیں"
+                : language === "roman_ur"
+                ? "Bol kar sawal poochein"
+                : "Speak your medical question"
+            }
           />
           <button
             onClick={() => handleSend()}

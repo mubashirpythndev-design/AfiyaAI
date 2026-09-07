@@ -63,14 +63,18 @@ function getFormBadge(form?: string | null, language: Language = "en") {
 interface OCRResultsProps {
   candidates: MedicineCandidate[];
   rawText: string;
+  clinicalSummary?: string | null;
   onSelectCandidate: (candidate: MedicineCandidate) => void;
+  onAskAI?: (prompt: string) => void;
   language?: Language;
 }
 
 export default function OCRResults({
   candidates,
   rawText,
+  clinicalSummary,
   onSelectCandidate,
+  onAskAI,
   language = "en",
 }: OCRResultsProps) {
   const [filter, setFilter] = useState<"all" | "available" | "unavailable">("all");
@@ -163,7 +167,45 @@ export default function OCRResults({
         </div>
       </div>
 
-      {/* Raw Prescription Text Snippet (if available) */}
+      {/* Clinical Prescription Analysis & Instructions Banner */}
+      {clinicalSummary && (
+        <div className="bg-gradient-to-br from-primary/10 via-surface to-accent/10 rounded-2xl border border-primary/25 p-4 sm:p-5 shadow-sm space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-primary font-bold text-sm">
+              <span className="text-base">🩺</span>
+              <span>
+                {language === "ur"
+                  ? "ڈاکٹر کے نسخے کا طبی جائزہ اور ہدایات"
+                  : language === "roman_ur"
+                  ? "Doctor ke nuskhe ka tibbi jaiza aur hidayat"
+                  : "Clinical Prescription Analysis & Doctor's Guidance"}
+              </span>
+            </div>
+            {onAskAI && (
+              <button
+                type="button"
+                onClick={() =>
+                  onAskAI(
+                    language === "ur"
+                      ? "براہ کرم اس نسخے کو آسان زبان میں سمجھائیں، ہر دوا کس مقصد کے لیے ہے اور اسے کیسے لینا چاہیے؟"
+                      : language === "roman_ur"
+                      ? "Barahe karam is nuskhe ko aasan zaban mein samjhayein, har dawa kis cheez ke liye hai aur kaise lena hai?"
+                      : "Please explain this prescription in simple terms, including what each medicine is for, how to take them, and what precautions to take."
+                  )
+                }
+                className="text-xs font-semibold text-primary hover:text-primary-dark inline-flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span>💬 {language === "ur" ? "چیٹ میں پوچھیں" : "Ask in Chat"}</span>
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-foreground/90 leading-relaxed font-normal">
+            {clinicalSummary}
+          </p>
+        </div>
+      )}
+
+      {/* Raw Prescription Text Snippet (if available and no duplicate json) */}
       {rawText && !rawText.trim().startsWith("[") && !rawText.trim().startsWith("{") && (
         <div className="bg-surface/90 rounded-2xl border border-border/80 p-4 sm:p-5 shadow-sm">
           <span className="font-semibold text-muted text-xs block mb-1">Prescription Summary:</span>
@@ -179,15 +221,10 @@ export default function OCRResults({
           return (
             <div
               key={`${candidate.raw_text}-${i}`}
-              onClick={() => {
-                if (isAvailable) {
-                  onSelectCandidate(candidate);
-                }
-              }}
               className={`rounded-2xl border p-4 sm:p-5 transition-all duration-200 ${
                 isAvailable
-                  ? "bg-surface hover:bg-surface-hover border-emerald-500/30 hover:border-emerald-500/60 shadow-sm cursor-pointer group"
-                  : "bg-surface/80 border-amber-500/25 hover:border-amber-500/40 cursor-default shadow-sm"
+                  ? "bg-surface hover:bg-surface-hover border-emerald-500/30 hover:border-emerald-500/60 shadow-sm group"
+                  : "bg-surface/80 border-amber-500/25 hover:border-amber-500/40 shadow-sm"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -248,16 +285,24 @@ export default function OCRResults({
                       </span>
                     </div>
 
+                    {/* Clinical Purpose Badge */}
+                    {candidate.clinical_purpose && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary font-medium bg-primary/10 border border-primary/20 px-3 py-1 rounded-xl">
+                        <span>💡</span>
+                        <span>{candidate.clinical_purpose}</span>
+                      </div>
+                    )}
+
                     {isAvailable && candidate.matched_medicine ? (
-                      <p className="text-xs text-primary font-medium mt-1">
+                      <p className="text-xs text-primary font-medium mt-1.5">
                         Matched Database Medicine:{" "}
                         <span className="font-bold text-foreground">
                           {candidate.matched_medicine.brand_name}
                         </span>{" "}
-                        ({candidate.matched_medicine.generic_name} • {candidate.matched_medicine.strength})
+                        ({candidate.matched_medicine.generic_name} &bull; {candidate.matched_medicine.strength})
                       </p>
                     ) : (
-                      <p className="text-xs text-muted mt-1 leading-relaxed">
+                      <p className="text-xs text-muted mt-1.5 leading-relaxed">
                         {t(language, "ocr.unavailableDesc")}
                       </p>
                     )}
@@ -276,7 +321,7 @@ export default function OCRResults({
                   </div>
                 </div>
 
-                {/* Right side: Confidence & Action indicator */}
+                {/* Right side: Confidence indicator */}
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span
                     className={`text-xs font-semibold px-3 py-1 rounded-full border ${
@@ -287,18 +332,59 @@ export default function OCRResults({
                         : "bg-danger/15 text-danger border-danger/30"
                     }`}
                   >
-                    OCR Confidence: {Math.round(candidate.confidence * 100)}%
+                    OCR: {Math.round(candidate.confidence * 100)}%
                   </span>
-
-                  {isAvailable && (
-                    <span className="text-xs font-medium text-primary group-hover:underline flex items-center gap-1 mt-1">
-                      View Details
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="group-hover:translate-x-0.5 transition-transform">
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </span>
-                  )}
                 </div>
+              </div>
+
+              {/* Action Buttons Row */}
+              <div className="mt-3.5 pt-3 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">
+                {onAskAI && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAskAI(
+                        language === "ur"
+                          ? `${candidate.raw_text} کے بارے میں بتائیں: یہ کس مقصد کے لیے ہے، خوراک اور احتیاطی تدابیر کیا ہیں؟`
+                          : language === "roman_ur"
+                          ? `${candidate.raw_text} ke baare mein batayein: yeh kis cheez ke liye hai, iski khurak aur ehtiat kya hain?`
+                          : `Explain ${candidate.raw_text} from my prescription: what is its clinical purpose, dosage timing, and precautions?`
+                      );
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-dark bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-xl border border-accent/20 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>
+                      {language === "ur"
+                        ? "AI سے اس دوا کا پوچھیں"
+                        : language === "roman_ur"
+                        ? "AI se is dawa ka poochein"
+                        : "Ask AI About This Medicine"}
+                    </span>
+                  </button>
+                )}
+
+                {isAvailable && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectCandidate(candidate)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl border border-primary/20 transition-all active:scale-95 ml-auto cursor-pointer"
+                  >
+                    <span>
+                      {language === "ur"
+                        ? "قیمتیں اور متبادل دیکھیں"
+                        : language === "roman_ur"
+                        ? "Prices aur alternatives dekhein"
+                        : "View Prices & Alternatives"}
+                    </span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           );

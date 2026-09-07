@@ -300,6 +300,29 @@ export async function deleteAdminFeedback(id: string): Promise<void> {
   });
 }
 
+// ---- Universal Voice Transcription (Gemini Fallback) ----
+
+export async function transcribeAudio(
+  audioBlob: Blob,
+  language: Language = "en"
+): Promise<{ transcript: string; error?: string }> {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "speech.webm");
+  formData.append("language", language);
+
+  const res = await fetch(`${API_BASE_URL}/api/chat/transcribe-voice`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Audio transcription failed: HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+
 
 
 

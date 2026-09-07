@@ -38,46 +38,52 @@ def clear_ocr_cache() -> None:
     """Clear in-memory OCR cache (useful for testing or cache invalidation)."""
     _PRESCRIPTION_OCR_CACHE.clear()
 
-CLINICAL_PRESCRIPTION_EXTRACTION_PROMPT = """You are an expert Clinical Pharmacist and Medical Prescription OCR Specialist.
-Carefully inspect this doctor's prescription image (which may contain messy cursive handwriting, hospital headers, patient vitals, clinical abbreviations, and doctor stamps).
+CLINICAL_PRESCRIPTION_EXTRACTION_PROMPT = """You are an expert Clinical Pharmacist and Medical Prescription Vision Specialist.
+Carefully inspect this doctor's prescription image (which may contain messy cursive handwriting, clinical shorthand, and bilingual Urdu/English directions).
 
-### CLINICAL INSTRUCTIONS & RULES:
+### CLINICAL EXTRACTION INSTRUCTIONS:
 1. FOCUS STRICTLY ON THE MEDICATION / "Rx" SECTION:
-   - Identify each prescribed drug / medicine item written by the physician.
-   - Ignore clinic/hospital headers, doctor names, degrees (MBBS, FCPS, MD), PMDC/PMC registration numbers, and clinic addresses.
-   - Ignore patient personal information (Name, Age, Gender, Date).
-   - Ignore patient physical vitals (e.g., BP: 120/80, Pulse: 72, Temp: 98.6F, Wt: 65kg, SpO2: 98%).
-   - Ignore diagnosis / chief complaint notes (e.g., "Acute URTI", "GERD", "Hypertension", "T2DM", "Fever").
-   - Ignore laboratory test orders (e.g., "CBC", "Urine R/E", "LFTs", "Serum Creatinine", "Chest X-Ray", "Ultrasound").
+   - Identify each prescribed drug or pharmaceutical product written by the physician.
+   - Ignore hospital/clinic headers, doctor degrees, registration numbers, patient personal info (Name, Age, Gender), vitals (BP, Pulse, Temp), and lab test names.
 
-2. MEDICATION EXTRACTION & DECOMPOSITION:
-   For every prescribed medication, extract:
-   - "name": Clean brand name OR active generic name ONLY (e.g., "Fradal-P", "Grivak", "Caldree D", "Osia", "Panadol", "Augmentin", "Risek", "Brufen", "Rocephin", "Toradol"). Strip dosage form prefixes like "Tab", "Cap", "Syp", "Susp", "Inj", "Inh", "Drops".
-   - "strength": The dosage strength with unit (e.g., "500mg", "625mg", "20mg", "1g", "30mg", "120ml"). If not specified or illegible, return "".
-   - "form": Standardized dosage form ("Tablet", "Capsule", "Syrup", "Suspension", "Inhaler", "Injection", "Drops", "Ointment", "Cream"). If not specified, infer from context or return "Tablet".
-   - "frequency": Common clinical frequency abbreviation if written ("OD" [once daily], "BD" or "BID" [twice daily], "TDS" or "TID" [3 times daily], "QDS" [4 times daily], "HS" [bedtime], "SOS" or "PRN" [as needed], "stat" [immediately]).
-   - "instructions": Full patient administration directions (e.g., "1 tablet twice daily (BD)", "1 tablet once daily (OD)", "1 capsule once daily (OD)"). Understand Pakistani/Latin shorthand and Urdu notes ("1+1" means BD / twice daily, "روزانہ 1" means OD / once daily).
-   - "raw_line": The exact text or handwritten words as seen on the prescription line.
-   - "confidence": Float between 0.60 and 0.95 representing how clearly and legibly the medicine name was written.
+2. EXTRACT MEDICINE ATTRIBUTES:
+   For each prescribed medication, accurately determine:
+   - "name": Clean brand name or active generic name ONLY (e.g., "Panadol", "Fradal-P", "Augmentin", "Brufen", "Disprin", "Grivak", "Caldree D", "Osia", "Risek", "Ponstan", "Calpol", "Flagyl"). Strip dosage form prefixes like "Tab", "Cap", "Syp", "Inj", "Susp".
+   - "strength": Dosage strength with unit (e.g., "500mg", "625mg", "20mg", "40mg", "1g", "250mg/5ml"). If omitted or illegible, return "".
+   - "form": Standardized form ("Tablet", "Capsule", "Syrup", "Suspension", "Inhaler", "Injection", "Drops", "Ointment", "Cream"). Default "Tablet".
+   - "frequency": Clinical frequency ("OD" [once daily], "BD" [twice daily], "TDS" [3 times daily], "QDS" [4 times daily], "HS" [bedtime], "SOS" / "PRN" [as needed], "stat" [immediately]).
+   - "instructions": Clear administration directions. Interpret Pakistani shorthand and Urdu notes:
+     * "1+1" or "1-0-1" -> "1 tablet twice daily (morning & night)"
+     * "1+1+1" or "1-1-1" -> "1 tablet 3 times daily (TDS)"
+     * "1+0+0" or "روزانہ 1" -> "1 tablet once daily in the morning"
+     * "0+0+1" -> "1 tablet at bedtime (HS)"
+     * "نہار منہ" or "ناشتے سے پہلے" or "ac" -> "before breakfast / on an empty stomach"
+     * "کھانے کے بعد" or "pc" -> "after meals"
+     * "ضرورت پڑنے پر" or "SOS" -> "as needed for symptoms"
+   - "clinical_purpose": Concise medical indication or drug class (e.g. "Pain relief & fever (Analgesic)", "Antibiotic for bacterial infection", "Gastric protection / Acid reduction (PPI)", "Calcium & Vitamin D supplement", "Joint health / Osteoarthritis support").
+   - "raw_line": Exact handwritten line seen on paper.
+   - "confidence": Float between 0.70 and 0.98 representing legibility.
 
-3. OPTICAL ERROR & CURSIVE TOLERANCE:
-   - Account for common cursive handwriting ambiguities: "P" vs "F", "u" vs "n", "m" vs "w", "R" vs "B", "1" vs "l", "5" vs "S", "Gr" vs "Qw".
-   - If a word is partially obscured or very messy, provide your best clinical reading and reflect it in the confidence score.
-   - Do NOT invent or hallucinate drugs that are not on the paper.
+3. OVERALL CLINICAL SUMMARY:
+   Provide an overarching, empathetic "clinical_summary" explaining what condition the prescription appears to treat, how the prescribed medicines work together, general timing advice, and standard precautions.
 
-### OUTPUT FORMAT:
-Return ONLY a valid JSON array of objects. NO markdown formatting outside the JSON, NO conversational text.
-[
-  {
-    "name": "Fradal-P",
-    "strength": "",
-    "form": "Tablet",
-    "frequency": "BD",
-    "instructions": "1 tablet twice daily 2 times daily (BD)",
-    "raw_line": "1 - Tab. Fradal - P 1+1",
-    "confidence": 0.65
-  }
-]
+### OUTPUT JSON SCHEMA:
+Return ONLY a valid JSON object matching this schema:
+{
+  "clinical_summary": "Doctor's prescription for joint and pain management containing 4 medications. Take Osia before breakfast; take Fradal-P after meals for pain relief.",
+  "candidates": [
+    {
+      "name": "Fradal-P",
+      "strength": "",
+      "form": "Tablet",
+      "frequency": "BD",
+      "instructions": "1 tablet twice daily after meals for 10 days",
+      "clinical_purpose": "Pain relief (Analgesic)",
+      "raw_line": "tab. Fradal-P 1+1",
+      "confidence": 0.95
+    }
+  ]
+}
 """
 
 EXTRACTION_PROMPT = CLINICAL_PRESCRIPTION_EXTRACTION_PROMPT
@@ -124,12 +130,13 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
     genai.configure(api_key=settings.gemini_api_key)
 
     model_candidates = [
-        settings.gemini_chat_model,
-        "models/gemini-3.6-flash",
-        "models/gemini-3.7-flash",
+        "models/gemini-3.5-flash",
+        "models/gemini-3.5-flash-lite",
         "models/gemini-3.1-flash-lite",
+        "models/gemini-flash-lite-latest",
+        settings.gemini_chat_model,
     ]
-    models_to_try = list(dict.fromkeys(model_candidates))
+    models_to_try = list(dict.fromkeys([m for m in model_candidates if m]))
 
     image_part = {
         "mime_type": effective_mime,
@@ -137,7 +144,7 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
     }
 
     generation_config = genai.GenerationConfig(
-        temperature=0.0,
+        temperature=0.1,
         response_mime_type="application/json",
     )
 
@@ -161,6 +168,7 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
         return {
             "candidates": [],
             "raw_text": "No response received from OCR service.",
+            "clinical_summary": None,
         }
 
     try:
@@ -182,6 +190,7 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
             return {
                 "candidates": [],
                 "raw_text": "No text could be extracted from the image.",
+                "clinical_summary": None,
             }
 
         # Remove markdown code fences if present
@@ -193,35 +202,43 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
                 raw_text = raw_text.replace("```json", "").replace("```", "").strip()
 
         candidates = []
+        clinical_summary = ""
         try:
             extracted = json.loads(raw_text)
             if isinstance(extracted, dict):
-                for key in ["medicines", "drugs", "candidates", "items", "prescriptions", "extracted_medicines"]:
+                clinical_summary = str(extracted.get("clinical_summary") or extracted.get("summary") or "").strip()
+                for key in ["candidates", "medicines", "drugs", "items", "prescriptions", "extracted_medicines"]:
                     if isinstance(extracted.get(key), list):
                         extracted = extracted[key]
                         break
                 else:
                     extracted = [extracted]
+            elif isinstance(extracted, list):
+                clinical_summary = ""
 
             extracted_names = []
             if isinstance(extracted, list):
                 for item in extracted:
                     if isinstance(item, dict):
-                        name = str(item.get("name") or item.get("prescription_name") or "").strip()
+                        name = str(item.get("name") or item.get("prescription_name") or item.get("medicine_name") or "").strip()
                         strength = str(item.get("strength") or "").strip()
                         form = str(item.get("form") or "").strip()
                         frequency = str(item.get("frequency") or "").strip()
                         instructions = str(
-                            item.get("instructions") or item.get("directions") or item.get("dosage_instruction") or ""
+                            item.get("instructions") or item.get("directions") or item.get("dosage_instruction") or item.get("dosage") or ""
+                        ).strip()
+                        clinical_purpose = str(
+                            item.get("clinical_purpose") or item.get("purpose") or item.get("use") or item.get("indication") or ""
                         ).strip()
                         raw_line = str(item.get("raw_line") or name).strip()
-                        conf = float(item.get("confidence") or 0.85)
+                        conf = float(item.get("confidence") or 0.88)
                     elif isinstance(item, str):
                         name = item.strip()
                         strength = ""
                         form = ""
                         frequency = ""
                         instructions = ""
+                        clinical_purpose = ""
                         raw_line = item.strip()
                         conf = 0.80
                     else:
@@ -239,6 +256,7 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
                         instructions=instructions,
                         confidence=conf,
                         raw_line=raw_line,
+                        clinical_purpose=clinical_purpose,
                     )
 
                     candidates.append(candidate_dict)
@@ -259,6 +277,7 @@ async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg") 
         final_result = {
             "candidates": candidates,
             "raw_text": clean_display_text,
+            "clinical_summary": clinical_summary or None,
         }
         _cache_put(image_hash, final_result)
         return final_result

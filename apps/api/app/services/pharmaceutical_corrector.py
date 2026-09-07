@@ -165,6 +165,7 @@ def correct_and_normalize_candidate(
     instructions: str = "",
     confidence: float = 0.85,
     raw_line: str = "",
+    clinical_purpose: str = "",
 ) -> dict[str, Any]:
     """Snap cursive handwriting typos to verified DRAP records, normalize, and score."""
     init_corrector()
@@ -270,4 +271,5 @@ def correct_and_normalize_candidate(
         "dosage_instruction": expanded_instr or None,
         "raw_line": raw_line or clean_raw_text,
         "needs_confirmation": needs_confirmation,
+        "clinical_purpose": clinical_purpose or None,
     }

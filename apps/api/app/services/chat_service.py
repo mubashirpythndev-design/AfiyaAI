@@ -324,6 +324,7 @@ async def generate_chat_response(
     medicine_id: str | None = None,
     language: str = "en",
     conversation_history: list[dict] | None = None,
+    prescription_context: str | None = None,
 ) -> ChatResponse:
     """Generate a grounded chat response using RAG + Gemini."""
 
@@ -422,6 +423,17 @@ async def generate_chat_response(
                 sources = sym_sources
                 detected_condition_name = ", ".join(detected_symptoms)
 
+    # Scanned prescription context integration
+    if prescription_context and prescription_context.strip():
+        rx_header = "=== SCANNED PRESCRIPTION CLINICAL SUMMARY & DOCTOR'S GUIDANCE ==="
+        rx_block = f"{rx_header}\n{prescription_context.strip()}"
+        if context:
+            context = f"{rx_block}\n\n{context}"
+        else:
+            context = rx_block
+        if not sources:
+            sources.append(SourceSchema(name="Scanned Prescription Analysis", url="", source_type="prescription_ocr"))
+
     meta_keywords = ["what is afiya", "who are you", "about afiya", "afiya ai", "what can you do", "your name"]
     is_meta_question = any(kw in message.lower() for kw in meta_keywords)
 
@@ -511,6 +523,14 @@ async def generate_chat_response(
             )
         instructions.append("- Do NOT include information about Afiya AI's creators or owners unless the user specifically asks about them.")
 
+    if prescription_context and prescription_context.strip():
+        instructions.append(
+            "- The user is asking about medicines or directions from their scanned prescription. "
+            "Use the scanned prescription clinical summary and doctor's guidance above to directly and accurately "
+            "answer their questions regarding dosages, timings (e.g. before/after meals, morning/night, fasting/nehar moo), "
+            "purpose, and precautions."
+        )
+
     instructions.append("- Do NOT invent clinical facts, prices, or sources not present in the verified context.")
     instructions.append("- If the requested detail is not found in the context, politely suggest consulting a doctor or pharmacist for clinical advice.")
 
@@ -525,10 +545,11 @@ Instructions:
     # Call Gemini with automatic model fallback
     genai.configure(api_key=settings.gemini_api_key)
     model_candidates = [
-        settings.gemini_chat_model,
+        "models/gemini-3.5-flash",
+        "models/gemini-3.5-flash-lite",
         "models/gemini-3.1-flash-lite",
         "models/gemini-flash-lite-latest",
-        "models/gemini-3.6-flash",
+        settings.gemini_chat_model,
     ]
     models_to_try = list(dict.fromkeys([m for m in model_candidates if m]))
 

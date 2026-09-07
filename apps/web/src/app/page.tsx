@@ -24,6 +24,7 @@ import FeedbackModal from "@/components/feedback/FeedbackModal";
 import FeedbackCard from "@/components/feedback/FeedbackCard";
 import Disclaimer from "@/components/shared/Disclaimer";
 import LoadingSpinner from "@/components/shared/LoadingSpinner";
+import VoiceButton from "@/components/shared/VoiceButton";
 import type {
   Language,
   MedicineCandidate,
@@ -65,6 +66,7 @@ export default function Home() {
   const [isGenericQuery, setIsGenericQuery] = useState(false);
   const [switchingBrandId, setSwitchingBrandId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [chatPrompt, setChatPrompt] = useState<string | null>(null);
 
   // Cabinet, Guide & Feedback Modal State
   const [showCabinetModal, setShowCabinetModal] = useState(false);
@@ -364,8 +366,8 @@ export default function Home() {
     }
   };
 
-  const handleSearch = async () => {
-    const q = searchQuery.trim();
+  const handleSearch = async (customQuery?: string | React.MouseEvent) => {
+    const q = (typeof customQuery === "string" ? customQuery : searchQuery).trim();
     if (!q) return;
     if (!isSignedIn && !authUser) {
       requestAuth({ kind: "search", query: q }, t(language, "auth.searchRequired"));
@@ -605,18 +607,40 @@ export default function Home() {
                         onKeyDown={(e) => e.key === "Enter" && !isProcessing && handleSearch()}
                         placeholder={t(language, "hero.searchPlaceholder")}
                         disabled={isSearching}
-                        className={`w-full bg-surface/80 backdrop-blur-sm border rounded-2xl pl-11 pr-10 py-3 sm:py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm ${
+                        className={`w-full bg-surface/80 backdrop-blur-sm border rounded-2xl pl-11 pr-14 py-3 sm:py-3.5 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm ${
                           isSearching ? "border-primary/50 ring-2 ring-primary/20 bg-surface" : "border-border focus:border-primary"
                         }`}
                       />
-                      {isSearching && (
-                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
-                        </div>
-                      )}
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                        {isSearching ? (
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping mr-2" />
+                        ) : (
+                          <VoiceButton
+                            language={language}
+                            size="sm"
+                            onTranscript={(spokenMedicine) => {
+                              const trimmed = spokenMedicine.trim();
+                              if (trimmed) {
+                                setSearchQuery(trimmed);
+                                handleSearch(trimmed);
+                              }
+                            }}
+                            onInterimTranscript={(interim) => {
+                              setSearchQuery(interim);
+                            }}
+                            title={
+                              language === "ur"
+                                ? "بول کر دوا تلاش کریں"
+                                : language === "roman_ur"
+                                ? "Bol kar dawa talash karein"
+                                : "Speak medicine name to search"
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
                     <button
-                      onClick={handleSearch}
+                      onClick={() => handleSearch()}
                       disabled={isProcessing || !searchQuery.trim()}
                       className={`bg-primary hover:bg-primary-dark disabled:opacity-60 text-white px-6 sm:px-7 py-3 sm:py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 ${
                         isSearching ? "ring-2 ring-primary/40 shadow-lg shadow-primary/30" : ""
@@ -926,7 +950,11 @@ export default function Home() {
                     <OCRResults
                       candidates={ocrData.candidates}
                       rawText={ocrData.raw_text}
+                      clinicalSummary={ocrData.clinical_summary}
                       language={language}
+                      onAskAI={(prompt) => {
+                        setChatPrompt(prompt);
+                      }}
                       onSelectCandidate={(cand) => {
                         if (cand.matched_medicine) {
                           handleViewDetails(cand.matched_medicine.id);
@@ -950,6 +978,8 @@ export default function Home() {
                   <ChatInterface
                     language={language}
                     medicineId={medicines[0]?.id}
+                    externalPrompt={chatPrompt || undefined}
+                    prescriptionContext={ocrData?.clinical_summary || undefined}
                     onSelectMedicine={(med: MedicineDetail) => {
                       if (!isSignedIn && !authUser) {
                         requestAuth({ kind: "direct_search", id: med.id }, t(language, "auth.infoRequired"));
