@@ -66,7 +66,7 @@ CLASS_GLOSS = {
 }
 
 CLASS_GLOSS_FALLBACK = (
-    "a registered medicine; ask a doctor or pharmacist what it is used for."
+    "a medicine recorded in the stored dataset; ask a doctor or pharmacist what it is used for."
 )
 
 

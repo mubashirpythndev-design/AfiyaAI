@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ocr, medicines, chat, price_check, auth, admin, cabinet, feedback
+from app.routers import duplication, store
 from app.models.schemas import HealthResponse
 from sqlalchemy import select, func
 from app.db.database import init_db, is_sqlite, async_session, Medicine
@@ -25,33 +26,38 @@ async def lifespan(app: FastAPI):
     logger.info(f"Gemini model: {settings.gemini_chat_model}")
     logger.info(f"Database: {'SQLite (local testing)' if is_sqlite else 'PostgreSQL (Neon Live)'}")
 
-    # Fast startup check: if database is already populated, skip slow remote network loops
-    med_count = 0
-    try:
-        async with async_session() as db:
-            result = await db.execute(select(func.count()).select_from(Medicine))
-            med_count = result.scalar() or 0
-    except Exception:
-        # Tables may not exist yet on clean DB
-        med_count = 0
-
-    if med_count >= 102:
-        logger.info(f"Live database verified with {med_count} medicines. Ready immediately.")
-    else:
-        logger.info(f"Database contains {med_count} medicines. Initializing schemas & seeding...")
+    # SQLite development may create tables; production schema changes are explicit migrations.
+    if is_sqlite:
         await init_db()
-        # Idempotent seeders (medicines, MRP baseline, knowledge chunks)
+    from sqlalchemy import inspect
+    from app.db.database import Base, engine
+    async with engine.connect() as connection:
+        def missing_schema(sync_connection):
+            inspector = inspect(sync_connection)
+            missing = []
+            for table in Base.metadata.sorted_tables:
+                if not inspector.has_table(table.name):
+                    missing.append(table.name)
+                    continue
+                present = {c["name"] for c in inspector.get_columns(table.name)}
+                missing.extend(f"{table.name}.{c.name}" for c in table.columns if c.name not in present)
+            return missing
+        missing = await connection.run_sync(missing_schema)
+    if missing:
+        raise RuntimeError("Database migration required: " + ", ".join(missing))
+    # Seed only local SQLite automatically. Never synchronize a live catalog on startup.
+    if is_sqlite:
         from app.db.seed_data import seed_if_empty
         await seed_if_empty()
         from app.db.seed_mrp import seed_mrp_reference
+        from app.db.seed_knowledge import seed_knowledge_chunks
+        from app.db.seed_alerts import seed_drap_alerts
+        from app.db.seed_marketplace import seed_marketplace
         async with async_session() as db:
             await seed_mrp_reference(db)
-        from app.db.seed_knowledge import seed_knowledge_chunks
-        try:
-            async with async_session() as db:
-                await seed_knowledge_chunks(db)
-        except Exception as exc:
-            logger.warning("Knowledge seeding failed (non-fatal): %s", exc)
+            await seed_knowledge_chunks(db)
+            await seed_drap_alerts(db)
+            await seed_marketplace(db)
 
     logger.info("Afiya AI Backend startup complete.")
     yield
@@ -94,6 +100,8 @@ app.include_router(ocr.router)
 app.include_router(medicines.router)
 app.include_router(chat.router)
 app.include_router(price_check.router)  # Phase-1 Feature A: MRP checker
+app.include_router(duplication.router)
+app.include_router(store.router)
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])

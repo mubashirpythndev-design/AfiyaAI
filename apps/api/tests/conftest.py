@@ -27,6 +27,7 @@ from app.db.seed_data import _parse_medicine_name  # noqa: E402
 from app.db.backfill_enriched import backfill_enriched_data  # noqa: E402
 from app.db.seed_mrp import seed_mrp_reference  # noqa: E402
 from app.db.seed_alerts import seed_drap_alerts  # noqa: E402
+from app.db.database import PharmacySeller, StoreInventory, Order, OrderItem  # noqa: E402,F401
 
 DRAP_DATA_PATH = PROJECT_ROOT / "afiya_medicine_comparison_dataset_clean.json"
 SOURCE_DRAP_ID = "a0000001-0000-0000-0000-000000000001"

@@ -173,3 +173,72 @@ async def delete_feedback(
     await db.delete(feedback)
     await db.commit()
     return None
+
+
+# Marketplace routes are additive; existing user/feedback handlers stay intact.
+from app.models.marketplace_schemas import BuildCartRequest, InventoryPatch, SellerVerifyRequest, CatalogSyncRequest
+from app.db.database import Order, PharmacySeller
+from app.services import marketplace_admin_service, store_service
+from app.services.store_catalog import load_catalog, catalog_row
+
+
+@router.get("/analytics")
+async def marketplace_analytics(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await marketplace_admin_service.analytics(db)
+
+
+@router.get("/orders")
+async def marketplace_orders(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[dict]:
+    _require_admin(current_user)
+    orders = list((await db.scalars(select(Order).order_by(Order.created_at.desc(),Order.id))).all())
+    return await store_service.order_payloads(db,orders,include_buyer=True)
+
+
+@router.post("/orders/{order_id}/build-cart")
+async def build_marketplace_cart(order_id: str, req: BuildCartRequest, db: AsyncSession = Depends(get_db),
+                                  current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await store_service.build_cart(db,order_id,req.items)
+
+
+@router.post("/orders/{order_id}/approve-rx")
+async def approve_marketplace_rx(order_id: str, db: AsyncSession = Depends(get_db),
+                                 current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await store_service.approve_rx(db,order_id)
+
+
+@router.get("/inventory")
+async def marketplace_inventory(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[dict]:
+    _require_admin(current_user)
+    entries = await load_catalog(db)
+    return [catalog_row(entry,entries) for entry in entries.values() if entry.inventory]
+
+
+@router.patch("/inventory/{medicine_id}")
+async def patch_marketplace_inventory(medicine_id: str, req: InventoryPatch, db: AsyncSession = Depends(get_db),
+                                       current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await marketplace_admin_service.patch_inventory(db,medicine_id,req)
+
+
+@router.get("/sellers")
+async def marketplace_sellers(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)) -> list[dict]:
+    _require_admin(current_user)
+    return [marketplace_admin_service.seller_payload(s) for s in
+        (await db.scalars(select(PharmacySeller).order_by(PharmacySeller.pharmacy_name))).all()]
+
+
+@router.post("/sellers/{seller_id}/verify")
+async def verify_marketplace_seller(seller_id: str, req: SellerVerifyRequest, db: AsyncSession = Depends(get_db),
+                                    current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await marketplace_admin_service.verify_seller(db,seller_id,req.verification_status)
+
+
+@router.post("/catalog-sync")
+async def marketplace_catalog_sync(req: CatalogSyncRequest, db: AsyncSession = Depends(get_db),
+                                    current_user: User = Depends(get_current_user)) -> dict:
+    _require_admin(current_user)
+    return await marketplace_admin_service.catalog_sync(db,req.records,req.dry_run)

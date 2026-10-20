@@ -1,7 +1,7 @@
 """Idempotent seeder for ``mrp_reference`` (Phase-1 Feature A).
 
 Spec 09 §15 manual-seed mode: loads the DRAP-notified MRP baseline for the
-40 MVP medicines from DRAP_40_Medicines_data.json, keyed on the canonical
+catalog medicines from the supplied JSON dataset, keyed on the canonical
 ``medicines.drap_reg_no`` (added in Phase-0 — referenced, not re-created).
 
 Field mapping (note the SPACE in "effective from"):
@@ -12,11 +12,10 @@ Field mapping (note the SPACE in "effective from"):
   currency defaults to 'PKR'; sro_ref stays NULL (not present in the seed).
 
 Guarantees:
-- One mrp_reference row per medicine; versioned rows are never overwritten —
-  re-running skips rows that already exist for the same
-  (medicine_id, pack_size, effective_date), so the seeder is idempotent.
-- Only INSERTs into mrp_reference (+ at most one provenance row in
-  sources). No existing table or row is modified.
+- Re-running identical data leaves the stored MRP baseline unchanged.
+- Explicit dataset changes update notified price, date and pack size.
+- New registration numbers insert medicines only when their required
+  structured facts are supplied; missing medical facts are never guessed.
 
 Usage:  python -m app.db.seed_mrp
 """
@@ -33,6 +32,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import Medicine, MrpReference, Source
+from app.services.catalog_records import record_fields, new_medicine_fields
+from app.services.mrp_refresh import refresh_reference
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,8 @@ PRICE_PORTAL_SOURCE_ID = "a0000002-0000-0000-0000-000000000001"
 @dataclass
 class MrpSeedReport:
     rows_inserted: int = 0
+    rows_updated: int = 0
+    medicines_inserted: int = 0
     rows_skipped_existing: int = 0
     medicines_matched: int = 0
     unmatched_reg_nos: list = field(default_factory=list)
@@ -117,15 +120,27 @@ async def seed_mrp_reference(
     source: Optional[Source] = None
 
     for row in rows:
-        reg_no = str(row.get("registration_no") or row.get("Registration_No") or "").strip()
+        reg_no = str(row.get("drap_reg_no") or row.get("registration_no") or row.get("Registration_No") or "").strip()
         if not reg_no:
             report.skipped_no_key += 1
             continue
 
         medicine = by_reg_no.get(reg_no)
-        if medicine is None:
-            report.unmatched_reg_nos.append(reg_no)
+        try:
+            fields = record_fields(row)
+        except ValueError:
+            report.skipped_bad_price += 1
             continue
+        if medicine is None:
+            try:
+                medicine = Medicine(**new_medicine_fields(fields))
+            except ValueError:
+                report.unmatched_reg_nos.append(reg_no)
+                continue
+            db.add(medicine)
+            await db.flush()
+            by_reg_no[reg_no] = medicine
+            report.medicines_inserted += 1
 
         if source is None:
             src_url = row.get("source")
@@ -135,49 +150,24 @@ async def seed_mrp_reference(
                 db, str(src_url or "").strip() or None
             )
 
-        pack_size = str(row.get("pack_size") or row.get("Packsize") or "").strip()
-        effective = parse_effective_date(row.get("effective_from") or row.get("effective from") or "2026-08-01")
+        pack_size = fields["pack_size"]
+        effective = fields["effective_date"]
+        price_val = fields["notified_mrp"]
 
-        price_val = row.get("pack_price_pkr") if row.get("pack_price_pkr") is not None else row.get("Price", 0)
-        if isinstance(price_val, str):
-            try:
-                price_val = float(price_val.replace(",", ""))
-            except ValueError:
-                logger.warning("Skipping row with unparseable Price %r (%s)",
-                               price_val, reg_no)
-                report.skipped_bad_price += 1
-                continue
-
-        # Clean up any stale MRP rows for this medicine with old pack sizes
-        stale_res = await db.execute(
-            select(MrpReference).where(
-                MrpReference.medicine_id == medicine.id,
-                MrpReference.pack_size != pack_size,
-            )
-        )
-        for stale in stale_res.scalars().all():
-            await db.delete(stale)
-
-        # Check existing row for this medicine and current pack size
-        existing = await db.execute(
-            select(MrpReference).where(
-                MrpReference.medicine_id == medicine.id,
-                MrpReference.pack_size == pack_size,
-            )
-        )
+        existing = await db.execute(select(MrpReference).where(
+            MrpReference.medicine_id == medicine.id,
+        ).order_by(MrpReference.effective_date.desc().nulls_last(),MrpReference.updated_at.desc(),MrpReference.id))
         existing_row = existing.scalars().first()
         if existing_row:
-            if existing_row.effective_date == effective and existing_row.notified_mrp == Decimal(str(price_val)):
-                report.rows_skipped_existing += 1
-                report.medicines_matched += 1
-                continue
+            if (existing_row.notified_mrp,existing_row.effective_date,existing_row.pack_size) != (price_val,effective,pack_size):
+                # Explicit catalog refresh requested by the operator; update the
+                # matching current reference, not a new duplicate on every run.
+                refresh_reference(db,existing_row,fields,source.id)
+                report.rows_updated += 1
             else:
-                existing_row.notified_mrp = Decimal(str(price_val))
-                existing_row.effective_date = effective
-                existing_row.source_id = source.id
-                report.rows_inserted += 1
-                report.medicines_matched += 1
-                continue
+                report.rows_skipped_existing += 1
+            report.medicines_matched += 1
+            continue
 
         db.add(
             MrpReference(

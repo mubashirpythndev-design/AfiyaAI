@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, Date, Numeric, Boolean, Integer, ForeignKey, Index, text, JSON
+    Column, String, Text, DateTime, Date, Numeric, Boolean, Integer, ForeignKey, Index, text, JSON, CheckConstraint
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -104,9 +104,10 @@ class Embedding(Base):
 class MrpReference(Base):
     """Versioned DRAP-notified MRP per medicine + pack size (Phase-1 Feature A).
 
-    Created by alembic revision 0002 (spec 09 §7.2). Rows are never
-    overwritten: a new SRO/MRP is inserted as a new row with a newer
-    ``effective_date``. Every row carries a ``source_id`` for provenance.
+    Created by alembic revision 0002 (spec 09 §7.2). Explicit catalog
+    refreshes update the current stored baseline by registration number,
+    retaining a snapshot when its pack/date changes. Every row carries a
+    ``source_id`` for provenance.
     """
     __tablename__ = "mrp_reference"
 
@@ -247,6 +248,68 @@ class UserFeedback(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     user = relationship("User")
+
+
+class PharmacySeller(Base):
+    __tablename__ = "pharmacy_sellers"
+    __table_args__ = (CheckConstraint("verification_status IN ('PENDING','VERIFIED','REJECTED')", name="ck_seller_status"),)
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    pharmacy_name = Column(String(200), nullable=False)
+    city = Column(String(100), nullable=False, default="Karachi", server_default="Karachi")
+    address = Column(String(300), nullable=True)
+    drug_license_no = Column(String(100), nullable=False, unique=True)
+    pharmacist_reg_no = Column(String(100), nullable=False)
+    license_doc_url = Column(Text, nullable=True)
+    verification_status = Column(String(30), nullable=False, default="PENDING", server_default="PENDING")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class StoreInventory(Base):
+    __tablename__ = "store_inventory"
+    __table_args__ = (
+        CheckConstraint("selling_price >= 0", name="ck_inventory_price"),
+        CheckConstraint("stock_quantity >= 0", name="ck_inventory_stock"),
+    )
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    medicine_id = Column(String(36), ForeignKey("medicines.id"), nullable=False, unique=True, index=True)
+    seller_id = Column(String(36), ForeignKey("pharmacy_sellers.id"), nullable=True)
+    selling_price = Column(Numeric(10, 2), nullable=False)
+    stock_quantity = Column(Integer, nullable=False, default=50, server_default="50")
+    active_batch_no = Column(String(64), nullable=False, default="BATCH-2026-OK", server_default="BATCH-2026-OK")
+    requires_prescription = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+    __table_args__ = (
+        CheckConstraint("status IN ('AWAITING_PHARMACIST_CART','CART_READY_FOR_USER','PENDING_RX_REVIEW','CONFIRMED','DELIVERED','CANCELLED')", name="ck_order_status"),
+        CheckConstraint("total_amount >= 0 AND total_savings_pkr >= 0", name="ck_order_totals"),
+    )
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(String(40), nullable=False)
+    prescription_image_url = Column(Text, nullable=True)
+    customer_note = Column(Text, nullable=True)
+    has_duplication_override = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    verified_by_pharmacist = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    total_amount = Column(Numeric(10, 2), nullable=False, default=Decimal("0.00"), server_default="0.00")
+    total_savings_pkr = Column(Numeric(10, 2), nullable=False, default=Decimal("0.00"), server_default="0.00")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_order_item_quantity"),
+        CheckConstraint("unit_price >= 0", name="ck_order_item_price"),
+    )
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    order_id = Column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    medicine_id = Column(String(36), ForeignKey("medicines.id"), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Numeric(10, 2), nullable=False)
+    switched_from_medicine_id = Column(String(36), nullable=True)
 
 
 # Engine and session
