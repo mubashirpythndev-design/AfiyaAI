@@ -11,6 +11,8 @@ from test_ocr_review import image_bytes, response, row
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
+    # Scale processing windows for controlled sub-second timing tests.
+    monkeypatch.setattr(service,"MIN_OCR_REQUEST_TIMEOUT_SECONDS",0)
     monkeypatch.setattr(service.settings,"ocr_auto_verify_clear",True)
     monkeypatch.setattr(service,"_RECENT_OCR_RESULTS",{})
     monkeypatch.setattr(service.settings,"gemini_ocr_model","models/test-primary")

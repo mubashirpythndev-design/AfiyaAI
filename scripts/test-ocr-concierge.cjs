@@ -30,6 +30,19 @@ test('a non-JSON proxy 503 is still recognized as an OCR fallback condition',asy
   const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{fetch:async()=>new Response('Unavailable',{status:503})});
   await assert.rejects(api.extractFromImage(new File(['image'],'rx.png')),error=>api.isOCRServiceBusy(error)&&error.status===503);
 });
+test('browser OCR deadlines leave room for the complete server fallback chain',async()=>{
+  const deadlines=[];
+  const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{
+    setTimeout:(callback,ms)=>{deadlines.push(ms);return setTimeout(callback,ms);},
+    fetch:async()=>Response.json({candidates:[],raw_text:''}),
+  });
+  const file=new File(['image'],'rx.png');
+  await api.extractFromImage(file);
+  assert.ok(deadlines.includes(150000));
+  deadlines.length=0;
+  await api.extractFromImage(file,{scanMode:'thorough'});
+  assert.ok(deadlines.includes(210000));
+});
 function elements(node){if(!node||typeof node!=='object')return[];const children=node.props?.children;return[node,...(Array.isArray(children)?children:[children]).flatMap(elements)];}
 test('fallback button submits once, keeps the image and records the awaiting-pharmacist confirmation',async()=>{
   const updates=[],state=[],uploaded=[],submitted=[],file=new File(['image'],'rx.png');let index=0;

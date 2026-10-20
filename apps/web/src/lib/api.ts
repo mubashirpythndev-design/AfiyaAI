@@ -247,7 +247,7 @@ export async function extractFromImage(file: File, options: { forceRefresh?: boo
   const auth = await authHeaders(options.signal, 10000);
   const res = await fetchResponse("/api/ocr/extract", {
     method: "POST", headers: auth, body: formData, signal: options.signal,
-  }, options.scanMode === "thorough" ? 180000 : 90000);
+  }, options.scanMode === "thorough" ? 210000 : 150000);
   if (res.status === 401) handleUnauthorized();
   return responseData<OCRResponse>(res);
 }

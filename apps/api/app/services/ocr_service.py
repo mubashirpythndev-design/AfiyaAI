@@ -22,7 +22,7 @@ from app.services.image_preprocessor import preprocess_prescription_image
 from app.services.pharmaceutical_corrector import prescription_form
 from app.services.ocr_provider import generate_ocr_response
 from app.services.ocr_errors import classify_ocr_error, OCRQuotaCooldownError, OCRServiceBusy
-from app.services.ocr_models import OCR_MODEL_CHAIN
+from app.services.ocr_models import OCR_MODEL_CHAIN, MIN_OCR_REQUEST_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,7 @@ def detect_dosage_form(name: str, form_from_llm: str = "", instructions: str = "
     """Accurately determine dosage form from doctor ink, LLM output, and directions."""
     return prescription_form(name, instructions, form_from_llm)[0]
 
-OCR_CACHE_VERSION = "ordered-five-models-v7"
+OCR_CACHE_VERSION = "stable-three-models-v8"
 VERIFY_PROMPT = """Independently transcribe ALL medicine/product lines in this image, including margins, columns and the bottom. This is an image reading and coverage check, not clinical advice. Inspect the visible letters; do not substitute a familiar brand for an unfamiliar name, complete names from memory, or use clinical context to guess them. Include all prescribed medication products: oral medicines, topicals, lotions, soaps/cleansing bars, sprays, shampoos, solutions, washes, powders, patches, suppositories, pessaries, pastes, foams and emulsions. Return JSON with candidates (all visible medicine lines), medicine_line_count (including unreadable lines), coverage_complete, and no clinical summary. Each candidate has name, strength, form, raw_line, confidence (0..1 reported legibility), line_id and bbox [top,left,bottom,right] in 0..1000 coordinates. Names exclude form/strength. Form must follow the ink: Bar, Cream, Ointment, Gel, Lotion, Tablet, Capsule, Syrup, Suspension, Inhaler, Injection, Drops, Spray, Shampoo, Solution, Wash, Mouthwash, Powder, Patch, Suppository, Pessary, Paste, Foam or Emulsion; return "" if absent/unclear. Never default to Tablet. Retain unreadable lines with name="" and do not invent missing names. A valid JSON response alone does not prove completeness.
 """
 
@@ -258,6 +258,9 @@ async def _extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg",
     attempts = 0
     interactive = scan_mode != "thorough"
     total_budget = min(settings.ocr_total_timeout_seconds, settings.ocr_auto_timeout_seconds) if interactive else settings.ocr_total_timeout_seconds
+    # Three 35-second processing windows plus scheduling headroom. Old environment
+    # values must not silently restore the former short fallback deadlines.
+    total_budget = max(total_budget, len(model_candidates) * MIN_OCR_REQUEST_TIMEOUT_SECONDS * 8 / 7)
     deadline = time.monotonic()+total_budget
     used_models = []
     blocked_models: dict[str, Exception] = {}
@@ -293,9 +296,10 @@ async def _extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg",
                     # so one timeout cannot consume the entire fallback window.
                     remaining_models = sum(name not in blocked_models and available(name)
                                            for name in model_candidates[index:])
-                    provider_timeout = min(provider_timeout, remaining * .95 / max(1, remaining_models))
                     if index > 0:
                         provider_timeout = min(provider_timeout, settings.ocr_retry_timeout_seconds)
+                    provider_timeout = min(max(MIN_OCR_REQUEST_TIMEOUT_SECONDS, provider_timeout),
+                                           remaining * .95 / max(1, remaining_models))
                     return await asyncio.wait_for(
                         generate_ocr_response(model_name,data,mime,prompt,timeout_seconds=provider_timeout),
                         timeout=provider_timeout,
@@ -304,7 +308,7 @@ async def _extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg",
                 if remaining <= 0:
                     raise asyncio.TimeoutError("OCR scan deadline reached")
                 response = await asyncio.wait_for(
-                    bounded_call(invoke, timeout_seconds=min(settings.ocr_request_timeout_seconds, remaining)),
+                    bounded_call(invoke, timeout_seconds=remaining),
                     timeout=remaining,
                 )
                 parsed = parse_ocr_response(_response_text(response),coordinate_region)

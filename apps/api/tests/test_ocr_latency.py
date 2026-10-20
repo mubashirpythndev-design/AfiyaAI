@@ -42,7 +42,7 @@ async def test_uncertain_auto_and_thorough_still_get_blind_coverage(monkeypatch)
     call = provider(monkeypatch, *([payload] * 6))
     result = await service.extract_from_image(image_bytes(), "image/png")
     assert result["verification_performed"] and call.await_count >= 2
-    assert call.call_args_list[1].kwargs["timeout_seconds"] <= 15
+    assert call.call_args_list[1].kwargs["timeout_seconds"] <= 35
     result = await service.extract_from_image(image_bytes(), "image/png", scan_mode="thorough")
     assert result["verification_performed"]
 
@@ -100,18 +100,19 @@ async def test_one_cancelled_waiter_does_not_cancel_other_upload(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_overload_retry_has_shorter_deadline_and_no_cached_failure(monkeypatch):
+async def test_overload_fallback_has_document_processing_headroom_and_no_cached_failure(monkeypatch):
     error = ServerError(503,{"error":{"message":"busy"}})
     call = provider(monkeypatch,*[error for _ in service.OCR_MODEL_CHAIN])
     with pytest.raises(OCRServiceBusy): await service.extract_from_image(image_bytes(),"image/png")
     assert call.await_count == len(service.OCR_MODEL_CHAIN)
     assert call.call_args_list[0].kwargs["timeout_seconds"] <= 40
-    assert call.call_args_list[1].kwargs["timeout_seconds"] <= 12
+    assert call.call_args_list[1].kwargs["timeout_seconds"] <= 35
     assert not service._RECENT_OCR_RESULTS and not service._IN_FLIGHT
 
 
 @pytest.mark.asyncio
 async def test_interactive_overall_budget_cancels_slow_provider(monkeypatch):
+    monkeypatch.setattr(service,"MIN_OCR_REQUEST_TIMEOUT_SECONDS",0)
     monkeypatch.setattr(service.settings,"ocr_auto_timeout_seconds",.15)
     async def slow(*args,**kwargs): await asyncio.sleep(10)
     call = AsyncMock(side_effect=slow); monkeypatch.setattr(service,"generate_ocr_response",call)
@@ -123,6 +124,7 @@ async def test_interactive_overall_budget_cancels_slow_provider(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_timeout_does_not_start_a_duplicate_remote_job(monkeypatch):
+    monkeypatch.setattr(service,"MIN_OCR_REQUEST_TIMEOUT_SECONDS",0)
     monkeypatch.setattr(service.settings,"ocr_auto_request_timeout_seconds",.08)
     async def slow(*args,**kwargs): await asyncio.sleep(10)
     call = AsyncMock(side_effect=slow); monkeypatch.setattr(service,"generate_ocr_response",call)

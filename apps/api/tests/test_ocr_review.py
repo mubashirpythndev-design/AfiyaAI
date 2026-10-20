@@ -16,8 +16,8 @@ def isolated_cache(tmp_path, monkeypatch):
     # These contracts explicitly exercise the thorough coverage behavior.
     monkeypatch.setattr(service.settings, "ocr_auto_verify_clear", True)
     monkeypatch.setattr(service, "_RECENT_OCR_RESULTS", {})
-    monkeypatch.setattr(service.settings, "gemini_ocr_model", "models/gemini-4-argon")
-    monkeypatch.setattr(service.settings, "gemini_ocr_fallback_models", "models/gemini-3.1-pro-preview,models/gemini-3.8-flash")
+    monkeypatch.setattr(service.settings, "gemini_ocr_model", "models/old-primary")
+    monkeypatch.setattr(service.settings, "gemini_ocr_fallback_models", "models/old-fallback")
     monkeypatch.setattr(service, "_DISK_CACHE_PATH", tmp_path / "ocr.sqlite3")
     monkeypatch.setattr(service, "_PRESCRIPTION_OCR_CACHE", {})
     ai_runtime.COOLDOWNS.clear()

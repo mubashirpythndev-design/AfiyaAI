@@ -4,11 +4,9 @@
 
 Image extraction uses `OCR_MODEL_CHAIN` in this exact order:
 
-1. `gemini-3.8-flash`
-2. `gemini-3.6-flash`
-3. `gemini-3.5-flash-lite`
-4. `gemini-3.1-flash-lite`
-5. `gemini-2.5-flash`
+1. `gemini-3.5-flash-lite`
+2. `gemini-3.1-flash-lite`
+3. `gemini-3.8-flash`
 
 Legacy model configuration cannot reorder this chain. A failed model is not retried
 within the scan. Every provider exception advances to the next eligible model;
@@ -19,9 +17,20 @@ so a hung primary cannot consume the entire fallback budget. Optional coverage
 audits retain their smaller call budget and never block a successful reading just
 because a failed provider is unavailable.
 
-Gemini 2.5 receives a thinking budget rather than the Gemini 3 thinking-level
-setting, and omits the Gemini 3 media-resolution setting. See the
-[provider thinking documentation](https://ai.google.dev/gemini-api/docs/generate-content/thinking).
+All three models use high-resolution media and the configured thinking level.
+The SDK processing timeout and initial extraction attempts have a 35-second
+minimum, including legacy short environment values. The normal interactive budget
+is 120 seconds; thorough mode defaults to 180 seconds. Three processing windows
+plus scheduling headroom are reserved before attempting the chain. Queue wait and
+optional coverage/detail passes still count toward the overall deadline, so a
+late audit can have less time remaining. The browser waits 150 seconds for normal
+scans and 210 seconds for thorough scans, allowing token/upload overhead.
+
+Google lists these stable endpoints in its
+[model lifecycle documentation](https://ai.google.dev/gemini-api/docs/deprecations/).
+Account access and quota remain provider-dependent; fallback does not guarantee
+separate capacity or quota pools. Legacy models and preview identifiers are absent
+from the OCR chain.
 
 If no eligible model succeeds, the service raises `OCRServiceBusy`. The OCR route
 returns HTTP 503 with `Retry-After: 60` and this top-level JSON:

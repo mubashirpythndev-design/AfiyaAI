@@ -11,7 +11,7 @@ from app.services.ocr_errors import OCRServiceBusy
 from app.services.ocr_models import OCR_MODEL_CHAIN
 from test_ocr_review import image_bytes, provider, response, row
 
-CHAIN=("gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-2.5-flash")
+CHAIN=("gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-3.8-flash")
 
 @pytest.fixture(autouse=True)
 def isolated(monkeypatch,tmp_path):
@@ -24,7 +24,7 @@ def isolated(monkeypatch,tmp_path):
     ai_runtime.COOLDOWNS.clear()
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("success_index",range(5))
+@pytest.mark.parametrize("success_index",range(len(CHAIN)))
 async def test_every_fallback_reachable_in_exact_order(monkeypatch,success_index):
     assert OCR_MODEL_CHAIN==CHAIN
     call=provider(monkeypatch,*[ServerError(503,{"error":{"message":"busy"}}) for _ in range(success_index)],response([row()]))
@@ -50,10 +50,11 @@ async def test_all_failures_produce_safe_busy_exception(monkeypatch,kind,caplog)
     if kind=="429":
         with pytest.raises(OCRServiceBusy):
             await service.extract_from_image(image_bytes(),"image/png",force_refresh=True,scan_mode="fast")
-        assert call.await_count==5  # Exhausted models are skipped until cooldown expires.
+        assert call.await_count==len(CHAIN)  # Exhausted models are skipped until cooldown expires.
 
 @pytest.mark.asyncio
-async def test_all_five_timeouts_share_overall_deadline(monkeypatch):
+async def test_all_model_timeouts_share_overall_deadline(monkeypatch):
+    monkeypatch.setattr(service,"MIN_OCR_REQUEST_TIMEOUT_SECONDS",0)
     monkeypatch.setattr(service.settings,"ocr_auto_timeout_seconds",.2)
     async def hang(*args,**kwargs):await asyncio.sleep(5)
     call=AsyncMock(side_effect=hang);monkeypatch.setattr(service,"generate_ocr_response",call)
@@ -70,10 +71,24 @@ async def test_endpoint_returns_exact_top_level_503_payload(monkeypatch):
     async with AsyncClient(transport=ASGITransport(app=app),base_url="http://test") as client:
         result=await client.post("/api/ocr/extract",files={"image":("rx.png",image_bytes(),"image/png")})
     assert result.status_code==503 and result.json()==OCRServiceBusy().payload()
-    assert call.await_count==5 and "detail" not in result.json()
+    assert call.await_count==len(CHAIN) and "detail" not in result.json()
 
-def test_25_transport_uses_compatible_thinking_settings():
-    from app.services.ocr_provider import ocr_generation_config
-    config=ocr_generation_config("gemini-2.5-flash")
-    assert config.thinking_config.thinking_level is None
-    assert config.thinking_config.thinking_budget==1024 and config.media_resolution is None
+@pytest.mark.asyncio
+async def test_legacy_short_limits_still_allow_35_seconds_for_every_model(monkeypatch):
+    from types import SimpleNamespace
+    clock = [0.0]
+    monkeypatch.setattr(service, "time", SimpleNamespace(monotonic=lambda: clock[0], time=time.time))
+    for setting in ("ocr_request_timeout_seconds", "ocr_total_timeout_seconds", "ocr_auto_timeout_seconds",
+                    "ocr_auto_request_timeout_seconds", "ocr_retry_timeout_seconds"):
+        monkeypatch.setattr(service.settings, setting, 12.0)
+    async def times_out(*args, **kwargs):
+        timeout = kwargs["timeout_seconds"]
+        assert timeout >= 35.0
+        clock[0] += timeout
+        raise asyncio.TimeoutError()
+    call = AsyncMock(side_effect=times_out)
+    monkeypatch.setattr(service, "generate_ocr_response", call)
+    with pytest.raises(OCRServiceBusy):
+        await service.extract_from_image(image_bytes(), "image/png", scan_mode="fast")
+    assert tuple(c.args[0] for c in call.call_args_list) == CHAIN
+    assert 105 <= clock[0] <= 120

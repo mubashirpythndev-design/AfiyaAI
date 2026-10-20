@@ -29,12 +29,12 @@ async def test_ocr_sdk_uses_high_resolution_reasoning_and_one_attempt(monkeypatc
     call = AsyncMock(return_value=reply)
     captured = fake_client(monkeypatch, call)
     monkeypatch.setattr(provider.settings, "ocr_thinking_level", "medium")
-    assert await provider.generate_ocr_response("models/gemini-4-argon", b"pixels", "image/png", "Read ink", timeout_seconds=.45) is reply
+    assert await provider.generate_ocr_response("models/gemini-3.5-flash-lite", b"pixels", "image/png", "Read ink", timeout_seconds=.45) is reply
     assert captured["closed"]
-    assert captured["http_options"].timeout == 450
+    assert captured["http_options"].timeout == 35000
     assert captured["http_options"].retry_options.attempts == 1
     args = call.call_args.kwargs
-    assert args["model"] == "gemini-4-argon"
+    assert args["model"] == "gemini-3.5-flash-lite"
     assert args["contents"][0] == "Read ink"
     assert args["contents"][1].inline_data.data == b"pixels"
     assert args["config"].media_resolution.value == "MEDIA_RESOLUTION_HIGH"
@@ -49,7 +49,7 @@ async def test_transport_timeout_normalized_and_connection_closed(monkeypatch):
     call = AsyncMock(side_effect=httpx.ReadTimeout("slow"))
     captured = fake_client(monkeypatch, call)
     with pytest.raises(asyncio.TimeoutError):
-        await provider.generate_ocr_response("gemini-4-argon", b"pixels", "image/png", "Read", timeout_seconds=.01)
+        await provider.generate_ocr_response("gemini-3.5-flash-lite", b"pixels", "image/png", "Read", timeout_seconds=.01)
     assert captured["closed"] and call.await_count == 1
 
 
@@ -61,7 +61,7 @@ async def test_cancellation_closes_client_without_retry(monkeypatch):
         await asyncio.sleep(10)
     call = AsyncMock(side_effect=wait)
     captured = fake_client(monkeypatch, call)
-    task = asyncio.create_task(provider.generate_ocr_response("gemini-4-argon", b"pixels", "image/png", "Read", timeout_seconds=1))
+    task = asyncio.create_task(provider.generate_ocr_response("gemini-3.5-flash-lite", b"pixels", "image/png", "Read", timeout_seconds=1))
     await entered.wait()
     task.cancel()
     with pytest.raises(asyncio.CancelledError):
