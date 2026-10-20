@@ -5,6 +5,7 @@ import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import type { Language, AuthUser } from "@/lib/types";
 import { LANGUAGES } from "@/lib/constants";
 import { t } from "@/lib/i18n";
+import MarketplaceHeaderActions from "@/components/marketplace/MarketplaceHeaderActions";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 
 interface HeaderProps {
@@ -183,6 +184,8 @@ export default function Header({
             </button>
           </div>
         </div>
+
+        <MarketplaceHeaderActions onBrowse={()=>onNavigateHome?.()}/>
 
         {/* Mobile menu */}
         {menuOpen && (

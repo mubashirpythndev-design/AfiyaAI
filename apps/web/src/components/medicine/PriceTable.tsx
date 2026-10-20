@@ -2,6 +2,7 @@
 
 import type { PriceComparison, CheapestBrands } from "@/lib/types";
 import QuantityCalculator from "./QuantityCalculator";
+import {AddToCartButton} from "@/components/marketplace/StoreCatalog";
 
 interface PriceTableProps {
   comparison: PriceComparison;
@@ -26,6 +27,7 @@ export default function PriceTable({
 
   return (
     <div className="animate-slide-up space-y-6">
+      <div className="flex justify-end"><AddToCartButton medicineId={medicine.id}/></div>
       {/* 1. Multi-Brand Bioequivalent Price Comparison Matrix (if multiple brands exist) */}
       {hasAlternativeBrands && (
         <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
@@ -118,6 +120,7 @@ export default function PriceTable({
                         )}
                       </td>
                       <td className="px-3.5 sm:px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <AddToCartButton medicineId={opt.medicine_id}/>
                         <button
                           type="button"
                           onClick={() => onSelectBrand && onSelectBrand(opt.medicine_id)}

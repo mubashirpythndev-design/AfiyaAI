@@ -80,3 +80,6 @@ desktop.ini
 
 
 
+
+# Private marketplace prescription images (local only)
+/.local/marketplace-prescriptions/

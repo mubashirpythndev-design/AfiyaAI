@@ -11,9 +11,10 @@ interface MedicineCardProps {
   onViewDetails: (id: string) => void;
   onViewPrices: (id: string) => void;
   language?: Language;
+  onAddToCart?: (id: string) => void;
 }
 
-export default function MedicineCard({ medicine, onViewDetails, onViewPrices, language = "en" }: MedicineCardProps) {
+export default function MedicineCard({ medicine, onViewDetails, onViewPrices, onAddToCart, language = "en" }: MedicineCardProps) {
   const icon = CATEGORY_ICONS[medicine.category] || "💊";
 
   return (
@@ -71,6 +72,7 @@ export default function MedicineCard({ medicine, onViewDetails, onViewPrices, la
           </div>
         </div>
 
+        {onAddToCart && <button type="button" onClick={()=>onAddToCart(medicine.id)} className="w-full mb-3 rounded-xl border border-primary/30 text-primary py-2 text-sm font-semibold">+ Add to Cart</button>}
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-2">
           <button

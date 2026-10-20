@@ -6,7 +6,68 @@ export interface Source {
   name: string;
   url: string | null;
   source_type: string;
+  verification_status?: string;
   collected_at?: string;
+}
+
+export interface DRAPAssessment {
+  status: "VERIFIED_ACTIVE" | "PROVISIONALLY_ACTIVE" | "NOT_FOUND";
+  is_verified: boolean;
+  badge: string;
+  registration_number?: string | null;
+  warning?: string | null;
+  urdu_warning?: string | null;
+}
+
+export interface RiskTierAssessment {
+  tier: 1 | 2 | 3;
+  label: string;
+  color: "green" | "amber" | "red";
+  advisory: string;
+  advisory_urdu: string;
+}
+
+export interface LASACandidate {
+  id: string;
+  brand_name: string;
+  generic_name: string;
+  strength: string;
+  dosage_form: string;
+  category: string;
+}
+
+export interface LASAWarning {
+  confirmation_required: boolean;
+  query: string;
+  candidate_a: LASACandidate;
+  candidate_b: LASACandidate;
+  warning_message: string;
+  urdu_warning_message: string;
+}
+
+export interface SafetyAssessment {
+  drap_status: DRAPAssessment;
+  risk_tier: RiskTierAssessment;
+}
+
+export type StrengthAssessmentStatus = "EXACT_STRENGTH_MATCH" | "STRENGTH_MISMATCH" | "NO_STRENGTH_DETECTED";
+
+export interface StrengthAssessment {
+  status: StrengthAssessmentStatus;
+  extracted_strength?: string | null;
+  database_strength?: string | null;
+  warning_message?: string | null;
+  urdu_warning_message?: string | null;
+}
+
+export type FormAssessmentStatus = "EXACT_FORM_MATCH" | "FORM_MISMATCH" | "NO_FORM_DETECTED";
+
+export interface FormAssessment {
+  status: FormAssessmentStatus;
+  extracted_form?: string | null;
+  database_form?: string | null;
+  warning_message?: string | null;
+  urdu_warning_message?: string | null;
 }
 
 export interface MedicineCandidate {
@@ -22,9 +83,24 @@ export interface MedicineCandidate {
   raw_line?: string | null;
   needs_confirmation?: boolean;
   clinical_purpose?: string | null;
+  original_name?: string | null;
+  correction_suggestion?: string | null;
+  match_confidence?: number | null;
+  line_id?: string | null;
+  bbox?: number[] | null;
+  unreadable?: boolean;
+  reviewed?: boolean;
+  user_edited?: boolean;
+  alternative_reading?: string | null;
+  form_conflict?: boolean;
+  safety?: SafetyAssessment | null;
+  strength_assessment?: StrengthAssessment | null;
+  form_assessment?: FormAssessment | null;
 }
 
 export interface MedicineDetail {
+  safety?: SafetyAssessment | null;
+  source_verification_status?: string;
   id: string;
   brand_name: string;
   generic_name: string;
@@ -125,6 +201,10 @@ export interface MatchResponse {
   confidence: number;
   needs_confirmation: boolean;
   alternatives?: MedicineDetail[];
+  safety?: SafetyAssessment | null;
+  lasa_warning?: LASAWarning | null;
+  strength_assessment?: StrengthAssessment | null;
+  form_assessment?: FormAssessment | null;
 }
 
 // ---- Phase-1 Feature A: MRP / Overcharge Checker (spec 09 §7.3) ----

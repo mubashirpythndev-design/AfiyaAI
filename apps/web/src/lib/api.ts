@@ -44,61 +44,183 @@ function handleUnauthorized(): void {
   onUnauthorized?.();
 }
 
-async function authHeaders(): Promise<Record<string, string>> {
-  const token = await getAuthToken();
+async function authHeaders(signal?: AbortSignal, timeoutMs?: number): Promise<Record<string, string>> {
+  // OCR cancellation/deadlines must also cover the token lookup before fetch.
+  const token = timeoutMs === undefined ? await getAuthToken() : await new Promise<string | null>((resolve, reject) => {
+    const cancelled = () => finish(new DOMException("Request cancelled", "AbortError"));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let settled = false;
+    function finish(error?: Error, value: string | null = null) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      timer = undefined;
+      signal?.removeEventListener("abort", cancelled);
+      if (error) reject(error); else resolve(value);
+    }
+    if (signal?.aborted) { cancelled(); return; }
+    signal?.addEventListener("abort", cancelled, { once: true });
+    timer = setTimeout(() => finish(new Error("The sign-in service took too long to respond. Please retry the prescription scan.")), timeoutMs);
+    getAuthToken().then(value => finish(undefined, value), error => finish(error));
+  });
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
 }
 
-async function apiFetch<T>(
-  path: string,
-  options?: RequestInit
-): Promise<T> {
-  if (!API_BASE_URL && process.env.NODE_ENV === "production") {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is not configured. Please set NEXT_PUBLIC_API_URL in your Vercel environment variables."
-    );
+// Share bounded requests and readable errors across JSON and file uploads.
+async function fetchResponse(path: string, options: RequestInit = {}, timeoutMs = 60000): Promise<Response> {
+  if (!API_BASE_URL) throw new Error("The medicine service is not configured. Please contact the Afiya team.");
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (options.signal?.aborted) abort();
+  options.signal?.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(abort, timeoutMs);
+  try {
+    const response = await fetch(API_BASE_URL + path, { ...options, signal: controller.signal });
+    // Keep the timeout active until the body has arrived, not only its headers.
+    const body = await response.arrayBuffer();
+    return new Response([204, 205, 304].includes(response.status) ? null : body, {
+      status: response.status, statusText: response.statusText, headers: response.headers,
+    });
+  } catch (error) {
+    if (options.signal?.aborted) throw new DOMException("Request cancelled", "AbortError");
+    if (controller.signal.aborted) throw new Error("The medicine service took too long to respond. Please try again.");
+    if (error instanceof TypeError) throw new Error("Unable to reach the medicine service. Check your connection and make sure the backend is running, then try again.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener("abort", abort);
   }
-  const url = `${API_BASE_URL}${path}`;
-  const auth = await authHeaders();
-  const reqHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...auth,
-    ...(options?.headers as Record<string, string> | undefined),
-  };
+}
 
-  const res = await fetch(url, {
-    ...options,
-    headers: reqHeaders,
-  });
-
+async function responseData<T>(res: Response): Promise<T> {
+  if (res.status === 204) return undefined as T;
+  const body = await res.text();
+  let data: unknown;
+  try { data = body ? JSON.parse(body) : undefined; }
+  catch {
+    throw new Error(res.ok ? "The medicine service returned an unexpected response. Please try again." : "The medicine service is temporarily unavailable (" + res.status + "). Please try again.");
+  }
   if (!res.ok) {
-    if (res.status === 401) {
-      clearSession();
-      // If request failed because of an invalid/expired token on a public endpoint, retry once without token
-      if (reqHeaders["Authorization"]) {
-        const retryHeaders = { ...reqHeaders };
-        delete retryHeaders["Authorization"];
-        const retryRes = await fetch(url, { ...options, headers: retryHeaders });
-        if (retryRes.ok) {
-          if (retryRes.status === 204) return undefined as unknown as T;
-          const text = await retryRes.text();
-          return (text ? JSON.parse(text) : undefined) as T;
-        }
-      }
-      handleUnauthorized();
-    }
-    const error = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(error.detail || `API error: ${res.status}`);
+    const detail = (data as { detail?: unknown } | undefined)?.detail;
+    const structured = detail && typeof detail === "object" && !Array.isArray(detail) ? detail as {message?: string; lock_reasons?: string[]} : undefined;
+    const message = typeof detail === "string" ? detail : Array.isArray(detail)
+      ? detail.map(item => typeof item?.msg === "string" ? item.msg : "Invalid input").join("; ")
+      : structured?.message ? [structured.message, ...(structured.lock_reasons ?? [])].join(": ")
+      : "The request could not be completed (" + res.status + "). Please try again.";
+    throw new Error(message);
   }
+  if (data === undefined) throw new Error("The medicine service returned an empty response. Please try again.");
+  return data as T;
+}
 
-  // Handle 204 No Content (e.g. DELETE requests) or empty bodies
-  if (res.status === 204) {
-    return undefined as unknown as T;
+// Marketplace contracts mirror models/marketplace_schemas.py and service payloads.
+export type Money = number | string;
+export interface StoreMedicine {
+  medicine_id: string; brand_name: string; generic_name: string; strength: string;
+  dosage_form: string; category: string | null;
+}
+export interface StoreAlternative {
+  medicine_id: string; brand_name: string; selling_price: Money; pack_size: string;
+  unit_price: Money | null; savings_pkr: Money; savings_pct: Money; target_quantity: number;
+  quantity_unit: "pack"; comparison_basis: "whole_packs" | "equivalent_units";
+  pharmacist_confirmation_required: boolean;
+}
+export interface StoreCatalogItem extends StoreMedicine {
+  id: string; selling_price: Money | null; notified_mrp: Money | null; pack_size: string;
+  stock_quantity: number; active_batch_no: string | null; requires_prescription: boolean | null;
+  seller_name: string | null; seller_verification_status: string | null; is_demo_seller: boolean;
+  available: boolean; batch_recalled: boolean; quantity_unit: "pack";
+  price_origin: "stored_mrp" | "demo_fallback_unverified"; cheapest_alternative: StoreAlternative | null;
+}
+export interface StoreCartItem { medicine_id: string; quantity: number; switched_from_medicine_id?: string | null }
+export interface DuplicationAlert {
+  type: "same_generic" | "same_class"; severity: "HIGH" | "MODERATE";
+  generic_name?: string; category?: string; medicines: StoreMedicine[];
+  pairs?: [StoreMedicine, StoreMedicine][]; message: string;
+}
+export interface DuplicationCheck {
+  has_duplication: boolean; same_generic_alerts: DuplicationAlert[]; same_class_alerts: DuplicationAlert[];
+  unresolved: string[]; ambiguous: {input: string; candidates: StoreMedicine[]}[]; message: string; disclaimer: string;
+}
+export interface CartEvaluation {
+  items: (StoreMedicine & StoreCartItem & {unit_price: Money; line_total_pkr: Money; savings_pkr: Money; quantity_unit: "pack"})[];
+  cart_total_pkr: Money; total_savings_pkr: Money; rx_required_items: StoreMedicine[];
+  duplication_check: DuplicationCheck; duplication_lock: boolean; rx_gate_lock: boolean;
+  duplication_warnings: DuplicationAlert[];
+  switch_suggestions: (StoreAlternative & {from_medicine_id: string; quantity: number})[];
+  stock_shortages: {medicine_id: string; requested: number; available: number}[]; unresolved: string[];
+  unavailable_items: {medicine_id: string; batch_recalled: boolean; seller_verified: boolean; mrp_cap_valid: boolean}[];
+  lock_reasons: string[]; can_checkout: boolean; quantity_unit: "pack"; disclaimer: string;
+}
+export interface EvaluateCartPayload { items: StoreCartItem[]; prescription_attached?: boolean; lang?: Language }
+export interface CheckoutPayload {items: StoreCartItem[]; prescription_image_url?: string | null; customer_note?: string | null}
+export interface ConciergePayload {prescription_image_url: string; customer_note?: string | null}
+export type OrderStatus = "AWAITING_PHARMACIST_CART" | "CART_READY_FOR_USER" | "PENDING_RX_REVIEW" | "CONFIRMED" | "DELIVERED" | "CANCELLED";
+export interface StoreOrder {
+  id: string; order_id: string; status: OrderStatus; prescription_image_url: string | null; customer_note: string | null;
+  has_duplication_override: boolean; verified_by_pharmacist: boolean; total_amount: Money;
+  total_savings_pkr: Money; created_at: string; is_demo: boolean;
+  items: (StoreMedicine & StoreCartItem & {id?: string; unit_price: Money; quantity_unit: "pack"; cheapest_alternative: StoreAlternative | null})[];
+  user_id?: string; buyer_name?: string | null; buyer_email?: string | null;
+}
+export interface AdminAnalytics {
+  today_revenue_pkr: Money; monthly_revenue_pkr: Money; total_orders_count: number;
+  pending_rx_count: number; concierge_queue_count: number; total_patient_savings_pkr: Money;
+  low_stock_items: StoreCatalogItem[]; top_categories: {category: string; order_count: number; revenue_pkr: Money}[];
+  includes_demo_orders: boolean; revenue_basis: string;
+}
+export interface PharmacySeller {
+  id: string; pharmacy_name: string; city: string; address: string | null; drug_license_no: string;
+  pharmacist_reg_no: string; license_doc_url: string | null; verification_status: "VERIFIED" | "PENDING" | "REJECTED";
+  created_at: string; is_demo: boolean;
+}
+export interface InventoryUpdate {selling_price?: Money; stock_quantity?: number; active_batch_no?: string; requires_prescription?: boolean}
+export interface CatalogSyncResult {
+  inserted_count: number; updated_count: number; unchanged_count: number; dry_run: boolean;
+  diffs: {product_name: string; drap_reg_no: string; old_mrp: Money | null; new_mrp: Money; effective_date: string | null; action: "inserted" | "updated" | "unchanged"}[];
+}
+const jsonRequest = (payload: unknown, method = "POST"): RequestInit => ({method, body: JSON.stringify(payload)});
+export const fetchStoreCatalog = () => apiFetch<StoreCatalogItem[]>("/api/v1/store/catalog");
+export const evaluateCart = (payload: EvaluateCartPayload, signal?: AbortSignal) => apiFetch<CartEvaluation>("/api/v1/store/cart-evaluate", {...jsonRequest(payload), signal});
+export const checkoutCart = (payload: CheckoutPayload) => apiFetch<StoreOrder>("/api/v1/store/checkout", jsonRequest(payload));
+export const submitConciergeRx = (payload: ConciergePayload) => apiFetch<StoreOrder>("/api/v1/store/concierge-rx", jsonRequest(payload));
+export const fetchMyOrders = () => apiFetch<StoreOrder[]>("/api/v1/store/my-orders");
+export const confirmPharmacistCart = (id: string, payload: {items?: StoreCartItem[]} = {}) => apiFetch<StoreOrder>(`/api/v1/store/my-orders/${encodeURIComponent(id)}/confirm-cart`, jsonRequest(payload));
+export const fetchAdminAnalytics = () => apiFetch<AdminAnalytics>("/api/admin/analytics");
+export const fetchAdminOrders = () => apiFetch<StoreOrder[]>("/api/admin/orders");
+export const adminBuildCart = (id: string, payload: {items: StoreCartItem[]}) => apiFetch<StoreOrder>(`/api/admin/orders/${encodeURIComponent(id)}/build-cart`, jsonRequest(payload));
+export const adminApproveRx = (id: string) => apiFetch<StoreOrder>(`/api/admin/orders/${encodeURIComponent(id)}/approve-rx`, {method:"POST"});
+export const fetchAdminInventory = () => apiFetch<StoreCatalogItem[]>("/api/admin/inventory");
+export const updateAdminInventory = (id: string, payload: InventoryUpdate) => apiFetch<StoreCatalogItem>(`/api/admin/inventory/${encodeURIComponent(id)}`, jsonRequest(payload,"PATCH"));
+export const fetchAdminSellers = () => apiFetch<PharmacySeller[]>("/api/admin/sellers");
+export const verifyAdminSeller = (id: string, payload: {verification_status:"VERIFIED" | "REJECTED"}) => apiFetch<PharmacySeller>(`/api/admin/sellers/${encodeURIComponent(id)}/verify`, jsonRequest(payload));
+export const syncAdminCatalog = (payload: {records: Record<string, unknown>[]; dry_run?: boolean}) => apiFetch<CatalogSyncResult>("/api/admin/catalog-sync", jsonRequest(payload));
+export async function uploadStorePrescription(file: File): Promise<{prescription_image_url: string}> {
+  const body = new FormData(); body.append("image",file);
+  const response = await fetch("/api/marketplace/prescriptions", {method:"POST", headers:await authHeaders(),body});
+  if (response.status === 401) handleUnauthorized();
+  return responseData(response);
+}
+
+async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs = 60000): Promise<T> {
+  const started = Date.now();
+  const auth = timeoutMs < 60000 || options?.signal
+    ? await authHeaders(options?.signal ?? undefined, Math.min(timeoutMs, 10000)) : await authHeaders();
+  const remaining = () => Math.max(1, timeoutMs - (Date.now() - started));
+  const headers: Record<string, string> = { "Content-Type": "application/json", ...auth, ...(options?.headers as Record<string, string> | undefined) };
+  let res = await fetchResponse(path, { ...options, headers }, remaining());
+  if (res.status === 401) {
+    clearSession();
+    if (headers.Authorization) {
+      const retryHeaders = { ...headers };
+      delete retryHeaders.Authorization;
+      res = await fetchResponse(path, { ...options, headers: retryHeaders }, remaining());
+    }
+    if (res.status === 401) handleUnauthorized();
   }
-  const text = await res.text();
-  return (text ? JSON.parse(text) : undefined) as T;
+  return responseData<T>(res);
 }
 
 // OCR: Upload prescription image
@@ -131,12 +253,16 @@ export async function extractFromImage(file: File): Promise<OCRResponse> {
 
 // Medicine matching
 export async function matchMedicine(
-  candidate: string
+  candidate: string,
+  strength?: string | null,
+  dosage_form?: string | null,
+  options: { timeoutMs?: number; signal?: AbortSignal } = {}
 ): Promise<MatchResponse> {
   return apiFetch<MatchResponse>("/api/medicines/match", {
     method: "POST",
-    body: JSON.stringify({ candidate }),
-  });
+    signal: options.signal,
+    body: JSON.stringify({ candidate, strength, dosage_form }),
+  }, options.timeoutMs);
 }
 
 // Get medicines by therapeutic category

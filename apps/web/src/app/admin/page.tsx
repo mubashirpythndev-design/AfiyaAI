@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useUser, useClerk, UserButton, SignInButton } from "@clerk/nextjs";
+import { RevenueAnalytics, PharmacistQueue, InventoryConsole, SellerVerification } from "@/components/marketplace/AdminMarketplace";
 import { isLoggedIn } from "@/lib/auth";
 import {
   fetchAdminUsers,
@@ -19,12 +20,12 @@ import {
   type FeedbackResponseItem,
 } from "@/lib/api";
 
-type TabType = "users" | "feedback";
+type TabType = "analytics" | "queue" | "inventory" | "sellers" | "users" | "feedback";
 
 export default function AdminPortalPage() {
   const { isSignedIn, user: clerkUser } = useUser();
   const clerk = useClerk();
-  const [activeTab, setActiveTab] = useState<TabType>("feedback");
+  const [activeTab, setActiveTab] = useState<TabType>("analytics");
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -186,13 +187,13 @@ export default function AdminPortalPage() {
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-black text-foreground tracking-tight flex items-center gap-2">
-                Afiya AI Admin Dashboard
+                Afiya Pharmacy Command Center
                 <span className="text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20">
                   Admin Panel
                 </span>
               </h1>
               <p className="text-[11px] sm:text-xs text-muted font-medium">
-                Community Feedback, Healthcare Needs & User Oversight
+                Marketplace operations, pharmacist review & regulated inventory
               </p>
             </div>
           </div>
@@ -213,34 +214,18 @@ export default function AdminPortalPage() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto flex items-center gap-2 mt-4 pt-3 border-t border-border/70">
-          <button
-            type="button"
-            onClick={() => setActiveTab("feedback")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "feedback"
-                ? "bg-primary text-white shadow-md shadow-primary/20"
-                : "text-muted hover:text-foreground hover:bg-surface-hover"
-            }`}
-          >
-            <span>💬</span> User Feedback & Needs ({feedbackData?.summary.total_submissions ?? 0})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("users")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === "users"
-                ? "bg-primary text-white shadow-md shadow-primary/20"
-                : "text-muted hover:text-foreground hover:bg-surface-hover"
-            }`}
-          >
-            <span>👥</span> Registered Users ({usersData?.total ?? 0})
-          </button>
-        </div>
+        <nav className="max-w-7xl mx-auto flex gap-2 mt-4 pt-3 border-t border-border overflow-x-auto" aria-label="Marketplace admin sections">
+          {([['analytics','Revenue & safety'],['queue','Pharmacist queue'],['inventory','Inventory & catalog'],['sellers','Seller verification'],['users','Registered Users']] as [TabType,string][]).map(([key,label])=><button key={key} type="button" onClick={()=>setActiveTab(key)} aria-current={activeTab===key||(key==='users'&&activeTab==='feedback')?'page':undefined} className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold ${(activeTab===key||(key==='users'&&activeTab==='feedback'))?'bg-primary text-white':'hover:bg-surface-hover text-muted'}`}>{label}</button>)}
+        </nav>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {usersData && activeTab === "analytics" && <RevenueAnalytics/>}
+        {usersData && activeTab === "queue" && <PharmacistQueue/>}
+        {usersData && activeTab === "inventory" && <InventoryConsole/>}
+        {usersData && activeTab === "sellers" && <SellerVerification/>}
+        {(activeTab === "users" || activeTab === "feedback") && <div className="flex gap-3 mb-5"><button className="text-sm font-semibold text-primary underline" onClick={()=>setActiveTab("users")}>Registered Users</button><button className="text-sm font-semibold text-primary underline" onClick={()=>setActiveTab("feedback")}>Community feedback & needs</button></div>}
+
         {/* ==================== TAB 1: FEEDBACK ==================== */}
         {activeTab === "feedback" && (
           <div className="space-y-6 animate-fade-in">

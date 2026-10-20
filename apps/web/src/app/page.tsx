@@ -9,6 +9,9 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Header from "@/components/layout/Header";
+import StoreCatalog from "@/components/marketplace/StoreCatalog";
+import OCRCartStaging from "@/components/marketplace/OCRCartStaging";
+import {useMarketplace} from "@/components/marketplace/MarketplaceProvider";
 import Footer from "@/components/layout/Footer";
 import ImageUploader from "@/components/upload/ImageUploader";
 import OCRResults from "@/components/upload/OCRResults";
@@ -50,6 +53,7 @@ type PendingAction =
   | { kind: "upload" };
 
 export default function Home() {
+  const marketplace = useMarketplace();
   const { isSignedIn, user: clerkUser } = useUser();
   const clerk = useClerk();
   const [view, setView] = useState<View>("home");
@@ -57,6 +61,7 @@ export default function Home() {
   const [medicines, setMedicines] = useState<MedicineDetail[]>([]);
   const [candidates, setCandidates] = useState<MedicineCandidate[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
   const [ocrData, setOcrData] = useState<OCRResponse | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<MedicineInfo | null>(null);
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
@@ -269,6 +274,7 @@ export default function Home() {
   };
 
   const handleImageSelected = async (file: File) => {
+    setPrescriptionFile(file);
     if (!isSignedIn && !authUser) {
       requestAuth({ kind: "upload" }, t(language, "auth.uploadRequired"));
       return;
@@ -508,6 +514,7 @@ export default function Home() {
       )}
 
       <main className="flex-1">
+        {view === "home" && <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5"><div className="rounded-2xl border border-primary/20 bg-surface p-4 flex flex-wrap justify-between items-center gap-3"><p className="text-sm text-muted">Prefer a pharmacist to read your prescription?</p><button className="rounded-xl bg-primary px-4 py-2.5 text-white text-sm font-semibold" onClick={()=>marketplace.openConcierge(prescriptionFile)}>Messy handwriting? Send Rx to Pharmacist</button></div></div>}
         {/* ====== HERO SECTION ====== */}
         {view === "home" && (
           <section className="relative overflow-hidden min-h-[85vh] flex items-center">
@@ -926,6 +933,7 @@ export default function Home() {
           </section>
         )}
 
+        {view === "home" && <StoreCatalog language={language} prescriptionFile={prescriptionFile}/>}
         {/* ====== RESULTS VIEW ====== */}
         {view === "results" && (
           <section className="py-6 sm:py-8 lg:py-12">
@@ -947,6 +955,8 @@ export default function Home() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 <div className="space-y-6">
                   {ocrData && (
+                    <>
+                    <OCRCartStaging candidates={ocrData.candidates} file={prescriptionFile} busy={isProcessing}/>
                     <OCRResults
                       candidates={ocrData.candidates}
                       rawText={ocrData.raw_text}
@@ -961,12 +971,14 @@ export default function Home() {
                         }
                       }}
                     />
+                    </>
                   )}
                   <div className="grid gap-4 stagger-children">
                     {medicines.map((med, i) => (
                       <MedicineCard
                         key={`${med.id}-${i}`}
                         medicine={med}
+                        onAddToCart={ocrData ? undefined : (id)=>marketplace.addItems([{medicine_id:id,quantity:1}])}
                         onViewDetails={handleViewDetails}
                         onViewPrices={handleViewPrices}
                         language={language}

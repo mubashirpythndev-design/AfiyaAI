@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
+import MarketplaceProvider from "@/components/marketplace/MarketplaceProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -109,7 +110,7 @@ export default function RootLayout({
         <body className="min-h-full flex flex-col" suppressHydrationWarning>
           <ClerkAuthSync />
           <CustomCursor />
-          {children}
+          <MarketplaceProvider>{children}</MarketplaceProvider>
         </body>
       </html>
     </ClerkProvider>
