@@ -24,6 +24,8 @@ async def lifespan(app: FastAPI):
     logger.info("Afiya AI Backend starting up...")
     logger.info(f"Frontend URL: {settings.frontend_url}")
     logger.info(f"Gemini model: {settings.gemini_chat_model}")
+    from app.services.ocr_models import OCR_MODEL_CHAIN
+    logger.info("OCR model: %s; fallbacks: %s; thinking: %s", OCR_MODEL_CHAIN[0], ",".join(OCR_MODEL_CHAIN[1:]), settings.ocr_thinking_level)
     logger.info(f"Database: {'SQLite (local testing)' if is_sqlite else 'PostgreSQL (Neon Live)'}")
 
     # SQLite development may create tables; production schema changes are explicit migrations.

@@ -42,7 +42,7 @@ test('unauthenticated and non-image uploads are rejected',async()=>{
   assert.equal((await upload.POST(request('buyer',Buffer.from('<svg></svg>'),'image/svg+xml'))).status,422);
 });
 test('oversized bodies and path traversal references are rejected',async()=>{
-  const tooLarge=new Request('http://local.test/api/marketplace/prescriptions',{method:'POST',headers:{Authorization:'Bearer buyer','Content-Length':String(10*1024*1024)},body:'x'});
+  const tooLarge=new Request('http://local.test/api/marketplace/prescriptions',{method:'POST',headers:{Authorization:'Bearer buyer','Content-Length':String(12*1024*1024)},body:'x'});
   assert.equal((await upload.POST(tooLarge)).status,413);
   const result=await download.GET(new Request('http://local.test/uploads/x',{headers:{Authorization:'Bearer buyer'}}),{params:Promise.resolve({id:'../../outside'})});
   assert.equal(result.status,404);

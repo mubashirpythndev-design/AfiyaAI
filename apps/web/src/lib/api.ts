@@ -94,22 +94,36 @@ async function fetchResponse(path: string, options: RequestInit = {}, timeoutMs 
   }
 }
 
+export class ApiError extends Error {
+  constructor(message:string, public status:number, public code?:string, public fallbackAvailable=false) {
+    super(message); this.name="ApiError";
+  }
+}
+
+export function isOCRServiceBusy(error:unknown): boolean {
+  return error instanceof ApiError && (error.code==="OCR_SERVICE_BUSY" || error.status===503 || error.status===429);
+}
+
 async function responseData<T>(res: Response): Promise<T> {
   if (res.status === 204) return undefined as T;
   const body = await res.text();
   let data: unknown;
   try { data = body ? JSON.parse(body) : undefined; }
   catch {
-    throw new Error(res.ok ? "The medicine service returned an unexpected response. Please try again." : "The medicine service is temporarily unavailable (" + res.status + "). Please try again.");
+    throw new ApiError(res.ok ? "The medicine service returned an unexpected response. Please try again." : "The medicine service is temporarily unavailable (" + res.status + "). Please try again.",res.status);
   }
   if (!res.ok) {
+    const failure=data as {error?:string;message?:string;fallback_available?:boolean} | undefined;
+    if(failure?.error==="OCR_SERVICE_BUSY") {
+      throw new ApiError(failure.message??"Prescription scanning is temporarily busy.",res.status,failure.error,failure.fallback_available===true);
+    }
     const detail = (data as { detail?: unknown } | undefined)?.detail;
     const structured = detail && typeof detail === "object" && !Array.isArray(detail) ? detail as {message?: string; lock_reasons?: string[]} : undefined;
     const message = typeof detail === "string" ? detail : Array.isArray(detail)
       ? detail.map(item => typeof item?.msg === "string" ? item.msg : "Invalid input").join("; ")
       : structured?.message ? [structured.message, ...(structured.lock_reasons ?? [])].join(": ")
       : "The request could not be completed (" + res.status + "). Please try again.";
-    throw new Error(message);
+    throw new ApiError(message,res.status);
   }
   if (data === undefined) throw new Error("The medicine service returned an empty response. Please try again.");
   return data as T;
@@ -224,31 +238,18 @@ async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs = 6000
 }
 
 // OCR: Upload prescription image
-export async function extractFromImage(file: File): Promise<OCRResponse> {
+export async function extractFromImage(file: File, options: { forceRefresh?: boolean; scanMode?: "auto" | "thorough" | "fast"; region?: number[]; signal?: AbortSignal } = {}): Promise<OCRResponse> {
   const formData = new FormData();
   formData.append("image", file);
-  const auth = await authHeaders();
-  const url = `${API_BASE_URL || ""}/api/ocr/extract`;
-
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { ...auth },
-      body: formData,
-    });
-  } catch {
-    throw new Error(
-      "Unable to connect to the Afiya AI backend server. Please verify your connection or ensure the API server is running."
-    );
-  }
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Upload failed" }));
-    if (res.status === 401) handleUnauthorized();
-    throw new Error(error.detail || "OCR extraction failed");
-  }
-  return res.json();
+  formData.append("force_refresh", String(options.forceRefresh ?? false));
+  formData.append("scan_mode", options.scanMode ?? "auto");
+  if (options.region) formData.append("region", JSON.stringify(options.region));
+  const auth = await authHeaders(options.signal, 10000);
+  const res = await fetchResponse("/api/ocr/extract", {
+    method: "POST", headers: auth, body: formData, signal: options.signal,
+  }, options.scanMode === "thorough" ? 180000 : 90000);
+  if (res.status === 401) handleUnauthorized();
+  return responseData<OCRResponse>(res);
 }
 
 // Medicine matching

@@ -62,7 +62,7 @@ clinical substitutability, so these are not claimed by a badge.
 ## Local prescription storage
 
 `POST /api/marketplace/prescriptions` accepts an authenticated JPEG/PNG/WebP up to
-8 MB and returns `/uploads/{uuid}`, matching the backend URL constraint. The
+10 MB and returns `/uploads/{uuid}`, matching the backend URL constraint. The
 multipart body is bounded even when Content-Length is absent. File signatures
 are checked, filenames are generated, and images/owner metadata are written to
 `.local/marketplace-prescriptions` outside public assets. Backend `/api/auth/me`

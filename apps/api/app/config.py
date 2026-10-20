@@ -3,6 +3,7 @@
 import logging
 
 from pydantic_settings import BaseSettings
+from pydantic import Field
 
 # Insecure placeholder ONLY for local dev/tests. Production MUST set
 # JWT_SECRET in the environment (.env is gitignored; never commit secrets).
@@ -10,12 +11,26 @@ INSECURE_DEV_JWT_SECRET = "dev-insecure-change-me"
 
 
 class Settings(BaseSettings):
+    ai_timeout_seconds: float = 28.0
+    ocr_request_timeout_seconds: float = Field(default=90.0, gt=0, le=180)
+    ocr_total_timeout_seconds: float = Field(default=150.0, gt=0, le=600)
+    # Interactive scans should not inherit a 90-second retry after overload.
+    ocr_auto_timeout_seconds: float = Field(default=65.0, gt=0, le=180)
+    ocr_auto_request_timeout_seconds: float = Field(default=40.0, gt=0, le=90)
+    ocr_auto_review_timeout_seconds: float = Field(default=15.0, gt=0, le=60)
+    ocr_retry_timeout_seconds: float = Field(default=12.0, gt=0, le=60)
+    ocr_auto_verify_clear: bool = False
+    ocr_cache_path: str = ""
     gemini_api_key: str = ""
     database_url: str = "postgresql+asyncpg://localhost:5432/afiyadb"
     frontend_url: str = "http://localhost:3000"
     embedding_dimensions: int = 768
 
     gemini_chat_model: str = "models/gemini-3.5-flash"
+    # OCR uses the fixed ordered chain in services/ocr_models.py, independently of chat.
+    gemini_ocr_model: str = Field(default="gemini-3.8-flash", min_length=1)
+    gemini_ocr_fallback_models: str = "gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-2.5-flash"
+    ocr_thinking_level: str = Field(default="medium", pattern="^(low|medium|high)$")
     gemini_embedding_model: str = "models/gemini-embedding-001"
 
     fuzzy_match_threshold: float = 0.85

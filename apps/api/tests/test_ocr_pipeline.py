@@ -6,7 +6,7 @@ Author / Developer: Mubashir (Lead Developer)
 
 import io
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 from PIL import Image
 
 from app.services.image_preprocessor import preprocess_prescription_image
@@ -94,7 +94,7 @@ def test_expand_dosage_instructions_od_hs_sos():
 
 
 def test_pharmaceutical_corrector_exact_brand():
-    """Verify exact brand match gets maximum confidence and clean output."""
+    """Verify exact brand match preserves extraction confidence and clean output."""
     res = correct_and_normalize_candidate(
         name="Panadol",
         strength="500mg",
@@ -106,30 +106,38 @@ def test_pharmaceutical_corrector_exact_brand():
     assert res["raw_text"] == "Panadol 500mg Tablet"
     assert res["detected_brand"] == "Panadol"
     assert res["detected_generic"] == "Paracetamol"
-    assert res["confidence"] >= 0.95
+    assert res["confidence"] == 0.90
+    assert res["match_confidence"] == 1.0
     assert not res["needs_confirmation"]
     assert "3 times daily (TDS)" in res["dosage_instruction"]
 
 
 def test_pharmaceutical_corrector_optical_typo_correction():
-    """Verify that optical/cursive typos are auto-corrected to verified DRAP medicines."""
+    """Keep optical readings while offering unverified catalog spelling suggestions."""
     # Panado1 with number 1
     res1 = correct_and_normalize_candidate(name="Panado1", strength="500mg", form="Tablet")
-    assert res1["raw_text"] == "Panadol 500mg Tablet"
-    assert res1["detected_brand"] == "Panadol"
-    assert res1["confidence"] >= 0.88
+    assert res1["raw_text"] == "Panado1 500mg Tablet"
+    assert res1["detected_brand"] == "Panado1"
+    assert res1["correction_suggestion"] == "Panadol"
+    assert res1["detected_generic"] is None
+    assert res1["confidence"] == 0.85
+    assert res1["needs_confirmation"]
 
     # Brvfen with 'v' instead of 'u'
     res2 = correct_and_normalize_candidate(name="Brvfen", strength="400mg", form="Tablet")
-    assert res2["raw_text"] == "Brufen 400mg Tablet"
-    assert res2["detected_brand"] == "Brufen"
-    assert res2["confidence"] >= 0.88
+    assert res2["raw_text"] == "Brvfen 400mg Tablet"
+    assert res2["detected_brand"] == "Brvfen"
+    assert res2["correction_suggestion"] == "Brufen"
+    assert res2["confidence"] == 0.85
+    assert res2["needs_confirmation"]
 
     # Glvcophage
     res3 = correct_and_normalize_candidate(name="Glvcophage", strength="500mg", form="Tablet")
-    assert res3["raw_text"] == "Glucophage 500mg Tablet"
-    assert res3["detected_brand"] == "Glucophage"
-    assert res3["confidence"] >= 0.88
+    assert res3["raw_text"] == "Glvcophage 500mg Tablet"
+    assert res3["detected_brand"] == "Glvcophage"
+    assert res3["correction_suggestion"] == "Glucophage"
+    assert res3["confidence"] == 0.85
+    assert res3["needs_confirmation"]
 
 
 def test_medicine_candidate_schema_fields():
@@ -173,15 +181,16 @@ async def test_extract_from_image_mocked():
     mock_resp = MagicMock()
     mock_resp.text = fake_json
 
-    with patch("google.generativeai.GenerativeModel.generate_content", return_value=mock_resp):
+    with patch("app.services.ocr_service.generate_ocr_response", new_callable=AsyncMock, return_value=mock_resp):
         result = await extract_from_image(fake_bytes, "image/jpeg")
 
     assert "candidates" in result
     assert len(result["candidates"]) == 3
 
     c1 = result["candidates"][0]
-    assert c1["detected_brand"] == "Panadol"
-    assert c1["raw_text"] == "Panadol 500mg Tablet"
+    assert c1["detected_brand"] == "Panado1"
+    assert c1["raw_text"] == "Panado1 500mg Tablet"
+    assert c1["correction_suggestion"] == "Panadol"
     assert c1["detected_form"] == "Tablet"
     assert "TDS" in c1["dosage_instruction"] or "3 times daily" in c1["dosage_instruction"]
 
@@ -199,22 +208,28 @@ async def test_extract_from_image_mocked():
 
 
 @pytest.mark.asyncio
-async def test_deterministic_repeat_scan_cache():
+async def test_deterministic_repeat_scan_cache(tmp_path, monkeypatch):
     """Verify that scanning the same image bytes repeatedly returns 100% identical cached results."""
     from app.services.ocr_service import clear_ocr_cache
+    from app.services import ocr_service
 
+    monkeypatch.setattr(ocr_service, "_DISK_CACHE_PATH", tmp_path / "ocr.sqlite3")
+    monkeypatch.setattr(ocr_service, "_PRESCRIPTION_OCR_CACHE", {})
     clear_ocr_cache()
-    fake_bytes = b"repeat_test_prescription_bytes_123"
-    fake_json = """[{"name": "Augmentin", "strength": "625mg", "form": "Tablet", "instructions": "1 tab BD"}]"""
+    image = Image.new("RGB", (1200, 1600), "white")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    fake_bytes = buffer.getvalue()
+    fake_json = """{"medicine_line_count":1,"coverage_complete":true,"candidates":[{"name": "Augmentin", "strength": "625mg", "form": "Tablet", "instructions": "1 tab BD", "confidence":0.9}]}"""
 
     mock_resp = MagicMock()
     mock_resp.text = fake_json
 
-    with patch("google.generativeai.GenerativeModel.generate_content", return_value=mock_resp) as mock_gen:
-        res1 = await extract_from_image(fake_bytes, "image/jpeg")
-        assert mock_gen.call_count == 1
+    with patch("app.services.ocr_service.generate_ocr_response", new_callable=AsyncMock, return_value=mock_resp) as mock_gen:
+        res1 = await extract_from_image(fake_bytes, "image/jpeg", scan_mode="thorough")
+        assert mock_gen.call_count == 2
 
         # Second scan of identical image must hit cache without invoking generative model
-        res2 = await extract_from_image(fake_bytes, "image/jpeg")
-        assert mock_gen.call_count == 1
+        res2 = await extract_from_image(fake_bytes, "image/jpeg", scan_mode="thorough")
+        assert mock_gen.call_count == 2
         assert res1 == res2

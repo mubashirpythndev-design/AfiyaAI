@@ -10,6 +10,7 @@ import Image from "next/image";
 import { useUser, useClerk } from "@clerk/nextjs";
 import Header from "@/components/layout/Header";
 import StoreCatalog from "@/components/marketplace/StoreCatalog";
+import OCRBusyFallback from "@/components/marketplace/OCRBusyFallback";
 import OCRCartStaging from "@/components/marketplace/OCRCartStaging";
 import {useMarketplace} from "@/components/marketplace/MarketplaceProvider";
 import Footer from "@/components/layout/Footer";
@@ -37,7 +38,7 @@ import type {
   OCRResponse,
   AuthUser,
 } from "@/lib/types";
-import { extractFromImage, matchMedicine, getPrices, getMedicineInfo, getMedicinesByCategory, setOnUnauthorized } from "@/lib/api";
+import { extractFromImage, matchMedicine, getPrices, getMedicineInfo, getMedicinesByCategory, setOnUnauthorized, isOCRServiceBusy } from "@/lib/api";
 import { isLoggedIn, getCurrentUser, clearSession } from "@/lib/auth";
 import { CATEGORY_ICONS } from "@/lib/constants";
 import { t } from "@/lib/i18n";
@@ -62,6 +63,7 @@ export default function Home() {
   const [candidates, setCandidates] = useState<MedicineCandidate[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [prescriptionFile, setPrescriptionFile] = useState<File | null>(null);
+  const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrData, setOcrData] = useState<OCRResponse | null>(null);
   const [selectedInfo, setSelectedInfo] = useState<MedicineInfo | null>(null);
   const [selectedPrices, setSelectedPrices] = useState<PriceComparison | null>(null);
@@ -275,6 +277,7 @@ export default function Home() {
 
   const handleImageSelected = async (file: File) => {
     setPrescriptionFile(file);
+    setOcrBusy(false);
     if (!isSignedIn && !authUser) {
       requestAuth({ kind: "upload" }, t(language, "auth.uploadRequired"));
       return;
@@ -332,7 +335,8 @@ export default function Home() {
       });
       setMedicines(matched);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to process image");
+      if (isOCRServiceBusy(e)) { setOcrBusy(true); setError(null); }
+      else setError(e instanceof Error ? e.message : "Failed to process image");
     } finally {
       setIsProcessing(false);
     }
@@ -514,6 +518,7 @@ export default function Home() {
       )}
 
       <main className="flex-1">
+        {ocrBusy && prescriptionFile && <OCRBusyFallback file={prescriptionFile}/>}
         {view === "home" && <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5"><div className="rounded-2xl border border-primary/20 bg-surface p-4 flex flex-wrap justify-between items-center gap-3"><p className="text-sm text-muted">Prefer a pharmacist to read your prescription?</p><button className="rounded-xl bg-primary px-4 py-2.5 text-white text-sm font-semibold" onClick={()=>marketplace.openConcierge(prescriptionFile)}>Messy handwriting? Send Rx to Pharmacist</button></div></div>}
         {/* ====== HERO SECTION ====== */}
         {view === "home" && (

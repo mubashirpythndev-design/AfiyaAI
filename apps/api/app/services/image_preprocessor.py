@@ -8,7 +8,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-MAX_DIMENSION = 2200
+MAX_DIMENSION = 3072
 MIN_DIMENSION = 800
 
 def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jpeg') -> tuple[bytes, str]:
@@ -21,6 +21,8 @@ def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jp
 
     try:
         with Image.open(io.BytesIO(image_bytes)) as img:
+            if img.width * img.height > 30000000:
+                raise ValueError("Image exceeds 30 megapixels")
             img = ImageOps.exif_transpose(img)
             if img.mode not in ('RGB', 'L'):
                 img = img.convert('RGB')
@@ -36,11 +38,6 @@ def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jp
                 target_w = int(orig_w * scale)
                 target_h = int(orig_h * scale)
                 img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
-            elif max_dim < MIN_DIMENSION and max_dim > 0:
-                scale = MIN_DIMENSION / float(max_dim)
-                target_w = int(orig_w * scale)
-                target_h = int(orig_h * scale)
-                img = img.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
             # Natural global autocontrast (without splitting channels to avoid color distortion)
             img = ImageOps.autocontrast(img, cutoff=0.5)
@@ -50,7 +47,7 @@ def preprocess_prescription_image(image_bytes: bytes, mime_type: str = 'image/jp
             img = sharpness_enhancer.enhance(1.10)
 
             out_buffer = io.BytesIO()
-            img.save(out_buffer, format='JPEG', quality=95, optimize=True)
+            img.save(out_buffer, format='JPEG', quality=95)
             processed_bytes = out_buffer.getvalue()
 
             logger.info(f'OCR image preprocessed: {orig_w}x{orig_h} -> {target_w}x{target_h}')

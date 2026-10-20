@@ -12,6 +12,7 @@ class SourceSchema(BaseModel):
     name: str
     url: Optional[str] = None
     source_type: str
+    verification_status: str = "needs_source_verification"
     collected_at: Optional[str] = None
 
 
@@ -23,13 +24,75 @@ class MedicineSchema(BaseModel):
     strength: str
     manufacturer: str
     registration_info: Optional[str] = None
+    drap_reg_no: Optional[str] = None
+    source_verification_status: str = "needs_source_verification"
     aliases: list[str] = []
     category: str
 
 
+class DRAPAssessmentSchema(BaseModel):
+    status: str
+    is_verified: bool
+    badge: str
+    registration_number: Optional[str] = None
+    warning: Optional[str] = None
+    urdu_warning: Optional[str] = None
+
+
+class RiskTierAssessmentSchema(BaseModel):
+    tier: int
+    label: str
+    color: str
+    advisory: str
+    advisory_urdu: str
+
+
+class LASACandidateSchema(BaseModel):
+    id: str
+    brand_name: str
+    generic_name: str
+    strength: str
+    dosage_form: str
+    category: str
+
+
+class LASAWarningSchema(BaseModel):
+    confirmation_required: bool = False
+    query: str
+    candidate_a: LASACandidateSchema
+    candidate_b: LASACandidateSchema
+    warning_message: str
+    urdu_warning_message: str
+
+
+class SafetyAssessmentSchema(BaseModel):
+    drap_status: DRAPAssessmentSchema
+    risk_tier: RiskTierAssessmentSchema
+
+
+class MedicineWithSafetySchema(MedicineSchema):
+    safety: SafetyAssessmentSchema
+
+
+class StrengthAssessmentSchema(BaseModel):
+    status: str  # EXACT_STRENGTH_MATCH | STRENGTH_MISMATCH | NO_STRENGTH_DETECTED
+    extracted_strength: Optional[str] = None
+    database_strength: Optional[str] = None
+    warning_message: Optional[str] = None
+    urdu_warning_message: Optional[str] = None
+
+
+class FormAssessmentSchema(BaseModel):
+    status: str  # EXACT_FORM_MATCH | FORM_MISMATCH | NO_FORM_DETECTED
+    extracted_form: Optional[str] = None
+    database_form: Optional[str] = None
+    warning_message: Optional[str] = None
+    urdu_warning_message: Optional[str] = None
+
+
 class MedicineCandidate(BaseModel):
     raw_text: str
-    confidence: float
+    confidence: float = Field(ge=0, le=1)
     is_verified: bool
     matched_medicine: Optional[MedicineSchema] = None
     detected_brand: Optional[str] = None
@@ -40,16 +103,40 @@ class MedicineCandidate(BaseModel):
     raw_line: Optional[str] = None
     needs_confirmation: Optional[bool] = False
     clinical_purpose: Optional[str] = None
+    original_name: Optional[str] = None
+    correction_suggestion: Optional[str] = None
+    match_confidence: Optional[float] = None
+    line_id: Optional[str] = None
+    bbox: Optional[list[int]] = None
+    unreadable: bool = False
+    reviewed: bool = False
+    alternative_reading: Optional[str] = None
+    form_conflict: bool = False
+    safety: Optional[SafetyAssessmentSchema] = None
+    strength_assessment: Optional[StrengthAssessmentSchema] = None
+    form_assessment: Optional[FormAssessmentSchema] = None
 
 
 class OCRResponse(BaseModel):
     candidates: list[MedicineCandidate]
     raw_text: str
     clinical_summary: Optional[str] = None
+    global_safety_notes: Optional[list[str]] = None
+    medicine_line_count: Optional[int] = None
+    coverage_status: str = "not_checked"
+    verification_performed: bool = False
+    review_required: bool = True
+    warnings: list[str] = Field(default_factory=list)
+    image_width: Optional[int] = None
+    image_height: Optional[int] = None
+    models_used: list[str] = Field(default_factory=list)
+    provider_attempts: int = 0
 
 
 class MatchRequest(BaseModel):
     candidate: str
+    strength: Optional[str] = None
+    dosage_form: Optional[str] = None
 
 
 class MatchResponse(BaseModel):
@@ -57,6 +144,10 @@ class MatchResponse(BaseModel):
     confidence: float
     needs_confirmation: bool
     alternatives: list[MedicineSchema] = []
+    safety: Optional[SafetyAssessmentSchema] = None
+    lasa_warning: Optional[LASAWarningSchema] = None
+    strength_assessment: Optional[StrengthAssessmentSchema] = None
+    form_assessment: Optional[FormAssessmentSchema] = None
 
 
 class PriceEntry(BaseModel):
