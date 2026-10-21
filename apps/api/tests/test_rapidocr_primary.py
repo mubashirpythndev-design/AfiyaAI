@@ -83,7 +83,7 @@ def test_fragments_join_nearby_strength_without_merging_columns():
 
 
 @pytest.mark.asyncio
-async def test_cloud_only_runs_after_local_zero_and_only_with_key(monkeypatch):
+async def test_local_only_even_when_cloud_key_is_configured(monkeypatch):
     monkeypatch.setattr(service, "_read_local_lines", lambda *a: local())
     cloud = AsyncMock(return_value={"candidates": [{"raw_text": "Cloudmed", "unreadable": False}], "raw_text": "Cloudmed"})
     monkeypatch.setattr(service, "_extract_cloud_from_image", cloud)
@@ -93,8 +93,8 @@ async def test_cloud_only_runs_after_local_zero_and_only_with_key(monkeypatch):
     cloud.assert_not_awaited()
     monkeypatch.setattr(service.settings, "gemini_api_key", "configured-test-key")
     result = await service.extract_from_image(image_bytes(), "image/png")
-    assert result["engine"] == "gemini" and not result["fallback_available"]
-    cloud.assert_awaited_once()
+    assert result["engine"] == "concierge" and result["fallback_available"]
+    cloud.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -113,12 +113,13 @@ async def test_exhausted_cloud_returns_http_200_concierge_payload(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_local_engine_failure_still_allows_cloud(monkeypatch):
+async def test_local_engine_failure_returns_review_without_cloud(monkeypatch):
     def unavailable(*a): raise ImportError("missing local package")
     monkeypatch.setattr(service, "_read_local_lines", unavailable)
     monkeypatch.setattr(service.settings, "gemini_api_key", "configured-test-key")
     monkeypatch.setattr(service, "_extract_cloud_from_image", AsyncMock(return_value={"candidates": [{"raw_text": "Product"}], "raw_text": "Product"}))
-    assert (await service.extract_from_image(image_bytes()))["engine"] == "gemini"
+    assert (await service.extract_from_image(image_bytes()))["engine"] == "concierge"
+    service._extract_cloud_from_image.assert_not_awaited()
 
 
 def test_lazy_engine_is_loaded_once_and_uses_packaged_ppocr_v4(monkeypatch):
@@ -126,7 +127,12 @@ def test_lazy_engine_is_loaded_once_and_uses_packaged_ppocr_v4(monkeypatch):
     loads = []
     def create(**kwargs):
         loads.append(kwargs)
-        return lambda image: ([], [])
+        def recognize(image):
+            import numpy as np
+            assert isinstance(image, np.ndarray) and image.dtype == np.uint8
+            assert image.ndim == 3 and image.shape[2] == 3 and image.flags.c_contiguous
+            return [], []
+        return recognize
     monkeypatch.setattr(rapidocr_onnxruntime, "RapidOCR", create)
     monkeypatch.setattr(service, "_RAPID_OCR", None)
     service._read_local_lines(image_bytes(), "image/png")
@@ -191,3 +197,34 @@ async def test_failed_native_jobs_are_not_cached(monkeypatch):
     assert (await service.extract_from_image(image_bytes(), "image/png"))["fallback_available"]
     assert (await service.extract_from_image(image_bytes(), "image/png"))["engine"] == "rapidocr"
     assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_local_read_longer_than_former_guard_completes(monkeypatch):
+    assert service.LOCAL_OCR_BUDGET_SECONDS == 10
+    def read(*args):
+        time.sleep(1.6)
+        return local("Unknownmed 50mg Tablet")
+    monkeypatch.setattr(service, "_read_local_lines", read)
+    monkeypatch.setattr(service, "_extract_cloud_from_image", AsyncMock(side_effect=AssertionError("No cloud OCR")))
+    result = await service.extract_from_image(image_bytes(), "image/png")
+    assert result["candidates"][0]["original_name"] == "Unknownmed" and not result["fallback_available"]
+    service._extract_cloud_from_image.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_unreadable_scan_preserves_text_and_separates_database_examples(backfilled_db, monkeypatch):
+    from app.models.schemas import OCRResponse
+    monkeypatch.setattr(service, "_read_local_lines", lambda *args: local("Patient Name: Demo", "Hospital"))
+    monkeypatch.setattr(service.settings, "gemini_api_key", "configured-but-must-not-be-used")
+    cloud = AsyncMock(side_effect=AssertionError("No cloud OCR"))
+    monkeypatch.setattr(service, "_extract_cloud_from_image", cloud)
+    _, factory = backfilled_db
+    async with factory() as db:
+        result = await service.extract_from_image(image_bytes(), "image/png", db=db)
+    response = OCRResponse(**result)
+    assert response.candidates == [] and response.fallback_available
+    assert response.raw_text == "Patient Name: Demo\nHospital"
+    assert {item.brand_name for item in response.demo_catalog_items} == {"Panadol", "Augmentin"}
+    assert all(item.id for item in response.demo_catalog_items)
+    cloud.assert_not_awaited()

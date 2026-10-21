@@ -1,9 +1,13 @@
-# Ordered OCR recovery and pharmacist handoff
+# Legacy cloud OCR recovery and pharmacist handoff
+
+The upload endpoint is now local-only as defined in [spec 16](16-local-primary-ocr.md).
+The following cloud contract is retained for private helper compatibility and
+regression tests, not automatic upload processing.
 
 ## Contract
 
-The secondary cloud stage uses `OCR_MODEL_CHAIN` in this exact order. Local-first
-execution and its 1.5-second request budget are defined in [spec 16](16-local-primary-ocr.md).
+The secondary cloud stage uses `OCR_MODEL_CHAIN` in this exact order. Local-only
+execution and its 10-second request budget are defined in [spec 16](16-local-primary-ocr.md).
 
 1. `gemini-3.5-flash-lite`
 2. `gemini-3.1-flash-lite`

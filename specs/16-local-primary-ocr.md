@@ -1,80 +1,75 @@
-# Local-first prescription OCR
+# Local CPU prescription OCR and review UI
 
-## Request flow
+## Execution contract
 
-`POST /api/ocr/extract` validates the image, then runs a lazy, process-local
-`rapidocr-onnxruntime==1.4.4` engine before any cloud call. The wheel includes
-PP-OCRv4 detection and recognition weights; scan requests do not download models.
-The engine uses CPU inference, four intra-op threads, one inter-op thread and a
-736-pixel detector limit. Native inference and preprocessing run off the event
-loop. One executor worker bounds CPU jobs; concurrent identical uploads share it.
-Its last completed text reading can be reused for five minutes. Fresh scans bypass
-completed results. The singleton and its mutable detection settings are protected
-by a lock. An abandoned native call is not falsely described as cancelled.
+`POST /api/ocr/extract` runs only local PP-OCRv4 via
+`rapidocr-onnxruntime==1.4.4`. The upload flow never invokes Gemini, even when an
+API key exists. Legacy private cloud helpers remain solely for compatibility and
+regression tests; they are not part of the upload coordinator.
 
-The local request stage waits at most 1.5 seconds. If inference is still running,
-or a different document occupies the worker, return the pharmacist handoff
-immediately, without adding a cloud timeout. The single native job finishes in the
-background, and a later retry can use the actual reading. No native job queue or
-unbounded image cache is created. This speed-first policy is necessary because
-the real handwritten sample does not meet the native latency target.
+The local stage now allows 10 seconds instead of 1.5 seconds. One bounded worker
+loads the lazy engine once, coalesces identical uploads and reuses its last actual
+text reading for five minutes. A fresh scan bypasses a completed reading. A
+10-second timeout does not pretend to kill native ONNX work: that single job can
+finish in the background and serve a later retry. Different uploads do not build
+an unbounded native job queue. Image upload, validation and database latency are
+outside the native processing budget.
 
-With a Gemini key deliberately unset, measured coordinator response times were
-1.515 s (cold printed sample handoff) and 1.513 s (handwritten sample handoff).
-Retries after native completion took 0.002 s and 0.006 s respectively. These
-retry figures measure reuse of actual text, not fresh sub-second recognition.
+EXIF-oriented, size-validated images pass through the existing Pillow cleanup,
+then into a contiguous uint8 OpenCV BGR array. Grayscale input is handled by RGB
+normalization; genuinely low dynamic-range images receive CLAHE. Normal
+high-contrast text keeps its existing pixel contrast. CPU inference is serialized
+because the engine mutates detection settings. No weights are downloaded during
+scanning; the installed wheel contains them.
 
-If timely local OCR produces medicine candidates, return immediately with zero
-Gemini calls. If it finishes with no usable candidates, and a Gemini key is
-configured, try the unchanged ordered cloud chain:
+## Results and safe fallback
 
-1. `gemini-3.5-flash-lite`
-2. `gemini-3.1-flash-lite`
-3. `gemini-3.8-flash`
+Only genuinely recognized medication lines enter `candidates`. Unknown products
+remain visible and unverified. Database matching attaches existing identities,
+MRP/pack and stock where available. Original text and suggestions remain separate;
+all names require confirmation against the image. A reading is not proof that all
+prescription lines were found.
 
-Cloud failures or a missing key yield a valid HTTP 200 `OCRResponse` with empty
-candidates, `engine: "concierge"`, `fallback_available: true`,
-`error: "OCR_SERVICE_BUSY"` and a manual-review message. The frontend recognizes
-this successful handoff payload and displays the existing direct pharmacist
-submission button with the original image. Old HTTP 503/429 responses remain
-recognized for compatibility. Malformed/oversized images still receive HTTP 400.
+If no medicine is confirmed, preserve all actual recognized text in `raw_text`.
+Return HTTP 200 with `fallback_available: true`, `engine: "concierge"` and a safe
+manual-review message. Unexpected processing errors also return this structured
+review state, without exposing exception payloads or returning HTTP 503/429.
+Malformed/oversized inputs still return HTTP 400 before processing.
 
-## Parsing and catalog facts
+Optional `demo_catalog_items` are fetched from stored Panadol/Augmentin tablet
+records. They are NOT prescription candidates, inferred medicines, treatment
+recommendations or substitutes for unreadable text. Missing database records do
+not cause fabricated examples or prices.
 
-Keep every recognized product line with strength, dosage form, frequency, Rx
-prefix or catalog name evidence, including out-of-catalog products. Support bars,
-lotions, creams and other medication forms as well as oral medicines. Filter
-obvious administrative text and standalone directions. Join nearby same-row text
-fragments without merging distant columns or two complete strength-bearing lines.
-The existing 80-candidate safety bound remains in effect.
+The frontend preserves this HTTP 200 review payload and always renders:
 
-Resolve catalog names using the database session and existing matching service.
-Keep original OCR text and suggestions separate. Attach stored medicine metadata,
-candidate choices, current notified MRP/pack and inventory stock where available.
-Unknown products never receive guessed catalog IDs, prices, strengths or forms.
-Low-confidence/ambiguous matches stay unverified; all local candidates require
-image confirmation. `verification_performed` stays false: a fast local reading
-does not establish complete prescription coverage. Existing checkout, Rx review
-and user confirmation gates remain unchanged.
+- Unverified recognized text, or an explicit no-readable-text explanation.
+- A manual-entry form; names entered by the user are labelled as such and require
+  exact catalog selection and prescription confirmation through the existing tray.
+- The existing direct pharmacist handoff using the original image.
+- A separate catalog demo, labelled **not my prescription** (expanded when stored examples exist). Its sample
+  switch preview changes only component state: no real cart, prescription upload,
+  checkout or order call occurs. Prices/switch options come from existing catalog
+  data, and unavailable prices are never replaced with made-up values.
 
-## Measured limits
+Review text and manually entered rows clear when the image changes or the user
+signs out. No blank review screen depends on injecting invented prescription items.
 
-Measurements on this workstation, with network access disabled:
+## Verification and limitations
 
-| Native inference sample | Cold / first call | Warm calls | Usable medicine candidates |
-| --- | --- | --- | --- |
-| Printed synthetic prescription | 3.966 s | 1.362 s, 1.190 s | 3 of 3 |
-| `prescription1.jpeg`, handwritten | 12.722 s | 12.896 s, 9.982 s | 0 |
+Tests cover reads completing beyond the former 1.5-second guard, a 10-second
+configured window, uint8 three-channel arrays, no cloud calls in any coordinator
+path, known/unknown products, raw text preservation, separately typed database
+examples, clean HTTP 200 failures and isolated demo switch/manual-entry behavior.
+Use `python scripts/run_backend_tests_isolated.py` and
+`node scripts/build-web-isolated.cjs` without loading dotenv files.
 
-Therefore native sub-second extraction and reliable recognition of arbitrary
-handwriting have **not** been demonstrated. The 1.5-second request budget controls
-user waiting; it does not make native inference faster. Database/network latency,
-image upload/validation and response serialization are outside that native-stage
-budget. Timely zero-candidate scans that invoke Gemini can still take the cloud
-deadlines described in spec 15. The pharmacist option bypasses that wait.
+`python scripts/benchmark_local_ocr.py --pipeline-only` measures actual local
+request times with external connections blocked. A longer processing window does
+not guarantee cursive handwriting recognition. An image with no confirmed
+medicine names must remain a manual-review case, even for a hackathon demo.
 
-Run `python scripts/benchmark_local_ocr.py` for native timings with no dotenv
-loading, provider calls or prescription text output. The printed sample is generated
-locally; the handwritten sample is included only when present in the workspace.
-Mocked-engine/database tests establish orchestration and schema behavior, not
-handwriting accuracy. Full backend and frontend regression checks remain required.
+Current local-only coordinator measurements: the printed sample returned all three
+medicine candidates in 2.549 seconds; the handwritten sample completed in 8.632
+seconds with no confirmed medicines. Both made zero cloud calls. The latter still
+requires manual review; sample catalog cards are not extracted medicine results.

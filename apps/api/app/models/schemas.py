@@ -140,6 +140,7 @@ class OCRResponse(BaseModel):
     fallback_available: bool = False
     error: Optional[str] = None
     message: Optional[str] = None
+    demo_catalog_items: list[MedicineSchema] = Field(default_factory=list)
 
 
 class MatchRequest(BaseModel):

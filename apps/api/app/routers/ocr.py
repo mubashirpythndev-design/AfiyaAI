@@ -3,12 +3,10 @@ Author / Developer: Mubashir (Lead Developer)
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
-from fastapi.responses import JSONResponse
 
-from app.services.ocr_service import extract_from_image
+from app.services.ocr_service import extract_from_image, manual_review_response
 from app.services.safety_layer import evaluate_drap_status, evaluate_risk_tier
 from app.models.schemas import OCRResponse
-from app.services.ocr_errors import classify_ocr_error, OCRServiceBusy
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 
@@ -97,27 +95,7 @@ async def extract_prescription(image: UploadFile = File(...), force_refresh: boo
             logging.getLogger(__name__).warning(f"OCR Safety layer evaluation skipped due to: {safety_exc}")
 
         return OCRResponse(**result)
-    except OCRServiceBusy as e:
+    except Exception as exc:
         import logging
-        logging.getLogger(__name__).warning("OCR extraction unavailable: OCR_SERVICE_BUSY; pharmacist fallback available")
-        return JSONResponse(status_code=503, content=e.payload(), headers={"Retry-After": "60"})
-    except Exception as e:
-        failure = classify_ocr_error(e)
-        if failure.category == "quota":
-            raise HTTPException(
-                status_code=429,
-                headers={"Retry-After": "60"},
-                detail="Gemini OCR API quota limit reached. Please wait a few moments for the quota window to reset, or check your Gemini API plan.",
-            )
-        import logging
-        logging.getLogger(__name__).warning("OCR extraction unavailable: error=%s status=%s category=%s", type(e).__name__, failure.status, failure.category)
-        if failure.category == "timeout":
-            raise HTTPException(status_code=503, headers={"Retry-After": "5"},
-                detail="The prescription scanning service took too long to respond. Please wait a few seconds and retry. No completed scan was returned.") from e
-        if failure.category in {"unavailable", "network"}:
-            raise HTTPException(status_code=503, headers={"Retry-After": "5"},
-                detail="The prescription scanning provider is temporarily unavailable. Please retry shortly. Your image quality is not the cause of this service error.") from e
-        if failure.category in {"access", "configuration"}:
-            raise HTTPException(status_code=503,
-                detail="Prescription scanning is unavailable because of the provider configuration or model access. Please contact the site administrator.") from e
-        raise HTTPException(status_code=503, detail="Could not complete the prescription scan. Please retry or review the image manually.") from e
+        logging.getLogger(__name__).warning("Local OCR needs manual review: error=%s", type(exc).__name__)
+        return OCRResponse(**manual_review_response())

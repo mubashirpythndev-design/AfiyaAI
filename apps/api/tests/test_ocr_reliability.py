@@ -98,8 +98,8 @@ async def test_route_returns_safe_specific_errors(monkeypatch, code, phrase):
     monkeypatch.setattr(ocr, "extract_from_image", AsyncMock(side_effect=error))
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         result = await client.post("/api/ocr/extract", files={"image": ("test.png",image_bytes(),"image/png")})
-    assert result.status_code == (429 if code == 429 else 503)
-    assert phrase in result.json()["detail"]
+    assert result.status_code == 200
+    assert result.json()["fallback_available"] and result.json()["candidates"]==[]
     assert "secret-key" not in result.text and "private patient" not in result.text
 
 

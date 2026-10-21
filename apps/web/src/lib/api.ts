@@ -95,6 +95,7 @@ async function fetchResponse(path: string, options: RequestInit = {}, timeoutMs 
 }
 
 export class ApiError extends Error {
+  ocrResult?: OCRResponse;
   constructor(message:string, public status:number, public code?:string, public fallbackAvailable=false) {
     super(message); this.name="ApiError";
   }
@@ -251,7 +252,9 @@ export async function extractFromImage(file: File, options: { forceRefresh?: boo
   if (res.status === 401) handleUnauthorized();
   const result = await responseData<OCRResponse>(res);
   if (result.fallback_available && result.error === "OCR_SERVICE_BUSY") {
-    throw new ApiError(result.message ?? "Please send your prescription to the pharmacist.",res.status,result.error,true);
+    const error = new ApiError(result.message ?? "Please send your prescription to the pharmacist.",res.status,result.error,true);
+    error.ocrResult=result;
+    throw error;
   }
   return result;
 }

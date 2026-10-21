@@ -64,7 +64,7 @@ async def test_all_model_timeouts_share_overall_deadline(monkeypatch):
     assert time.monotonic()-started<1 and not ai_runtime.AI_SLOTS.locked()
 
 @pytest.mark.asyncio
-async def test_endpoint_returns_successful_concierge_handoff_when_cloud_is_exhausted(monkeypatch):
+async def test_endpoint_returns_local_review_without_cloud_attempts(monkeypatch):
     monkeypatch.setattr(service,"_read_local_lines",lambda *a: {"lines":[],"local_elapsed_ms":1})
     from app.routers import ocr
     app=FastAPI();app.include_router(ocr.router)
@@ -73,7 +73,7 @@ async def test_endpoint_returns_successful_concierge_handoff_when_cloud_is_exhau
         result=await client.post("/api/ocr/extract",files={"image":("rx.png",image_bytes(),"image/png")})
     assert result.status_code==200 and result.json()["fallback_available"] is True
     assert result.json()["error"]=="OCR_SERVICE_BUSY" and result.json()["engine"]=="concierge"
-    assert call.await_count==len(CHAIN) and "detail" not in result.json()
+    assert call.await_count==0 and "detail" not in result.json()
 
 @pytest.mark.asyncio
 async def test_legacy_short_limits_still_allow_35_seconds_for_every_model(monkeypatch):

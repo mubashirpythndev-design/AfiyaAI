@@ -195,6 +195,7 @@ export interface ChatResponse {
 }
 
 export interface OCRResponse {
+  demo_catalog_items?: MedicineDetail[];
   engine?: "rapidocr" | "gemini" | "concierge";
   local_elapsed_ms?: number | null;
   fallback_available?: boolean;

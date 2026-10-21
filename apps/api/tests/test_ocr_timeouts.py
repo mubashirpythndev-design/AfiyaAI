@@ -106,5 +106,5 @@ async def test_api_timeout_returns_helpful_retry_response(monkeypatch):
     monkeypatch.setattr(ocr,"extract_from_image",fails)
     async with AsyncClient(transport=ASGITransport(app=app),base_url="http://test") as client:
         result=await client.post("/api/ocr/extract",files={"image":("test.png",image_bytes(),"image/png")})
-    assert result.status_code==503 and result.headers["Retry-After"]=="5"
-    assert "took too long" in result.json()["detail"] and "provider details" not in result.text
+    assert result.status_code==200 and result.json()["fallback_available"]
+    assert "manual" in result.json()["message"] and "provider details" not in result.text
