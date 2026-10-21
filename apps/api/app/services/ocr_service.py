@@ -13,9 +13,6 @@ from pathlib import Path
 import re
 import time
 import sqlite3
-import threading
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 from app.services.ai_runtime import bounded_call, available, record_failure
 from app.services.ocr_parsing import parse_ocr_response, merge_candidates, OCRFormatError
 from app.services.ocr_images import inspect_image, crop_region, valid_box
@@ -25,186 +22,9 @@ from app.services.image_preprocessor import preprocess_prescription_image
 from app.services.pharmaceutical_corrector import prescription_form
 from app.services.ocr_provider import generate_ocr_response
 from app.services.ocr_errors import classify_ocr_error, OCRQuotaCooldownError, OCRServiceBusy
-from app.services.ocr_models import OCR_MODEL_CHAIN, MIN_OCR_REQUEST_TIMEOUT_SECONDS
-from app.services.local_rx_parser import _parse_rx_lines_to_medicines, join_text_fragments
+from app.services.ocr_models import OCR_MODEL_CHAIN, MIN_OCR_REQUEST_TIMEOUT_SECONDS, OCR_REQUEST_TIMEOUT_SECONDS
 
 logger = logging.getLogger(__name__)
-
-_RAPID_OCR: Any = None
-_RAPID_OCR_LOCK = threading.Lock()
-LOCAL_OCR_BUDGET_SECONDS = 10.0
-_LOCAL_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="prescription-ocr")
-_LOCAL_JOB_LOCK = threading.Lock()
-_LOCAL_JOB: Any = None
-
-
-async def _run_local_stage(image_bytes: bytes, mime_type: str, region: list[int] | None, force_refresh: bool) -> dict:
-    """Bound user waiting without pretending that Python can cancel native ONNX work.
-
-    Keep at most one native job, coalesce identical uploads, and reuse its actual
-    text for five minutes. DB identities/prices are resolved afresh per request.
-    """
-    global _LOCAL_JOB
-    started = time.monotonic()
-    key = hashlib.sha256(image_bytes + json.dumps([mime_type, region]).encode()).hexdigest()
-    with _LOCAL_JOB_LOCK:
-        job = _LOCAL_JOB
-        if job and not job[1].done() and job[0] != key:
-            return {"lines": [], "local_elapsed_ms": 0.0, "local_budget_exhausted": True}
-        if not job or job[0] != key or (job[1].done() and (force_refresh or job[1].exception() is not None or time.monotonic()-job[2] > 300)):
-            job = (key, _LOCAL_EXECUTOR.submit(_read_local_lines, image_bytes, mime_type, region), time.monotonic())
-            _LOCAL_JOB = job
-    wrapped = asyncio.wrap_future(job[1])
-    # A timed-out/disconnected request must not produce an unhandled future error
-    # if the bounded background job later fails.
-    wrapped.add_done_callback(lambda future: future.exception() if not future.cancelled() else None)
-    try:
-        return copy.deepcopy(await asyncio.wait_for(asyncio.shield(wrapped), LOCAL_OCR_BUDGET_SECONDS))
-    except asyncio.TimeoutError:
-        logger.warning("Local OCR exceeded %.1fs processing window; manual review available", LOCAL_OCR_BUDGET_SECONDS)
-        return {"lines": [], "local_elapsed_ms": round((time.monotonic()-started)*1000, 1),
-                "local_budget_exhausted": True}
-
-
-def _read_local_lines(image_bytes: bytes, mime_type: str, region: list[int] | None = None) -> dict:
-    """Run packaged PP-OCRv4 CPU weights off the event loop, without network access."""
-    global _RAPID_OCR
-    from app.services.ocr_images import open_prescription
-    started = time.monotonic()
-    original = open_prescription(image_bytes)
-    original_size = original.size
-    original.close()
-    working = crop_region(image_bytes, region) if region else image_bytes
-    processed, _ = preprocess_prescription_image(working, mime_type)
-    import cv2
-    import numpy as np
-    with open_prescription(processed) as image:
-        width, height = image.size
-        rgb = np.asarray(image).copy()
-    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-    if int(gray.max()) - int(gray.min()) < 80:
-        gray = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
-        pixels = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-    else:
-        pixels = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-    pixels = np.ascontiguousarray(pixels, dtype=np.uint8)
-    # RapidOCR instances mutate detection settings during inference. Serialize both
-    # lazy initialization and calls; cancellation cannot interrupt native ONNX work.
-    with _RAPID_OCR_LOCK:
-        if _RAPID_OCR is None:
-            from rapidocr_onnxruntime import RapidOCR
-            _RAPID_OCR = RapidOCR(intra_op_num_threads=4, inter_op_num_threads=1,
-                                 det_limit_side_len=736, det_limit_type="max", max_side_len=1600)
-        rows, _ = _RAPID_OCR(pixels)
-    lines = join_text_fragments(rows or [], width, height)
-    if region:
-        from app.services.ocr_images import map_box
-        for line in lines:
-            line["bbox"] = map_box(line["bbox"], region)
-    return {"lines": lines, "image_width": original_size[0], "image_height": original_size[1],
-            "local_elapsed_ms": round((time.monotonic()-started)*1000, 1)}
-
-
-async def _resolve_local_candidates(candidates: list[dict], db: Any) -> None:
-    """Attach stored identities/prices without changing the original transcription."""
-    from sqlalchemy import select
-    from app.db.database import MrpReference, StoreInventory
-    from app.services.matching_service import match_medicine
-    resolved = {}
-    for candidate in candidates:
-        query = " ".join(str(value) for value in (candidate["original_name"], candidate.get("detected_strength"),
-                                                   candidate.get("detected_form")) if value)
-        match = await match_medicine(query, db)
-        medicine = match.get("medicine")
-        choices = ([medicine] if medicine else []) + list(match.get("alternatives", []))
-        candidate["match_candidates"] = [m.model_dump() if hasattr(m, "model_dump") else m for m in choices]
-        candidate["match_confidence"] = match.get("confidence", 0)
-        candidate["strength_assessment"] = match.get("strength_assessment")
-        candidate["form_assessment"] = match.get("form_assessment")
-        # A catalog match is not proof of handwriting accuracy or complete coverage.
-        if medicine and not match.get("needs_confirmation") and match.get("confidence", 0) >= .85 and candidate["confidence"] >= .75:
-            payload = medicine.model_dump() if hasattr(medicine, "model_dump") else medicine
-            candidate["matched_medicine"] = payload
-            candidate["detected_generic"] = payload["generic_name"]
-            resolved.setdefault(payload["id"], []).append(candidate)
-    if resolved:
-        mrps = (await db.execute(select(MrpReference).where(MrpReference.medicine_id.in_(resolved))
-                                .order_by(MrpReference.effective_date.desc(), MrpReference.created_at.desc()))).scalars().all()
-        seen = set()
-        for row in mrps:
-            if row.medicine_id in seen:
-                continue
-            seen.add(row.medicine_id)
-            for candidate in resolved[row.medicine_id]:
-                candidate.update(notified_mrp=row.notified_mrp, pack_size=row.pack_size)
-        inventory = (await db.execute(select(StoreInventory).where(StoreInventory.medicine_id.in_(resolved)))).scalars().all()
-        for row in inventory:
-            for candidate in resolved[row.medicine_id]:
-                candidate["stock_quantity"] = row.stock_quantity
-
-
-async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg", *, force_refresh: bool = False,
-                             scan_mode: str = "auto", region: list[int] | None = None, db: Any = None) -> dict:
-    """Local CPU OCR only; preserve genuine text and separate catalog demos from ink."""
-    if scan_mode not in {"auto", "thorough", "fast"} or (region is not None and valid_box(region) is None):
-        raise ValueError("Invalid scan mode or crop region")
-    local = {"lines": [], "local_elapsed_ms": 0.0}
-    try:
-        local = await _run_local_stage(image_bytes, mime_type, region, force_refresh)
-    except Exception as exc:
-        logger.warning("Local OCR unavailable: error=%s", type(exc).__name__)
-    names: list[str] = []
-    medicines = []
-    if db is not None:
-        try:
-            from sqlalchemy import select
-            from app.db.database import Medicine
-            medicines = (await db.execute(select(Medicine))).scalars().all()
-            names = [name for med in medicines for name in (med.brand_name, med.generic_name, *(med.aliases or [])) if name]
-        except Exception as exc:
-            logger.warning("OCR catalog unavailable: error=%s", type(exc).__name__)
-            db = None
-    candidates = _parse_rx_lines_to_medicines(local["lines"], names)
-    if candidates:
-        result = _local_response(candidates, local)
-        if db is not None:
-            try:
-                await _resolve_local_candidates(candidates, db)
-            except Exception as exc:
-                logger.warning("OCR catalog enrichment unavailable: error=%s", type(exc).__name__)
-                result["warnings"].append("Catalog details could not be loaded. Review the transcribed medicines manually.")
-        return result
-    # Last resort only uses actual recognized text and exact database token overlap.
-    partial = _parse_rx_lines_to_medicines(local["lines"], names, tokens_only=True)
-    if partial:
-        return _local_response(partial, local)
-    from app.services.matching_service import medicine_to_schema
-    # These are optional UI examples, NEVER prescription candidates or suggestions.
-    demos = []
-    for brand, strength in (("panadol", "500mg"), ("augmentin", "625mg")):
-        med = next((m for m in medicines if m.brand_name.casefold().split(" ", 1)[0] == brand
-                    and m.strength.casefold().replace(" ", "") == strength
-                    and "tablet" in m.dosage_form.casefold()), None)
-        if med is not None:
-            demos.append(medicine_to_schema(med).model_dump())
-    return manual_review_response(local, demos)
-
-
-def manual_review_response(local: dict | None = None, demos: list[dict] | None = None) -> dict:
-    local = local or {"lines": [], "local_elapsed_ms": 0.0}
-    return {**_local_response([], local), "error": "OCR_SERVICE_BUSY", "fallback_available": True,
-            "message": "No medicine names could be confirmed locally. Review the recognized text, enter the written names manually, or send the image to a pharmacist.",
-            "engine": "concierge", "demo_catalog_items": demos or [], "models_used": []}
-
-
-def _local_response(candidates: list[dict], local: dict) -> dict:
-    return {"candidates": candidates, "raw_text": "\n".join(line["text"] for line in local.get("lines", [])),
-            "clinical_summary": None, "medicine_line_count": len(candidates),
-            "coverage_status": "review_required", "verification_performed": False, "review_required": True,
-            "warnings": ["Local OCR may miss handwritten lines. Compare every product, strength and form with the original image before confirming."],
-            "image_width": local.get("image_width"), "image_height": local.get("image_height"),
-            "models_used": ["PP-OCRv4"], "provider_attempts": 0, "engine": "rapidocr",
-            "local_elapsed_ms": local["local_elapsed_ms"], "fallback_available": False}
 
 # Persistent deterministic disk cache for extracted prescription results keyed by image SHA-256
 MAX_OCR_CACHE_ENTRIES = 500
@@ -376,7 +196,7 @@ def _scan_key(image_bytes: bytes, mime_type: str, scan_mode: str, region: list[i
     return hashlib.sha256(image_bytes + fingerprint).hexdigest()
 
 
-async def _extract_cloud_from_image(image_bytes: bytes, mime_type: str = "image/jpeg", *, force_refresh: bool = False,
+async def extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg", *, force_refresh: bool = False,
                              scan_mode: str = "auto", region: list[int] | None = None) -> dict:
     """Coalesce identical concurrent uploads; keep intentional fresh scans fresh."""
     if force_refresh:
@@ -469,16 +289,12 @@ async def _extract_from_image(image_bytes: bytes, mime_type: str = "image/jpeg",
                     if remaining <= 0:
                         raise asyncio.TimeoutError("OCR scan deadline reached before provider call")
                     attempts += 1
-                    provider_timeout = min(settings.ocr_request_timeout_seconds, remaining)
-                    if interactive:
-                        provider_timeout = min(provider_timeout, settings.ocr_auto_review_timeout_seconds if review else settings.ocr_auto_request_timeout_seconds)
+                    provider_timeout = min(OCR_REQUEST_TIMEOUT_SECONDS, remaining)
                     # Reserve processing time for every remaining eligible model,
                     # so one timeout cannot consume the entire fallback window.
                     remaining_models = sum(name not in blocked_models and available(name)
                                            for name in model_candidates[index:])
-                    if index > 0:
-                        provider_timeout = min(provider_timeout, settings.ocr_retry_timeout_seconds)
-                    provider_timeout = min(max(MIN_OCR_REQUEST_TIMEOUT_SECONDS, provider_timeout),
+                    provider_timeout = min(provider_timeout,
                                            remaining * .95 / max(1, remaining_models))
                     return await asyncio.wait_for(
                         generate_ocr_response(model_name,data,mime,prompt,timeout_seconds=provider_timeout),

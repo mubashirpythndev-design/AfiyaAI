@@ -1,77 +1,67 @@
-# Legacy cloud OCR recovery and pharmacist handoff
+# Gemini Vision OCR and pharmacist fallback
 
-The upload endpoint is now local-only as defined in [spec 16](16-local-primary-ocr.md).
-The following cloud contract is retained for private helper compatibility and
-regression tests, not automatic upload processing.
+## Active extraction chain
 
-## Contract
-
-The secondary cloud stage uses `OCR_MODEL_CHAIN` in this exact order. Local-only
-execution and its 10-second request budget are defined in [spec 16](16-local-primary-ocr.md).
+The prescription upload endpoint uses Gemini Vision directly, in this exact order:
 
 1. `gemini-3.5-flash-lite`
 2. `gemini-3.1-flash-lite`
 3. `gemini-3.8-flash`
 
-Legacy model configuration cannot reorder this chain. A failed model is not retried
-within the scan. Every provider exception advances to the next eligible model;
-quota cooldowns prevent repeated requests to a model known to be exhausted.
-Provider SDK retries are disabled. Cancellation, concurrency limits and the shared
-scan deadline remain active. Each attempt receives a share of the remaining time
-so a hung primary cannot consume the entire fallback budget. Optional coverage
-audits retain their smaller call budget and never block a successful reading just
-because a failed provider is unavailable.
+The model array is defined in `ocr_models.py` and cannot be reordered by legacy
+model environment overrides. Stable endpoint lifecycle information is available
+in [Google's official model documentation](https://ai.google.dev/gemini-api/docs/deprecations/).
+Account access, capacity and quota remain provider-dependent. No separate compute
+partition or quota pool is assumed.
 
-All three models use high-resolution media and the configured thinking level.
-The SDK processing timeout and initial extraction attempts have a 35-second
-minimum, including legacy short environment values. The normal interactive budget
-is 120 seconds; thorough mode defaults to 180 seconds. Three processing windows
-plus scheduling headroom are reserved before attempting the chain. Queue wait and
-optional coverage/detail passes still count toward the overall deadline, so a
-late audit can have less time remaining. The browser waits 150 seconds for normal
-scans and 210 seconds for thorough scans, allowing token/upload overhead.
+RapidOCR, its dependency, CPU worker, local parser and demo fallback items are
+removed. Image validation, EXIF handling, image enhancement and bounded crop
+preparation remain because Gemini receives prescription images. Unknown product
+names, unreadable entries, alternative readings and human-review flags remain
+visible; OCR does not establish verified clinical facts or prescribing advice.
 
-Google lists these stable endpoints in its
-[model lifecycle documentation](https://ai.google.dev/gemini-api/docs/deprecations/).
-Account access and quota remain provider-dependent; fallback does not guarantee
-separate capacity or quota pools. Legacy models and preview identifiers are absent
-from the OCR chain.
+## Timeout and failover
 
-If no eligible model succeeds, the internal cloud stage raises `OCRServiceBusy`.
-The local-first coordinator converts this into an HTTP 200 `OCRResponse` with
-`fallback_available: true` and `engine: "concierge"`. Legacy route error handling
-still recognizes `OCRServiceBusy` as HTTP 503 with `Retry-After: 60` and this JSON:
+The Gemini SDK HTTP transport is exactly **35,000 milliseconds**, and the service
+processing window is **35 seconds per model attempt**, bounded by the remaining
+scan deadline. Legacy 12-second fallback or 90-second primary settings cannot
+change this fixed transport deadline. SDK retries are disabled; the application
+catches each failure, logs only safe diagnostics, and advances to the next eligible
+model. Failed models are not probed again during that scan; quota cooldowns avoid
+repeated exhausted calls. Cancellation closes the async SDK client.
+
+Interactive scans retain a 120-second budget and thorough scans default to 180
+seconds, including queue wait. Optional coverage/detail readings retain their
+bounded call count; failed audits preserve a successful initial transcription
+with an explicit review warning. The browser waits 150 seconds for normal scans
+and 210 seconds for thorough scans so it does not abort before the fallback chain
+can finish. A 35-second per-attempt deadline is not a 35-second whole-chain promise.
+
+## Router and UI contract
+
+If all model attempts fail, or a final timeout/failure reaches the router, return
+HTTP 503, `Retry-After: 60` and this exact top-level JSON:
 
 ```json
 {"error":"OCR_SERVICE_BUSY","message":"AI OCR models are temporarily busy. Please use our instant Pharmacist Concierge flow.","fallback_available":true}
 ```
 
-## Buyer handoff
-
-The frontend recognizes the busy code and HTTP 503/429, retaining the selected
-original image. Its prominent fallback offers “Send Rx to Pharmacist (Zero Wait)”.
-The authenticated action uploads the original image through the existing private
-prescription-upload route, then calls the existing concierge endpoint. Success
-shows the `AWAITING_PHARMACIST_CART` order reference and links to My Orders.
-No OCR request is made by this action. Duplicate clicks are blocked and failed
-order submissions can reuse the uploaded reference. Pharmacist review still
-takes time; “zero wait” means bypassing AI, not immediate clinical approval.
-Existing demo sellers remain labeled as demos.
-
-The private upload limit and both marketplace image selectors accept 10 MB,
-matching the OCR upload limit, so a valid OCR image also fits the handoff.
+Invalid/corrupt/oversized image inputs still return HTTP 400 before extraction.
+The frontend parses the busy code and HTTP 503 without crashing, retains the
+original uploaded photo, and offers **Send Rx to Pharmacist (Zero Wait)**. This
+button uses the existing private upload and concierge APIs, creates an
+`AWAITING_PHARMACIST_CART` order and displays its reference/status. It never calls
+OCR again. Zero AI wait does not imply instantaneous pharmacist review.
 
 ## Verification
 
-Mocked provider tests verify literal order, success at every chain position,
-all-model exceptions, quota cooldowns, deadlines, cancellation, uncached failures,
-and the exact route response. Existing retry-policy tests now expect the ordered
-chain instead of repeated calls to the same failed model. Frontend executable
-tests verify typed error handling and original-image upload/order creation without
-another OCR call. Backend fixtures use SQLite and no external provider requests.
+Existing cloud parsing, cancellation, cache, matching and marketplace regressions
+remain covered. Obsolete local-engine/demo tests are replaced with tests for the
+restored Gemini entry point and fixed transport across all three models, including
+caller deadlines below and above 35 seconds. Route tests verify the exact busy
+payload for timeouts and general failures, and retain redaction checks. Frontend
+contracts verify the 503 handoff and one-time original-image submission.
 
-Run `python scripts/run_backend_tests_isolated.py` and
-`node scripts/build-web-isolated.cjs` to test without loading dotenv files.
-Run `node scripts/test-ocr-concierge.cjs` for the frontend handoff contracts.
-These checks do not validate model access, account quota or handwriting accuracy
-against a live provider. No database migration or model change is needed.
+Use `python scripts/run_backend_tests_isolated.py` and
+`node scripts/build-web-isolated.cjs` to verify without loading dotenv files.
+Mocked tests do not verify live Gemini quota, model access or handwriting accuracy.

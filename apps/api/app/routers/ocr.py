@@ -3,12 +3,12 @@ Author / Developer: Mubashir (Lead Developer)
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi.responses import JSONResponse
 
-from app.services.ocr_service import extract_from_image, manual_review_response
+from app.services.ocr_service import extract_from_image
 from app.services.safety_layer import evaluate_drap_status, evaluate_risk_tier
 from app.models.schemas import OCRResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.database import get_db
+from app.services.ocr_errors import OCRServiceBusy
 
 router = APIRouter(prefix="/api/ocr", tags=["OCR"])
 
@@ -23,7 +23,7 @@ MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.post("/extract", response_model=OCRResponse)
-async def extract_prescription(image: UploadFile = File(...), force_refresh: bool = Form(False), scan_mode: str = Form("auto"), region: str | None = Form(None), db: AsyncSession = Depends(get_db)):
+async def extract_prescription(image: UploadFile = File(...), force_refresh: bool = Form(False), scan_mode: str = Form("auto"), region: str | None = Form(None)):
     """Upload a prescription image and extract medicine candidates."""
     content_type = (image.content_type or "").lower().strip()
     filename = (image.filename or "").lower()
@@ -61,8 +61,7 @@ async def extract_prescription(image: UploadFile = File(...), force_refresh: boo
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Unreadable image or invalid crop. Upload a clear JPEG, PNG or WebP under 30 megapixels.") from exc
     try:
-        result = await extract_from_image(contents, effective_mime,force_refresh=force_refresh,scan_mode=scan_mode,region=crop,
-                                          db=db if isinstance(db, AsyncSession) else None)
+        result = await extract_from_image(contents, effective_mime,force_refresh=force_refresh,scan_mode=scan_mode,region=crop)
 
         # Enrich OCR candidates with safety layer assessments
         try:
@@ -97,5 +96,6 @@ async def extract_prescription(image: UploadFile = File(...), force_refresh: boo
         return OCRResponse(**result)
     except Exception as exc:
         import logging
-        logging.getLogger(__name__).warning("Local OCR needs manual review: error=%s", type(exc).__name__)
-        return OCRResponse(**manual_review_response())
+        logging.getLogger(__name__).warning("Gemini OCR unavailable: error=%s; pharmacist fallback available", type(exc).__name__)
+        failure = OCRServiceBusy()
+        return JSONResponse(status_code=503, content=failure.payload(), headers={"Retry-After": "60"})

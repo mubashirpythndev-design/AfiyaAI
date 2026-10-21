@@ -115,10 +115,6 @@ class MedicineCandidate(BaseModel):
     safety: Optional[SafetyAssessmentSchema] = None
     strength_assessment: Optional[StrengthAssessmentSchema] = None
     form_assessment: Optional[FormAssessmentSchema] = None
-    match_candidates: list[MedicineSchema] = Field(default_factory=list)
-    notified_mrp: Optional[Decimal] = None
-    stock_quantity: Optional[int] = None
-    pack_size: Optional[str] = None
 
 
 class OCRResponse(BaseModel):
@@ -135,12 +131,6 @@ class OCRResponse(BaseModel):
     image_height: Optional[int] = None
     models_used: list[str] = Field(default_factory=list)
     provider_attempts: int = 0
-    engine: str = "gemini"
-    local_elapsed_ms: Optional[float] = None
-    fallback_available: bool = False
-    error: Optional[str] = None
-    message: Optional[str] = None
-    demo_catalog_items: list[MedicineSchema] = Field(default_factory=list)
 
 
 class MatchRequest(BaseModel):

@@ -28,7 +28,7 @@ def isolated(monkeypatch,tmp_path):
 async def test_every_fallback_reachable_in_exact_order(monkeypatch,success_index):
     assert OCR_MODEL_CHAIN==CHAIN
     call=provider(monkeypatch,*[ServerError(503,{"error":{"message":"busy"}}) for _ in range(success_index)],response([row()]))
-    result=await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
+    result=await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert tuple(c.args[0] for c in call.call_args_list)==CHAIN[:success_index+1]
     assert result["provider_attempts"]==success_index+1
     assert result["candidates"] and result["review_required"]
@@ -42,14 +42,14 @@ async def test_all_failures_produce_safe_busy_exception(monkeypatch,kind,caplog)
         return cls(int(kind),{"error":{"message":"private patient secret-key"}})
     call=provider(monkeypatch,*[error() for _ in CHAIN])
     with pytest.raises(OCRServiceBusy) as failure:
-        await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
+        await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert tuple(c.args[0] for c in call.call_args_list)==CHAIN
     assert failure.value.payload()=={"error":"OCR_SERVICE_BUSY","message":"AI OCR models are temporarily busy. Please use our instant Pharmacist Concierge flow.","fallback_available":True}
     assert not service._RECENT_OCR_RESULTS and not service._PRESCRIPTION_OCR_CACHE
     assert "private patient" not in caplog.text and "secret-key" not in caplog.text
     if kind=="429":
         with pytest.raises(OCRServiceBusy):
-            await service._extract_cloud_from_image(image_bytes(),"image/png",force_refresh=True,scan_mode="fast")
+            await service.extract_from_image(image_bytes(),"image/png",force_refresh=True,scan_mode="fast")
         assert call.await_count==len(CHAIN)  # Exhausted models are skipped until cooldown expires.
 
 @pytest.mark.asyncio
@@ -59,21 +59,19 @@ async def test_all_model_timeouts_share_overall_deadline(monkeypatch):
     async def hang(*args,**kwargs):await asyncio.sleep(5)
     call=AsyncMock(side_effect=hang);monkeypatch.setattr(service,"generate_ocr_response",call)
     started=time.monotonic()
-    with pytest.raises(OCRServiceBusy):await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
+    with pytest.raises(OCRServiceBusy):await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert tuple(c.args[0] for c in call.call_args_list)==CHAIN
     assert time.monotonic()-started<1 and not ai_runtime.AI_SLOTS.locked()
 
 @pytest.mark.asyncio
-async def test_endpoint_returns_local_review_without_cloud_attempts(monkeypatch):
-    monkeypatch.setattr(service,"_read_local_lines",lambda *a: {"lines":[],"local_elapsed_ms":1})
+async def test_endpoint_returns_exact_top_level_503_payload(monkeypatch):
     from app.routers import ocr
     app=FastAPI();app.include_router(ocr.router)
     call=provider(monkeypatch,*[ServerError(503,{"error":{"message":"busy"}}) for _ in CHAIN])
     async with AsyncClient(transport=ASGITransport(app=app),base_url="http://test") as client:
         result=await client.post("/api/ocr/extract",files={"image":("rx.png",image_bytes(),"image/png")})
-    assert result.status_code==200 and result.json()["fallback_available"] is True
-    assert result.json()["error"]=="OCR_SERVICE_BUSY" and result.json()["engine"]=="concierge"
-    assert call.await_count==0 and "detail" not in result.json()
+    assert result.status_code==503 and result.json()==OCRServiceBusy().payload()
+    assert call.await_count==len(CHAIN) and "detail" not in result.json()
 
 @pytest.mark.asyncio
 async def test_legacy_short_limits_still_allow_35_seconds_for_every_model(monkeypatch):
@@ -91,6 +89,6 @@ async def test_legacy_short_limits_still_allow_35_seconds_for_every_model(monkey
     call = AsyncMock(side_effect=times_out)
     monkeypatch.setattr(service, "generate_ocr_response", call)
     with pytest.raises(OCRServiceBusy):
-        await service._extract_cloud_from_image(image_bytes(), "image/png", scan_mode="fast")
+        await service.extract_from_image(image_bytes(), "image/png", scan_mode="fast")
     assert tuple(c.args[0] for c in call.call_args_list) == CHAIN
     assert 105 <= clock[0] <= 120

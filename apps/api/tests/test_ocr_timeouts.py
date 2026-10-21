@@ -13,6 +13,7 @@ from test_ocr_review import image_bytes, response, row
 def isolated(tmp_path, monkeypatch):
     # Scale processing windows for controlled sub-second timing tests.
     monkeypatch.setattr(service,"MIN_OCR_REQUEST_TIMEOUT_SECONDS",0)
+    monkeypatch.setattr(service,"OCR_REQUEST_TIMEOUT_SECONDS",.12)
     monkeypatch.setattr(service.settings,"ocr_auto_verify_clear",True)
     monkeypatch.setattr(service,"_RECENT_OCR_RESULTS",{})
     monkeypatch.setattr(service.settings,"gemini_ocr_model","models/test-primary")
@@ -37,7 +38,7 @@ async def test_slow_ocr_has_own_timeout_and_no_sdk_retries(monkeypatch):
         return success()
     call=AsyncMock(side_effect=slow)
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
+    result=await service.extract_from_image(image_bytes(),"image/png")
     assert result["provider_attempts"]==2 and result["verification_performed"]
     assert call.await_count==2
 
@@ -50,7 +51,7 @@ async def test_queue_wait_does_not_use_provider_processing_deadline(monkeypatch)
         await asyncio.sleep(.04); return success()
     call=AsyncMock(side_effect=slow)
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    task=asyncio.create_task(service._extract_cloud_from_image(b"queue-test","image/jpeg",scan_mode="fast"))
+    task=asyncio.create_task(service.extract_from_image(b"queue-test","image/jpeg",scan_mode="fast"))
     await asyncio.sleep(.25); slots.release()
     result=await task
     assert result["provider_attempts"]==1 and call.await_count==1
@@ -64,7 +65,7 @@ async def test_deadline_failure_falls_back_with_configured_timeout(monkeypatch):
         names.append(name)
         return await (failed if name==service.OCR_MODEL_CHAIN[0] else fallback)(*args,**kwargs)
     monkeypatch.setattr(service,"generate_ocr_response",select)
-    result=await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
+    result=await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert result["provider_attempts"]==2 and fallback.await_count==1
     assert fallback.call_args.kwargs["timeout_seconds"] > 0
 
@@ -76,7 +77,7 @@ async def test_total_deadline_cancels_slow_call_and_releases_slot(monkeypatch):
     call.side_effect=hangs
     monkeypatch.setattr(service,"generate_ocr_response",call)
     with pytest.raises(OCRServiceBusy):
-        await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
+        await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert 1 <= call.await_count <= len(service.OCR_MODEL_CHAIN) and not ai_runtime.AI_SLOTS.locked()
     assert not service._PRESCRIPTION_OCR_CACHE
 
@@ -84,7 +85,7 @@ async def test_total_deadline_cancels_slow_call_and_releases_slot(monkeypatch):
 async def test_failed_coverage_keeps_primary_as_review_required(monkeypatch):
     call=AsyncMock(side_effect=[success(),DeadlineExceeded("slow"),DeadlineExceeded("slow"),DeadlineExceeded("slow")])
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
+    result=await service.extract_from_image(image_bytes(),"image/png")
     assert result["candidates"] and result["review_required"] and result["warnings"]
     assert not service._PRESCRIPTION_OCR_CACHE
 
@@ -106,5 +107,5 @@ async def test_api_timeout_returns_helpful_retry_response(monkeypatch):
     monkeypatch.setattr(ocr,"extract_from_image",fails)
     async with AsyncClient(transport=ASGITransport(app=app),base_url="http://test") as client:
         result=await client.post("/api/ocr/extract",files={"image":("test.png",image_bytes(),"image/png")})
-    assert result.status_code==200 and result.json()["fallback_available"]
-    assert "manual" in result.json()["message"] and "provider details" not in result.text
+    assert result.status_code==503 and result.headers["Retry-After"]=="60"
+    assert result.json()==OCRServiceBusy().payload() and "provider details" not in result.text

@@ -38,7 +38,7 @@ async def test_first_model_failure_recovers_on_fallback_and_audits(monkeypatch, 
     monkeypatch.setattr(service.logger, "disabled", False)
     caplog.set_level("WARNING", logger=service.logger.name)
     call = provider(monkeypatch, unavailable(), response([row()]), response([row()]))
-    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
+    result = await service.extract_from_image(image_bytes(), "image/png")
     assert call.await_count == 3 and result["verification_performed"]
     assert result["provider_attempts"] == 3
     assert "status=503" in caplog.text and "category=unavailable" in caplog.text
@@ -51,14 +51,14 @@ async def test_hard_errors_move_once_to_each_fallback(monkeypatch, code):
     error = ClientError(code, {"error": {"message": "limit: 0"}})
     call = provider(monkeypatch, *[error for _ in service.OCR_MODEL_CHAIN])
     with pytest.raises(OCRServiceBusy):
-        await service._extract_cloud_from_image(image_bytes(), "image/png")
+        await service.extract_from_image(image_bytes(), "image/png")
     assert tuple(args.args[0] for args in call.call_args_list) == service.OCR_MODEL_CHAIN
 
 
 @pytest.mark.asyncio
 async def test_audit_failure_preserves_primary_and_caps_all_calls(monkeypatch):
     call = provider(monkeypatch, response([row()]), *[unavailable() for _ in range(4)])
-    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
+    result = await service.extract_from_image(image_bytes(), "image/png")
     assert result["candidates"][0]["original_name"] == "Panadol"
     assert result["review_required"] and not result["verification_performed"]
     assert call.await_count == 4 and result["provider_attempts"] == 4
@@ -73,7 +73,7 @@ async def test_cancel_fallback_releases_slot_and_prevents_another_call(monkeypat
         started.set();await asyncio.sleep(10)
     call=AsyncMock(side_effect=read)
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    task=asyncio.create_task(service._extract_cloud_from_image(image_bytes(),"image/png"))
+    task=asyncio.create_task(service.extract_from_image(image_bytes(),"image/png"))
     await asyncio.wait_for(started.wait(),1)
     task.cancel()
     with pytest.raises(asyncio.CancelledError):await task
@@ -85,7 +85,7 @@ async def test_short_budget_stops_at_end_of_chain(monkeypatch):
     monkeypatch.setattr(service.settings, "ocr_total_timeout_seconds", .1)
     call = provider(monkeypatch, *[unavailable() for _ in service.OCR_MODEL_CHAIN])
     with pytest.raises(OCRServiceBusy):
-        await service._extract_cloud_from_image(image_bytes(), "image/png")
+        await service.extract_from_image(image_bytes(), "image/png")
     assert tuple(args.args[0] for args in call.call_args_list) == service.OCR_MODEL_CHAIN
 
 
@@ -98,8 +98,8 @@ async def test_route_returns_safe_specific_errors(monkeypatch, code, phrase):
     monkeypatch.setattr(ocr, "extract_from_image", AsyncMock(side_effect=error))
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         result = await client.post("/api/ocr/extract", files={"image": ("test.png",image_bytes(),"image/png")})
-    assert result.status_code == 200
-    assert result.json()["fallback_available"] and result.json()["candidates"]==[]
+    assert result.status_code == 503
+    assert result.json() == OCRServiceBusy().payload()
     assert "secret-key" not in result.text and "private patient" not in result.text
 
 

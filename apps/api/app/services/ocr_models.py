@@ -6,4 +6,5 @@ OCR_MODEL_CHAIN = (
 )
 
 # Keep the SDK and service deadlines aligned, including legacy environment values.
-MIN_OCR_REQUEST_TIMEOUT_SECONDS = 35.0
+OCR_REQUEST_TIMEOUT_SECONDS = 35.0
+MIN_OCR_REQUEST_TIMEOUT_SECONDS = OCR_REQUEST_TIMEOUT_SECONDS

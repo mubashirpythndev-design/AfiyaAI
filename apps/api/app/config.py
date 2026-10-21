@@ -12,11 +12,11 @@ INSECURE_DEV_JWT_SECRET = "dev-insecure-change-me"
 
 class Settings(BaseSettings):
     ai_timeout_seconds: float = 28.0
-    ocr_request_timeout_seconds: float = Field(default=90.0, gt=0, le=180)
+    ocr_request_timeout_seconds: float = Field(default=35.0, gt=0, le=180)
     ocr_total_timeout_seconds: float = Field(default=180.0, gt=0, le=600)
     # Reserve enough time for all three production models before concierge handoff.
     ocr_auto_timeout_seconds: float = Field(default=120.0, gt=0, le=180)
-    ocr_auto_request_timeout_seconds: float = Field(default=40.0, gt=0, le=90)
+    ocr_auto_request_timeout_seconds: float = Field(default=35.0, gt=0, le=90)
     ocr_auto_review_timeout_seconds: float = Field(default=35.0, gt=0, le=60)
     ocr_retry_timeout_seconds: float = Field(default=35.0, gt=0, le=60)
     ocr_auto_verify_clear: bool = False

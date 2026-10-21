@@ -86,10 +86,6 @@ export interface MedicineCandidate {
   original_name?: string | null;
   correction_suggestion?: string | null;
   match_confidence?: number | null;
-  match_candidates?: MedicineDetail[];
-  notified_mrp?: number | string | null;
-  stock_quantity?: number | null;
-  pack_size?: string | null;
   line_id?: string | null;
   bbox?: number[] | null;
   unreadable?: boolean;
@@ -195,12 +191,6 @@ export interface ChatResponse {
 }
 
 export interface OCRResponse {
-  demo_catalog_items?: MedicineDetail[];
-  engine?: "rapidocr" | "gemini" | "concierge";
-  local_elapsed_ms?: number | null;
-  fallback_available?: boolean;
-  error?: string | null;
-  message?: string | null;
   candidates: MedicineCandidate[];
   raw_text: string;
   clinical_summary?: string | null;

@@ -4,7 +4,7 @@ from google import genai
 from google.genai import types
 import httpx
 from app.config import settings
-from app.services.ocr_models import MIN_OCR_REQUEST_TIMEOUT_SECONDS
+from app.services.ocr_models import OCR_REQUEST_TIMEOUT_SECONDS
 
 
 def ocr_generation_config(model_name: str = "") -> types.GenerateContentConfig:
@@ -20,7 +20,7 @@ def ocr_generation_config(model_name: str = "") -> types.GenerateContentConfig:
 
 async def generate_ocr_response(model_name: str, image: bytes, mime: str, prompt: str,
                                 *, timeout_seconds: float) -> types.GenerateContentResponse:
-    options = types.HttpOptions(timeout=int(max(MIN_OCR_REQUEST_TIMEOUT_SECONDS, timeout_seconds) * 1000),
+    options = types.HttpOptions(timeout=int(OCR_REQUEST_TIMEOUT_SECONDS * 1000),
                                 retry_options=types.HttpRetryOptions(attempts=1))
     # The service owns retries, deadlines and concurrency; no hidden SDK retry loop.
     async with genai.Client(api_key=settings.gemini_api_key, http_options=options).aio as client:
