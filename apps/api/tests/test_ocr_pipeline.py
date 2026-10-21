@@ -18,7 +18,7 @@ from app.services.pharmaceutical_corrector import (
     expand_dosage_instructions,
 )
 from app.models.schemas import MedicineCandidate, OCRResponse
-from app.services.ocr_service import extract_from_image
+from app.services.ocr_service import _extract_cloud_from_image as extract_from_image
 
 
 def test_image_preprocessor_valid_image():

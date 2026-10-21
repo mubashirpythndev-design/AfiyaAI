@@ -249,7 +249,11 @@ export async function extractFromImage(file: File, options: { forceRefresh?: boo
     method: "POST", headers: auth, body: formData, signal: options.signal,
   }, options.scanMode === "thorough" ? 210000 : 150000);
   if (res.status === 401) handleUnauthorized();
-  return responseData<OCRResponse>(res);
+  const result = await responseData<OCRResponse>(res);
+  if (result.fallback_available && result.error === "OCR_SERVICE_BUSY") {
+    throw new ApiError(result.message ?? "Please send your prescription to the pharmacist.",res.status,result.error,true);
+  }
+  return result;
 }
 
 // Medicine matching

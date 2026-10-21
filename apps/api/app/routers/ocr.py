@@ -9,6 +9,8 @@ from app.services.ocr_service import extract_from_image
 from app.services.safety_layer import evaluate_drap_status, evaluate_risk_tier
 from app.models.schemas import OCRResponse
 from app.services.ocr_errors import classify_ocr_error, OCRServiceBusy
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.database import get_db
 
 router = APIRouter(prefix="/api/ocr", tags=["OCR"])
 
@@ -23,7 +25,7 @@ MAX_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 @router.post("/extract", response_model=OCRResponse)
-async def extract_prescription(image: UploadFile = File(...), force_refresh: bool = Form(False), scan_mode: str = Form("auto"), region: str | None = Form(None)):
+async def extract_prescription(image: UploadFile = File(...), force_refresh: bool = Form(False), scan_mode: str = Form("auto"), region: str | None = Form(None), db: AsyncSession = Depends(get_db)):
     """Upload a prescription image and extract medicine candidates."""
     content_type = (image.content_type or "").lower().strip()
     filename = (image.filename or "").lower()
@@ -61,7 +63,8 @@ async def extract_prescription(image: UploadFile = File(...), force_refresh: boo
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Unreadable image or invalid crop. Upload a clear JPEG, PNG or WebP under 30 megapixels.") from exc
     try:
-        result = await extract_from_image(contents, effective_mime,force_refresh=force_refresh,scan_mode=scan_mode,region=crop)
+        result = await extract_from_image(contents, effective_mime,force_refresh=force_refresh,scan_mode=scan_mode,region=crop,
+                                          db=db if isinstance(db, AsyncSession) else None)
 
         # Enrich OCR candidates with safety layer assessments
         try:

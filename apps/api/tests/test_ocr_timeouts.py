@@ -37,7 +37,7 @@ async def test_slow_ocr_has_own_timeout_and_no_sdk_retries(monkeypatch):
         return success()
     call=AsyncMock(side_effect=slow)
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["provider_attempts"]==2 and result["verification_performed"]
     assert call.await_count==2
 
@@ -50,7 +50,7 @@ async def test_queue_wait_does_not_use_provider_processing_deadline(monkeypatch)
         await asyncio.sleep(.04); return success()
     call=AsyncMock(side_effect=slow)
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    task=asyncio.create_task(service.extract_from_image(b"queue-test","image/jpeg",scan_mode="fast"))
+    task=asyncio.create_task(service._extract_cloud_from_image(b"queue-test","image/jpeg",scan_mode="fast"))
     await asyncio.sleep(.25); slots.release()
     result=await task
     assert result["provider_attempts"]==1 and call.await_count==1
@@ -64,7 +64,7 @@ async def test_deadline_failure_falls_back_with_configured_timeout(monkeypatch):
         names.append(name)
         return await (failed if name==service.OCR_MODEL_CHAIN[0] else fallback)(*args,**kwargs)
     monkeypatch.setattr(service,"generate_ocr_response",select)
-    result=await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert result["provider_attempts"]==2 and fallback.await_count==1
     assert fallback.call_args.kwargs["timeout_seconds"] > 0
 
@@ -76,7 +76,7 @@ async def test_total_deadline_cancels_slow_call_and_releases_slot(monkeypatch):
     call.side_effect=hangs
     monkeypatch.setattr(service,"generate_ocr_response",call)
     with pytest.raises(OCRServiceBusy):
-        await service.extract_from_image(image_bytes(),"image/png",scan_mode="fast")
+        await service._extract_cloud_from_image(image_bytes(),"image/png",scan_mode="fast")
     assert 1 <= call.await_count <= len(service.OCR_MODEL_CHAIN) and not ai_runtime.AI_SLOTS.locked()
     assert not service._PRESCRIPTION_OCR_CACHE
 
@@ -84,7 +84,7 @@ async def test_total_deadline_cancels_slow_call_and_releases_slot(monkeypatch):
 async def test_failed_coverage_keeps_primary_as_review_required(monkeypatch):
     call=AsyncMock(side_effect=[success(),DeadlineExceeded("slow"),DeadlineExceeded("slow"),DeadlineExceeded("slow")])
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["candidates"] and result["review_required"] and result["warnings"]
     assert not service._PRESCRIPTION_OCR_CACHE
 

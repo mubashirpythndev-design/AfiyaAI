@@ -92,10 +92,10 @@ def test_preprocessing_preserves_detail_without_fake_upscale():
 async def test_clear_scan_cached_and_fresh_scan_bypasses(monkeypatch):
     payload=response([row()]); call=provider(monkeypatch,payload,payload,payload,payload)
     data=image_bytes()
-    first=await service.extract_from_image(data,"image/png")
-    second=await service.extract_from_image(data,"image/png")
+    first=await service._extract_cloud_from_image(data,"image/png")
+    second=await service._extract_cloud_from_image(data,"image/png")
     assert first==second and call.call_count==2
-    fresh=await service.extract_from_image(data,"image/png",force_refresh=True)
+    fresh=await service._extract_cloud_from_image(data,"image/png",force_refresh=True)
     assert call.call_count==4 and fresh["verification_performed"]
     assert fresh["clinical_summary"]=="original summary"
 
@@ -104,7 +104,7 @@ async def test_missing_margin_line_recovered_and_summary_preserved(monkeypatch):
     first=response([row(box=[100,100,200,500])],count=2,complete=False)
     audit=response([row(box=[100,100,200,500]),row("Brufen",box=[850,700,950,990])],summary="must not replace")
     call=provider(monkeypatch,first,audit)
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert len(result["candidates"])==2 and call.call_count==2
     assert result["clinical_summary"]=="original summary" and result["review_required"]
     assert not service._PRESCRIPTION_OCR_CACHE
@@ -113,7 +113,7 @@ async def test_missing_margin_line_recovered_and_summary_preserved(monkeypatch):
 async def test_malformed_primary_uses_fallback(monkeypatch):
     call=AsyncMock(side_effect=[SimpleNamespace(text="{",candidates=[]),SimpleNamespace(text=json.dumps(response([row()])),candidates=[]),SimpleNamespace(text=json.dumps(response([row()])),candidates=[])])
     monkeypatch.setattr(service,"generate_ocr_response",call)
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["provider_attempts"]==3 and len(result["candidates"])==1
 
 @pytest.mark.asyncio
@@ -122,7 +122,7 @@ async def test_partial_results_not_cached_and_call_budget_bounded(monkeypatch):
     call=provider(monkeypatch,*([partial]*8))
     data=image_bytes()
     for _ in range(2):
-        result=await service.extract_from_image(data,"image/png")
+        result=await service._extract_cloud_from_image(data,"image/png")
         assert result["provider_attempts"]<=4 and result["review_required"] and result["candidates"][0]["unreadable"]
     assert call.call_count>4 and not service._PRESCRIPTION_OCR_CACHE
 
@@ -131,14 +131,14 @@ async def test_detail_crop_coordinates_mapped_back(monkeypatch):
     partial=response([row("",0,[100,100,200,500])],complete=False)
     recovered=response([row("Panadol",box=[0,0,1000,1000])])
     provider(monkeypatch,partial,partial,recovered)
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["candidates"][0]["bbox"]==[100,100,200,500]
     assert not result["candidates"][0]["unreadable"] and result["review_required"]
 
 @pytest.mark.asyncio
 async def test_failed_audit_retains_primary(monkeypatch):
     provider(monkeypatch,response([row(confidence=.4)]),RuntimeError("failed"),RuntimeError("failed"),RuntimeError("failed"))
-    result=await service.extract_from_image(image_bytes(),"image/png")
+    result=await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["candidates"][0]["confidence"]==.4 and result["review_required"] and result["warnings"]
 
 def test_truncated_output_rejected():
@@ -195,7 +195,7 @@ async def test_independent_audit_gets_original_pixels_without_first_names(monkey
     payload = response([row("UnlistedSentinelName", box=[100,100,200,500])])
     call = provider(monkeypatch, payload, payload)
     data = image_bytes()
-    result = await service.extract_from_image(data, "image/png")
+    result = await service._extract_cloud_from_image(data, "image/png")
     assert call.call_count == 2 and result["verification_performed"]
     audit_args = call.call_args_list[1].args
     assert "UnlistedSentinelName" not in audit_args[3]
@@ -215,7 +215,7 @@ async def test_complete_scan_name_conflict_triggers_crop_and_prefers_corroborate
                  "bbox":[250,350,320,650]}
     crop_row = {**audit_row, "bbox":[0,0,1000,1000]}
     call = provider(monkeypatch, response([first_row]), response([audit_row]), response([crop_row]))
-    result = await service.extract_from_image(image_bytes(), "image/png")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
     assert call.call_count == 3
     candidate = result["candidates"][0]
     assert candidate["raw_text"] == "Oilum Bar"
@@ -245,7 +245,7 @@ async def test_raw_line_form_conflict_gets_detail_check_even_when_count_complete
     item = {"name":"Oilum", "form":"Tablet", "raw_line":"Oilum Bar", "confidence":.95,
             "bbox":[100,100,200,500]}
     call = provider(monkeypatch, *([response([item])] * 4))
-    result = await service.extract_from_image(image_bytes(), "image/png")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
     assert 3 <= call.call_count <= 4
     assert result["candidates"][0]["detected_form"] == "Bar"
     assert result["candidates"][0]["form_conflict"] and result["review_required"]
@@ -256,7 +256,7 @@ async def test_raw_line_form_conflict_gets_detail_check_even_when_count_complete
 async def test_fallback_use_is_visible_and_not_cached_as_quality_primary(monkeypatch):
     payload = response([row()])
     call = provider(monkeypatch, RuntimeError("429 quota"), RuntimeError("429 quota"), payload, payload)
-    result = await service.extract_from_image(image_bytes(), "image/png")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
     assert call.call_count == 4
     assert result["models_used"] == [service.OCR_MODEL_CHAIN[2]]
     assert result["review_required"] and not service._PRESCRIPTION_OCR_CACHE
@@ -269,29 +269,29 @@ async def test_changing_ocr_thinking_settings_invalidates_cache(monkeypatch):
     call = provider(monkeypatch, payload, payload, payload, payload)
     data = image_bytes()
     monkeypatch.setattr(service.settings,"ocr_thinking_level","medium")
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     monkeypatch.setattr(service.settings,"ocr_thinking_level","high")
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     assert call.call_count == 4
 
 @pytest.mark.asyncio
 async def test_cache_ttl_and_prompt_version_invalidation(monkeypatch):
     payload=response([row()]); call=provider(monkeypatch,*([payload]*8)); data=image_bytes()
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     for entry in service._PRESCRIPTION_OCR_CACHE.values(): entry["cached_at"]-=90000
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     assert call.call_count==4
     monkeypatch.setattr(service,"OCR_CACHE_VERSION","test-new-version")
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     assert call.call_count==6
 
 @pytest.mark.asyncio
 async def test_quota_cooldown_prevents_repeat_failed_model(monkeypatch):
     payload=response([row()]); call=provider(monkeypatch,RuntimeError("429 quota"),payload,payload,payload,payload)
-    await service.extract_from_image(image_bytes(),"image/png")
+    await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert ai_runtime.COOLDOWNS
     first=call.call_count
-    await service.extract_from_image(image_bytes(),"image/png",force_refresh=True)
+    await service._extract_cloud_from_image(image_bytes(),"image/png",force_refresh=True)
     assert call.call_count-first==2
 
 @pytest.mark.asyncio
@@ -314,6 +314,8 @@ async def test_route_passes_fresh_region_and_serializes_review_fields(monkeypatc
     from app.routers import ocr
     app=FastAPI(); app.include_router(ocr.router)
     async def scan(data,mime,**kwargs):
+        from sqlalchemy.ext.asyncio import AsyncSession
+        assert isinstance(kwargs.pop("db"), AsyncSession)
         assert kwargs=={"force_refresh":True,"scan_mode":"thorough","region":[100,100,500,500]}
         return {**parse_ocr_response(json.dumps(response([row("",0)]))),"raw_text":"Unreadable","review_required":True,"verification_performed":True,"warnings":["Check original"],"provider_attempts":2}
     monkeypatch.setattr(ocr,"extract_from_image",scan)

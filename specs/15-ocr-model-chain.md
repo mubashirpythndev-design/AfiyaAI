@@ -2,7 +2,8 @@
 
 ## Contract
 
-Image extraction uses `OCR_MODEL_CHAIN` in this exact order:
+The secondary cloud stage uses `OCR_MODEL_CHAIN` in this exact order. Local-first
+execution and its 1.5-second request budget are defined in [spec 16](16-local-primary-ocr.md).
 
 1. `gemini-3.5-flash-lite`
 2. `gemini-3.1-flash-lite`
@@ -32,8 +33,10 @@ Account access and quota remain provider-dependent; fallback does not guarantee
 separate capacity or quota pools. Legacy models and preview identifiers are absent
 from the OCR chain.
 
-If no eligible model succeeds, the service raises `OCRServiceBusy`. The OCR route
-returns HTTP 503 with `Retry-After: 60` and this top-level JSON:
+If no eligible model succeeds, the internal cloud stage raises `OCRServiceBusy`.
+The local-first coordinator converts this into an HTTP 200 `OCRResponse` with
+`fallback_available: true` and `engine: "concierge"`. Legacy route error handling
+still recognizes `OCRServiceBusy` as HTTP 503 with `Retry-After: 60` and this JSON:
 
 ```json
 {"error":"OCR_SERVICE_BUSY","message":"AI OCR models are temporarily busy. Please use our instant Pharmacist Concierge flow.","fallback_available":true}

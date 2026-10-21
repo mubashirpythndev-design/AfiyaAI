@@ -28,7 +28,7 @@ def isolated(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_clear_auto_uses_one_call_but_still_requires_human_review(monkeypatch):
     call = provider(monkeypatch, response([row()]))
-    result = await service.extract_from_image(image_bytes(), "image/png")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
     assert call.await_count == 1 and not result["verification_performed"]
     assert result["review_required"] and result["coverage_status"] == "review_required"
     assert not result["candidates"][0]["is_verified"]
@@ -40,10 +40,10 @@ async def test_clear_auto_uses_one_call_but_still_requires_human_review(monkeypa
 async def test_uncertain_auto_and_thorough_still_get_blind_coverage(monkeypatch):
     payload = response([row(confidence=.85)])
     call = provider(monkeypatch, *([payload] * 6))
-    result = await service.extract_from_image(image_bytes(), "image/png")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png")
     assert result["verification_performed"] and call.await_count >= 2
     assert call.call_args_list[1].kwargs["timeout_seconds"] <= 35
-    result = await service.extract_from_image(image_bytes(), "image/png", scan_mode="thorough")
+    result = await service._extract_cloud_from_image(image_bytes(), "image/png", scan_mode="thorough")
     assert result["verification_performed"]
 
 
@@ -51,15 +51,15 @@ async def test_uncertain_auto_and_thorough_still_get_blind_coverage(monkeypatch)
 async def test_review_cache_reuses_only_identical_inputs_and_preserves_flags(monkeypatch):
     payload = response([row()]); call = provider(monkeypatch, payload, payload, payload, payload)
     data = image_bytes()
-    first = await service.extract_from_image(data,"image/png")
+    first = await service._extract_cloud_from_image(data,"image/png")
     first["candidates"][0]["is_verified"] = True
-    again = await service.extract_from_image(data,"image/png")
+    again = await service._extract_cloud_from_image(data,"image/png")
     assert call.await_count == 1 and again["review_required"]
     assert not again["candidates"][0]["is_verified"]
     for entry in service._RECENT_OCR_RESULTS.values(): entry["cached_at"] -= 301
-    await service.extract_from_image(data,"image/png")
+    await service._extract_cloud_from_image(data,"image/png")
     assert call.await_count == 2
-    await service.extract_from_image(data,"image/png",force_refresh=True)
+    await service._extract_cloud_from_image(data,"image/png",force_refresh=True)
     assert call.await_count == 4
 
 
@@ -71,9 +71,9 @@ async def test_duplicate_concurrent_uploads_share_calls_but_not_mutable_results(
         return SimpleNamespace(text=json.dumps(response([row()])),candidates=[])
     call = AsyncMock(side_effect=read); monkeypatch.setattr(service,"generate_ocr_response",call)
     data = image_bytes()
-    a = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    a = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await started.wait()
-    b = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    b = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await asyncio.sleep(.01); release.set()
     first,second = await asyncio.gather(a,b)
     assert call.await_count == 1 and not service._IN_FLIGHT
@@ -89,9 +89,9 @@ async def test_one_cancelled_waiter_does_not_cancel_other_upload(monkeypatch):
         return SimpleNamespace(text=json.dumps(response([row()])),candidates=[])
     call = AsyncMock(side_effect=read); monkeypatch.setattr(service,"generate_ocr_response",call)
     data = image_bytes()
-    a = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    a = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await started.wait()
-    b = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    b = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await asyncio.sleep(.01); a.cancel()
     with pytest.raises(asyncio.CancelledError): await a
     release.set(); result = await b
@@ -103,7 +103,7 @@ async def test_one_cancelled_waiter_does_not_cancel_other_upload(monkeypatch):
 async def test_overload_fallback_has_document_processing_headroom_and_no_cached_failure(monkeypatch):
     error = ServerError(503,{"error":{"message":"busy"}})
     call = provider(monkeypatch,*[error for _ in service.OCR_MODEL_CHAIN])
-    with pytest.raises(OCRServiceBusy): await service.extract_from_image(image_bytes(),"image/png")
+    with pytest.raises(OCRServiceBusy): await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert call.await_count == len(service.OCR_MODEL_CHAIN)
     assert call.call_args_list[0].kwargs["timeout_seconds"] <= 40
     assert call.call_args_list[1].kwargs["timeout_seconds"] <= 35
@@ -117,7 +117,7 @@ async def test_interactive_overall_budget_cancels_slow_provider(monkeypatch):
     async def slow(*args,**kwargs): await asyncio.sleep(10)
     call = AsyncMock(side_effect=slow); monkeypatch.setattr(service,"generate_ocr_response",call)
     start = time.monotonic()
-    with pytest.raises(OCRServiceBusy): await service.extract_from_image(image_bytes(),"image/png")
+    with pytest.raises(OCRServiceBusy): await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert time.monotonic() - start < 2 and 1 <= call.await_count <= len(service.OCR_MODEL_CHAIN)
     assert not ai_runtime.AI_SLOTS.locked() and not service._IN_FLIGHT
 
@@ -129,7 +129,7 @@ async def test_timeout_does_not_start_a_duplicate_remote_job(monkeypatch):
     async def slow(*args,**kwargs): await asyncio.sleep(10)
     call = AsyncMock(side_effect=slow); monkeypatch.setattr(service,"generate_ocr_response",call)
     start = time.monotonic()
-    with pytest.raises(OCRServiceBusy): await service.extract_from_image(image_bytes(),"image/png")
+    with pytest.raises(OCRServiceBusy): await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert call.await_count <= len(service.OCR_MODEL_CHAIN) and time.monotonic() - start < 2
     assert len({args.args[0] for args in call.call_args_list}) == call.await_count
     assert not ai_runtime.AI_SLOTS.locked() and not service._IN_FLIGHT
@@ -140,7 +140,7 @@ async def test_timed_out_model_is_not_reused_for_audit(monkeypatch):
     monkeypatch.setattr(service.settings,"gemini_ocr_fallback_models","models/test-backup")
     monkeypatch.setattr(service.settings,"ocr_auto_verify_clear",True)
     call = provider(monkeypatch,asyncio.TimeoutError(),response([row()]),response([row()]))
-    result = await service.extract_from_image(image_bytes(),"image/png")
+    result = await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert result["verification_performed"] and result["review_required"]
     assert [args.args[0] for args in call.call_args_list] == [service.OCR_MODEL_CHAIN[0],service.OCR_MODEL_CHAIN[1],service.OCR_MODEL_CHAIN[1]]
 
@@ -151,7 +151,7 @@ async def test_unavailable_primary_is_not_reprobed_after_fallback_succeeds(monke
     monkeypatch.setattr(service.settings,"ocr_auto_verify_clear",True)
     error = ServerError(503,{"error":{"message":"high demand"}})
     call = provider(monkeypatch,error,response([row()]),response([row()]))
-    result = await service.extract_from_image(image_bytes(),"image/png")
+    result = await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert call.await_count == result["provider_attempts"] == 3
     assert [args.args[0] for args in call.call_args_list] == [service.OCR_MODEL_CHAIN[0],service.OCR_MODEL_CHAIN[1],service.OCR_MODEL_CHAIN[1]]
     assert result["models_used"] == [service.OCR_MODEL_CHAIN[1]]
@@ -162,7 +162,7 @@ async def test_unavailable_primary_is_not_reprobed_after_fallback_succeeds(monke
 @pytest.mark.asyncio
 async def test_zero_product_first_reading_gets_coverage_check(monkeypatch):
     call = provider(monkeypatch,response([]),response([row()]))
-    result = await service.extract_from_image(image_bytes(),"image/png")
+    result = await service._extract_cloud_from_image(image_bytes(),"image/png")
     assert call.await_count == 2 and result["verification_performed"]
     assert len(result["candidates"]) == 1 and result["review_required"]
 
@@ -182,9 +182,9 @@ async def test_immediate_reupload_does_not_join_cancelled_extraction(monkeypatch
         return SimpleNamespace(text=json.dumps(response([row()])),candidates=[])
     monkeypatch.setattr(service,"generate_ocr_response",read)
     data = image_bytes()
-    old = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    old = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await started.wait(); old.cancel(); await cleaning.wait()
-    new = asyncio.create_task(service.extract_from_image(data,"image/png"))
+    new = asyncio.create_task(service._extract_cloud_from_image(data,"image/png"))
     await asyncio.sleep(.01); release.set()
     with pytest.raises(asyncio.CancelledError): await old
     result = await new

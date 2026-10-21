@@ -30,6 +30,10 @@ test('a non-JSON proxy 503 is still recognized as an OCR fallback condition',asy
   const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{fetch:async()=>new Response('Unavailable',{status:503})});
   await assert.rejects(api.extractFromImage(new File(['image'],'rx.png')),error=>api.isOCRServiceBusy(error)&&error.status===503);
 });
+test('a successful HTTP response can request manual pharmacist review without a 503',async()=>{
+  const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{fetch:async()=>Response.json({candidates:[],raw_text:'',engine:'concierge',error:'OCR_SERVICE_BUSY',fallback_available:true,message:'Please send this image for manual review.'})});
+  await assert.rejects(api.extractFromImage(new File(['image'],'rx.png')),error=>api.isOCRServiceBusy(error)&&error.status===200&&error.fallbackAvailable);
+});
 test('browser OCR deadlines leave room for the complete server fallback chain',async()=>{
   const deadlines=[];
   const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{
