@@ -140,3 +140,12 @@ test-results/
 *.temp
 *.orig
 *.rej
+
+
+# ---------- Internal documentation & agent handoffs ----------
+/CODEX.md
+/codex.md
+/MASTER_DOCUMENTATION.md
+/master documentation.md
+/PROJECT_OVERVIEW.md
+/project_overview.md
