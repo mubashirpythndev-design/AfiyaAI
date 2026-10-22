@@ -16,6 +16,7 @@ def source_to_schema(s: Source, collected_at: str = None) -> SourceSchema:
         name=s.name,
         url=s.url,
         source_type=s.source_type,
+        verification_status=s.verification_status or "needs_source_verification",
         collected_at=collected_at,
     )
 
@@ -41,6 +42,19 @@ async def get_price_comparison(medicine_id: str, db: AsyncSession) -> PriceCompa
     if not price_records:
         return None
 
+    # Only compare current records of the same currency and pack size.
+    price_records.sort(key=lambda p: p.collected_at or p.created_at, reverse=True)
+    chosen_pack = price_records[0].package_size
+    seen = set()
+    current = []
+    for record in price_records:
+        key = (record.source_id, record.package_size, record.currency)
+        if key not in seen and record.package_size == chosen_pack and record.currency == "PKR":
+            seen.add(key)
+            current.append(record)
+    price_records = current
+    if not price_records:
+        return None
     prices = []
     for p in price_records:
         prices.append(PriceEntry(

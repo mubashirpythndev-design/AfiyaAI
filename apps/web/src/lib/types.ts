@@ -194,6 +194,16 @@ export interface OCRResponse {
   candidates: MedicineCandidate[];
   raw_text: string;
   clinical_summary?: string | null;
+  global_safety_notes?: string[] | null;
+  medicine_line_count?: number | null;
+  coverage_status?: string;
+  verification_performed?: boolean;
+  review_required?: boolean;
+  warnings?: string[];
+  image_width?: number | null;
+  image_height?: number | null;
+  models_used?: string[];
+  provider_attempts?: number;
 }
 
 export interface MatchResponse {
@@ -226,6 +236,7 @@ export type PriceCheckStatus =
 /** Verbatim API response - every value is rendered as returned by the
  *  backend; the client never computes or formats a price/status itself. */
 export interface PriceCheckResponse {
+  statutory_verified: boolean;
   status: PriceCheckStatus | null;
   medicine_id: string | null;
   matched_name: string | null;
@@ -269,17 +280,43 @@ export interface CabinetAddRequest {
   medicine_id: string;
 }
 
+export interface CabinetQuantityOption {
+  unit: "tablet" | "capsule" | "dose" | "unit" | "strip" | "pack";
+  units_per_quantity: number;
+}
+
+export interface CabinetPriceOption {
+  pack_price_paisa: number;
+  units_per_pack: number;
+}
+
+export interface CabinetPricing {
+  current: CabinetPriceOption;
+  alternatives: CabinetPriceOption[];
+  comparison_available: boolean;
+  currency: string;
+}
+
 export interface CabinetItem {
   id: string;
   medicine_id: string;
   medicine: MedicineDetail;
   notified_mrp?: number | null;
+  dosage_instruction?: string | null;
+  reminder_times?: string[] | null;
+  monthly_units?: number | null;
+  monthly_quantity?: number | null;
+  monthly_quantity_unit?: CabinetQuantityOption["unit"] | null;
+  package_size?: string | null;
+  quantity_options?: CabinetQuantityOption[];
+  pricing?: CabinetPricing | null;
   created_at?: string | null;
 }
 
 export interface CabinetResponse {
   total_items: number;
   items: CabinetItem[];
+  budget: { monthly_cost: number | null; monthly_savings: number | null; annual_savings: number | null; missing_medicine_ids: string[]; price_basis: string };
 }
 
 // ---- Feedback & Healthcare Needs Survey ----

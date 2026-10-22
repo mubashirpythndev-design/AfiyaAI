@@ -1,8 +1,10 @@
 "use client";
 
+import AppIcon from "@/components/shared/AppIcon";
 import { useState, useRef } from "react";
 import type { Language } from "@/lib/types";
 import { useSpeechRecognition } from "@/lib/useSpeechRecognition";
+import { applyVoiceGuardrail } from "@/lib/voiceGuardrail";
 
 interface VoiceButtonProps {
   language: Language;
@@ -35,7 +37,7 @@ export default function VoiceButton({
   };
 
   const dispatchFinalTranscript = (text: string) => {
-    const trimmed = text.trim();
+    const trimmed = applyVoiceGuardrail(text).trim();
     if (!trimmed) return;
     const now = Date.now();
     // Prevent duplicate triggers within 1500ms for identical text
@@ -60,7 +62,7 @@ export default function VoiceButton({
       if (isFinal) {
         dispatchFinalTranscript(currentTranscript);
       } else {
-        onInterimTranscript?.(currentTranscript);
+        onInterimTranscript?.(applyVoiceGuardrail(currentTranscript));
       }
     },
     onEnd: (finalTranscript) => {
@@ -133,7 +135,7 @@ export default function VoiceButton({
   // Floating status tag when active
   const statusBadge = isTranscribing ? (
     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-fade-in">
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-600 to-orange-600 text-white text-[11px] font-medium shadow-lg shadow-amber-500/30 whitespace-nowrap border border-amber-400/40">
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-white text-[11px] font-medium shadow-sm whitespace-nowrap border border-amber-400/40">
         <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -142,14 +144,14 @@ export default function VoiceButton({
           {language === "ur"
             ? "AI سمجھ رہا ہے..."
             : language === "roman_ur"
-            ? "AI samajh raha hai..."
-            : "AI Transcribing..."}
+            ? "Awaaz likhi ja rahi hai..."
+            : "Transcribing..."}
         </span>
       </div>
     </div>
   ) : isListening ? (
     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-fade-in">
-      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-rose-600 to-red-600 text-white text-[11px] font-medium shadow-lg shadow-red-500/30 whitespace-nowrap border border-rose-400/40">
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-danger text-white text-[11px] font-medium shadow-sm whitespace-nowrap border border-rose-400/40">
         <span className="w-2 h-2 rounded-full bg-white animate-ping" />
         <span>
           {language === "ur"
@@ -164,10 +166,10 @@ export default function VoiceButton({
 
   if (variant === "pill") {
     const pillClasses = isTranscribing
-      ? "bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] ring-2 ring-amber-500/20"
+      ? "bg-surface    text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-sm ring-2 ring-amber-500/20"
       : isListening
-      ? "bg-gradient-to-r from-rose-600 to-red-600 text-white border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.45)] ring-2 ring-red-500/30"
-      : "bg-surface/80 hover:bg-surface text-foreground/80 hover:text-primary border-border hover:border-primary/50 shadow-sm hover:shadow-md hover:shadow-primary/10";
+      ? "bg-danger text-white border-danger shadow-sm ring-2 ring-red-500/30"
+      : "bg-surface/80 hover:bg-surface text-foreground/80 hover:text-primary border-border hover:border-primary/50 shadow-sm hover:shadow-md ";
 
     return (
       <div className="relative inline-flex items-center">
@@ -180,12 +182,10 @@ export default function VoiceButton({
           title={defaultTitle}
           aria-label={defaultTitle}
           className={`relative group flex items-center gap-2 px-3.5 py-1.5 rounded-full font-medium text-xs border transition-all duration-300 backdrop-blur-sm ${pillClasses} ${
-            isTranscribing ? "cursor-wait opacity-90" : "cursor-pointer active:scale-95"
+            isTranscribing ? "cursor-wait opacity-90" : "cursor-pointer "
           } ${className}`}
         >
-          {isListening && !isTranscribing && (
-            <span className="absolute -inset-1 rounded-full bg-rose-500/30 animate-ping opacity-60 pointer-events-none" />
-          )}
+
 
           {isTranscribing ? (
             <svg className="animate-spin h-3.5 w-3.5 text-amber-500" fill="none" viewBox="0 0 24 24">
@@ -241,7 +241,7 @@ export default function VoiceButton({
 
         {toastMessage && (
           <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap bg-foreground text-background text-[11px] font-medium px-3 py-1.5 rounded-lg shadow-xl animate-fade-in border border-border">
-            ⚠️ {toastMessage}
+            <AppIcon symbol="⚠️" /> {toastMessage}
           </div>
         )}
       </div>
@@ -250,10 +250,10 @@ export default function VoiceButton({
 
   // Icon variant styling
   const iconActiveClasses = isTranscribing
-    ? "bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white shadow-[0_0_20px_rgba(245,158,11,0.45)] border-amber-300 scale-105"
+    ? "bg-primary text-white shadow-sm border-primary"
     : isListening
-    ? "bg-gradient-to-tr from-rose-600 via-red-500 to-pink-600 text-white shadow-[0_0_25px_rgba(244,63,94,0.55)] border-rose-300 scale-105"
-    : "bg-surface/80 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-accent/10 text-muted hover:text-primary border-border hover:border-primary/50 shadow-sm hover:shadow-[0_0_15px_rgba(13,148,136,0.2)]";
+    ? "bg-danger text-white shadow-sm border-danger"
+    : "bg-surface/80 bg-surface    text-muted hover:text-primary border-border hover:border-primary/50 shadow-sm hover:shadow-sm";
 
   return (
     <div className="relative inline-flex items-center">
@@ -266,18 +266,13 @@ export default function VoiceButton({
         title={defaultTitle}
         aria-label={defaultTitle}
         className={`relative group flex items-center justify-center rounded-xl border backdrop-blur-sm transition-all duration-300 ${sizeClasses} ${iconActiveClasses} ${
-          isTranscribing ? "cursor-wait opacity-90" : "cursor-pointer active:scale-95"
+          isTranscribing ? "cursor-wait opacity-90" : "cursor-pointer "
         } ${className}`}
       >
-        {isListening && !isTranscribing && (
-          <>
-            <span className="absolute -inset-1.5 rounded-2xl bg-rose-500/30 animate-ping opacity-60 pointer-events-none" />
-            <span className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 blur-sm opacity-50 pointer-events-none" />
-          </>
-        )}
+
 
         {isTranscribing ? (
-          <svg className="animate-spin h-4 w-4 text-white pointer-events-none" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-4 w-4 text-current pointer-events-none" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
@@ -309,7 +304,7 @@ export default function VoiceButton({
 
       {toastMessage && (
         <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 whitespace-nowrap bg-foreground text-background text-[11px] font-medium px-3 py-1.5 rounded-lg shadow-xl animate-fade-in border border-border">
-          ⚠️ {toastMessage}
+          <AppIcon symbol="⚠️" /> {toastMessage}
         </div>
       )}
     </div>

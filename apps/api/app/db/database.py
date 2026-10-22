@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
-    Column, String, Text, DateTime, Date, Numeric, Boolean, Integer, ForeignKey, Index, text, JSON, CheckConstraint
+    Column, String, Text, DateTime, Date, Numeric, Boolean, Integer, ForeignKey, Index, text, JSON, UniqueConstraint, CheckConstraint, LargeBinary
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -23,6 +23,20 @@ is_sqlite = "sqlite" in settings.database_url
 
 class Base(DeclarativeBase):
     pass
+
+
+class PrescriptionAttachment(Base):
+    __tablename__ = "prescription_attachments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    media_type = Column(String(30), nullable=False)
+    size_bytes = Column(Integer, nullable=False)
+    content = Column(LargeBinary, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    __table_args__ = (
+        CheckConstraint("size_bytes > 0 AND size_bytes <= 10485760", name="ck_attachment_size"),
+    )
 
 
 class Medicine(Base):
@@ -42,6 +56,7 @@ class Medicine(Base):
     category = Column(String(100))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     verified_at = Column(DateTime(timezone=True))
+    source_verification_status = Column(String(100), nullable=False, default="needs_source_verification", server_default="needs_source_verification")
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     prices = relationship("MedicinePrice", back_populates="medicine")
@@ -53,6 +68,7 @@ class Source(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
+    verification_status = Column(String(100), nullable=False, default="needs_source_verification", server_default="needs_source_verification")
     url = Column(Text)
     source_type = Column(String(50), nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
@@ -96,6 +112,7 @@ class Embedding(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     chunk_id = Column(String(36), ForeignKey("knowledge_chunks.id", ondelete="CASCADE"), nullable=False)
+    content_hash = Column(String(64), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     chunk = relationship("KnowledgeChunk", back_populates="embedding_record")
@@ -214,10 +231,16 @@ class UserCabinet(Base):
     Joined with `drap_alerts` for automated recall watchdog alerts.
     """
     __tablename__ = "user_cabinet"
+    __table_args__ = (UniqueConstraint("user_id", "medicine_id", name="uq_user_medicine"),)
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     medicine_id = Column(String(36), ForeignKey("medicines.id", ondelete="CASCADE"), nullable=False, index=True)
+    dosage_instruction = Column(String(255), nullable=True)
+    reminder_times = Column(JSON, default=list, nullable=True)
+    monthly_units = Column(Integer, nullable=True)
+    monthly_quantity = Column(Integer, nullable=True)
+    monthly_quantity_unit = Column(String(16), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     medicine = relationship("Medicine")
@@ -330,6 +353,16 @@ async def init_db():
     """Create all tables. Called on app startup."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if is_sqlite:
+            # Ensure newly added columns exist in existing SQLite databases
+            try:
+                await conn.execute(text("ALTER TABLE user_cabinet ADD COLUMN dosage_instruction VARCHAR(255)"))
+            except Exception:
+                pass
+            try:
+                await conn.execute(text("ALTER TABLE user_cabinet ADD COLUMN reminder_times JSON"))
+            except Exception:
+                pass
 
 
 async def get_db() -> AsyncSession:

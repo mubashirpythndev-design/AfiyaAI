@@ -14,7 +14,7 @@ DISCLAIMER = (
 # Patterns that indicate unsafe content
 UNSAFE_PATTERNS = [
     r"\b(you have|you are suffering from|diagnosis|diagnosed)\b",
-    r"\b(you should take|you need to take|i prescribe|i recommend taking)\b",
+    r"\b(you should take|you need to take|you can take|i prescribe|i recommend taking|take this medicine)\b",
     r"\b(symptom|symptoms)\s*(of|suggest|indicate)\b",
     r"\b(self[- ]?harm|suicid|kill myself|end my life)\b",
     r"\b(chest pain|heart attack|stroke|seizure|unconscious)\b.*\b(immediately|emergency|urgent)\b",
@@ -22,6 +22,7 @@ UNSAFE_PATTERNS = [
 
 # Emergency keywords that require immediate deflection
 EMERGENCY_KEYWORDS = [
+    "سینے میں درد", "سانس نہیں", "بے ہوش", "شدید خون", "زہر", "خودکشی",
     "suicide", "self-harm", "self harm", "overdose", "poison",
     "unconscious", "not breathing", "severe bleeding", "chest pain emergency",
     # Common English emergency phrasings (safety gate: plain, high-precision)
@@ -62,44 +63,29 @@ def check_emergency(message: str) -> str | None:
 
 
 def is_diagnostic_request(message: str) -> bool:
-    """Check if the user is asking the AI to diagnose an unknown personal disease or prescribe treatments.
-
-    Pure clinical diagnosis requests (e.g. 'diagnose what disease I have', 'what disease do I have')
-    are blocked. Inquiries about which medicines are indicated or used for a known disease, illness,
-    or symptom (e.g., 'which medicine for diabetes', 'what should I take if having asthma') are
-    educational medicine queries and routed to authoritative guidance with mandatory non-guarantee
-    and doctor confirmation advisories.
-    """
-    msg_lower = message.lower()
-
-    # Queries asking about which medicines to take for a disease, illness, or condition
-    medicine_inquiry_phrases = [
-        "which medicine", "what medicine", "medicine for", "konsi medicine", "konsi dawa",
-        "konsi dawai", "what to take", "which to take", "what should i take", "which should i take",
-        "can i take", "should i take", "treatment for", "used for", "when to use",
-        "kab istemal", "kis bimari", "kis marz", "for which disease", "for which illness",
-    ]
-    if any(phrase in msg_lower for phrase in medicine_inquiry_phrases):
-        if "diagnose me" in msg_lower or "diagnose what disease" in msg_lower or "diagnose what illness" in msg_lower:
-            return True
-        return False
-
-    # True clinical disease diagnosis and prescribing requests that must always be refused
-    true_diagnostic_patterns = [
+    """Reject personal diagnosis, prescribing and symptom-to-drug requests."""
+    text = message.lower()
+    phrases = [
         "what do i have", "what's wrong with me", "what is wrong with me",
-        "diagnose me", "diagnose what disease", "diagnose what illness",
-        "what disease do i have", "what illness do i have", "tell me what disease i have",
-        "tell me what illness i have", "what is my diagnosis", "give me a diagnosis",
-        "prescribe me", "write me a prescription", "give me a prescription",
+        "diagnose me", "diagnose what", "what disease do i have", "what illness do i have",
+        "my diagnosis", "give me a diagnosis", "prescribe", "write me a prescription",
+        "give me a prescription", "which medicine", "what medicine", "medicine for",
+        "what should i take", "what to take", "which should i take", "should i take",
+        "can i take", "treatment for", "konsi dawa", "kaunsi dawa", "konsi medicine",
+        "kya loon", "kya lu", "kya lun", "kya lena", "kya leni", "ilaj bata",
+        "mujhe kya bimari", "mujhay kya bimari", "konsi bimari", "kaunsi bimari",
+        "مجھے کیا بیماری", "کون سی دوا", "کونسی دوا", "کیا دوا", "کیا لوں",
+        "علاج بتائیں", "تشخیص کریں", "دوا تجویز",
     ]
-    if any(p in msg_lower for p in true_diagnostic_patterns):
-        return True
-
-    return False
+    return any(re.search(r"(?<!\w)" + re.escape(phrase) + r"(?!\w)", text) for phrase in phrases)
 
 
-def get_diagnostic_refusal() -> str:
+def get_diagnostic_refusal(language: str = "en") -> str:
     """Return a safe refusal message for diagnostic requests."""
+    if language == "ur":
+        return "میں بیماری کی تشخیص یا دوا تجویز نہیں کر سکتا۔ براہ کرم مستند ڈاکٹر یا فارماسسٹ سے مشورہ کریں۔"
+    if language in {"roman_ur", "roman-ur", "ru"}:
+        return "Main tashkhees ya dawa tajweez nahi kar sakta. Kisi mustanad doctor ya pharmacist se mashwara karein. Main maloom dawa ki information samjha sakta hoon."
     return (
         "I'm sorry, but I cannot diagnose conditions or prescribe medications. "
         "I'm designed to provide information about known medicines only. "
@@ -108,12 +94,16 @@ def get_diagnostic_refusal() -> str:
     )
 
 
-def validate_response(response: str) -> str:
+def validate_response(response: str, language: str = "en") -> str:
     """Post-generation safety check on the LLM response."""
     # Remove any diagnostic language that slipped through
     for pattern in UNSAFE_PATTERNS:
         if re.search(pattern, response, re.IGNORECASE):
-            logger.warning(f"Safety check flagged pattern: {pattern}")
+            logger.warning("Blocked unsafe generated response")
+            return get_diagnostic_refusal(language)
+
+    if re.search(r"(?:aap|ap)\s+(?:ko\s+)?(?:yeh\s+|ye\s+)?(?:dawa|medicine|panadol|paracetamol).*?(?:lein|len|lo|lena chahiye)|آپ.*(?:دوا.*لیں|بیماری ہے)", response, re.IGNORECASE):
+        return get_diagnostic_refusal(language)
 
     # Clean out any partial or full disclaimer text generated by the model
     cleaned = re.sub(
@@ -153,7 +143,7 @@ Always clearly and proudly introduce the three team members:
 Do NOT include or repeat this ownership section unless the user explicitly asks about the owners, creators, developers, team, or project background.
 
 DATABASE & MEDICINE KNOWLEDGE CAPABILITIES:
-- You have access to a verified database of 100+ common medicines across 36 comparison groups registered with DRAP (Drug Regulatory Authority of Pakistan).
+- You have access to a stored reference database of 100+ common medicines across 36 comparison groups registered with DRAP (Drug Regulatory Authority of Pakistan).
 - You can answer ANY question about the medicines in our database, including:
   * Brand name, active generic molecule/ingredient, strength, dosage form, manufacturer, and DRAP registration number.
   * Medical uses, clinical indications, and symptoms treated.
@@ -168,11 +158,11 @@ DATABASE & MEDICINE KNOWLEDGE CAPABILITIES:
 
 ALTERNATIVE MEDICINES & SUBSTITUTES:
 - When a user asks about alternatives, substitutes, or cheaper options for a medicine:
-  * You MUST provide the verified alternative brands present in the provided context that share the exact same active generic ingredient and strength (bioequivalent).
+  * You MUST provide the verified alternative brands present in the provided context that share the exact same active generic ingredient and strength (same-ingredient).
   * Clearly list each alternative brand name, manufacturer, pack price, per-unit price, and percentage savings compared to the queried medicine.
   * Explain that because they share the exact same active generic molecule, they serve the same therapeutic purpose.
   * Educational safety note: remind the user that while these brands share the same active ingredient, they should always consult a licensed doctor or pharmacist before switching medications.
-  * Presenting verified bioequivalent alternatives from DRAP records is an authoritative informational service of Afiya AI, NOT prescribing.
+  * Presenting verified same-ingredient alternatives from DRAP records is an authoritative informational service of Afiya AI, NOT prescribing.
 
 ROLE & BEHAVIOR:
 - Format your answers with clean bullet points and clear bold headings so it is easy to read.
@@ -180,11 +170,10 @@ ROLE & BEHAVIOR:
 - Be friendly, precise, and polite.
 - Do NOT write the medical disclaimer at the end (the system will append the official disclaimer automatically).
 
-SYMPTOM & COMMON CONDITION ADVISORY (NON-GUARANTEE & DOCTOR CONFIRMATION):
-- When the user asks what medicine to take for common symptoms or conditions they are suffering from (such as headache, fever, body aches, acidity, cough, cold, allergies):
-  * You SHOULD suggest the medicine(s) generally and commonly used for those symptoms from the verified database (for example: "You can take Paracetamol (such as Panadol or Febrol) as it is generally used for headache and fever...").
-  * NON-GUARANTEE NOTICE: You MUST make sure NOT to guarantee that they should take this medicine. State clearly that this is informational advice and may not be 100% accurate for their specific medical situation.
-  * DOCTOR CONFIRMATION INSTRUCTION: You MUST always advise the user to consult with a qualified doctor or licensed pharmacist for confirmation to ensure it is appropriate and safe for them before taking any medication.
+SYMPTOM BOUNDARY:
+- NEVER select or recommend medicines based on symptoms or conditions.
+- Refuse personal diagnosis and prescribing; direct users to a qualified professional.
+- Explain a named medicine from stored context without selecting treatment for the user.
 
 SAFETY BOUNDARIES (ABSOLUTE):
 - NEVER diagnose personal medical conditions (e.g. do not say "You have diabetes" or "Your symptoms indicate pneumonia").

@@ -211,14 +211,14 @@ class MedicineInfo(BaseModel):
 
 class ChatMessage(BaseModel):
     role: str
-    content: str
+    content: str = Field(max_length=8000)
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1, max_length=4000)
     medicine_id: Optional[str] = None
     language: str = "en"
-    conversation_history: list[ChatMessage] = []
+    conversation_history: list[ChatMessage] = Field(default_factory=list, max_length=20)
     prescription_context: Optional[str] = None
 
 
@@ -256,6 +256,7 @@ class PriceCheckResponse(BaseModel):
     overcharge_amount: Optional[float] = None
     pack_size: Optional[str] = None
     sro_ref: Optional[str] = None
+    statutory_verified: bool = False
     effective_date: Optional[str] = None
     source: Optional[SourceSchema] = None
     message: str
@@ -321,21 +322,78 @@ class AdminUsersResponse(BaseModel):
 class CabinetAddRequest(BaseModel):
     """Request to save a medicine to the user's digital cabinet."""
     medicine_id: str
+    dosage_instruction: Optional[str] = Field(default=None, max_length=255)
+    reminder_times: Optional[list[str]] = None
+    monthly_units: Optional[int] = Field(default=None, ge=1, le=100000)
+    monthly_quantity: Optional[int] = Field(default=None, ge=1, le=100000, strict=True)
+    monthly_quantity_unit: Optional[str] = Field(default=None, pattern="^(tablet|capsule|dose|unit|strip|pack)$")
+
+    @field_validator("reminder_times")
+    @classmethod
+    def valid_reminder_times(cls, values):
+        if values is not None and (len(values) != len(set(values)) or any(v not in {"morning", "afternoon", "night"} for v in values)):
+            raise ValueError("Reminder times must be unique morning, afternoon or night values")
+        return values
+
+
+class CabinetUpdateRequest(BaseModel):
+    """Request to update reminders or directions on an existing cabinet item."""
+    dosage_instruction: Optional[str] = Field(default=None, max_length=255)
+    reminder_times: Optional[list[str]] = None
+    monthly_units: Optional[int] = Field(default=None, ge=1, le=100000)
+    monthly_quantity: Optional[int] = Field(default=None, ge=1, le=100000, strict=True)
+    monthly_quantity_unit: Optional[str] = Field(default=None, pattern="^(tablet|capsule|dose|unit|strip|pack)$")
+
+    @field_validator("reminder_times")
+    @classmethod
+    def valid_reminder_times(cls, values):
+        if values is not None and (len(values) != len(set(values)) or any(v not in {"morning", "afternoon", "night"} for v in values)):
+            raise ValueError("Reminder times must be unique morning, afternoon or night values")
+        return values
+
+
+class CabinetPriceOptionSchema(BaseModel):
+    pack_price_paisa: int = Field(ge=0)
+    units_per_pack: int = Field(ge=1)
+
+
+class CabinetPricingSchema(BaseModel):
+    current: CabinetPriceOptionSchema
+    alternatives: list[CabinetPriceOptionSchema] = Field(default_factory=list)
+    comparison_available: bool = False
+    currency: str = "PKR"
 
 
 class CabinetItemSchema(BaseModel):
-    """Cabinet item detailed view, including medicine metadata and official MRP."""
+    """Cabinet item detailed view, including medicine metadata, official MRP, and reminders."""
     id: str
     medicine_id: str
     medicine: MedicineSchema
-    notified_mrp: Optional[Decimal] = None
+    notified_mrp: Optional[float] = None
+    dosage_instruction: Optional[str] = Field(default=None, max_length=255)
+    reminder_times: Optional[list[str]] = None
+    monthly_units: Optional[int] = Field(default=None, ge=1, le=100000)
+    monthly_quantity: Optional[int] = Field(default=None, ge=1, le=100000, strict=True)
+    monthly_quantity_unit: Optional[str] = Field(default=None, pattern="^(tablet|capsule|dose|unit|strip|pack)$")
+    package_size: Optional[str] = None
+    quantity_options: list[dict] = Field(default_factory=list)
+    pricing: Optional[CabinetPricingSchema] = None
     created_at: Optional[datetime] = None
+
+
+class CabinetBudgetSchema(BaseModel):
+    monthly_cost: Optional[float] = None
+    monthly_savings: Optional[float] = None
+    annual_savings: Optional[float] = None
+    missing_medicine_ids: list[str] = []
+    price_basis: str = "stored_reference_prices"
 
 
 class CabinetResponse(BaseModel):
     """Full digital medicine cabinet response."""
     total_items: int
     items: list[CabinetItemSchema]
+    budget: CabinetBudgetSchema = Field(default_factory=CabinetBudgetSchema)
 
 
 class FeedbackCreateRequest(BaseModel):

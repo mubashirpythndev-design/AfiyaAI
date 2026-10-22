@@ -117,6 +117,13 @@ def merge_candidates(existing: list[dict], additions: list[dict], *, corroborate
         elif result[same].get("unreadable") and not candidate.get("unreadable"):
             candidate["line_id"] = result[same].get("line_id")
             result[same] = candidate
+        elif candidate.get("unreadable") and not result[same].get("unreadable"):
+            # A failed independent reading is evidence of uncertainty, even when
+            # the initial model claimed high confidence. Keep its transcription
+            # visible and trigger a detail crop instead of silently ignoring this.
+            result[same]["needs_confirmation"] = True
+            if not result[same].get("alternative_reading"):
+                result[same]["alternative_reading"] = candidate.get("raw_text")
         elif not candidate.get("unreadable") and not result[same].get("unreadable") and _reading_key(candidate) != _reading_key(result[same]):
             # Disagreement is visible rather than silently choosing a new medicine.
             old = result[same]

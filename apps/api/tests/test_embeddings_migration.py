@@ -75,7 +75,7 @@ def test_migration_0004_noop_on_sqlite(tmp_path):
         )
 
     # --- Upgrade to head (0001..0004): SQLite NO-OP for 0004 ---
-    run_alembic(db_file, "upgrade", "head")
+    run_alembic(db_file, "upgrade", "0004")
     assert _embedding_columns(engine) == EMBEDDING_COLUMNS, (
         "0004 must be a NO-OP on SQLite — no vector column may appear"
     )
@@ -102,7 +102,7 @@ def test_migration_0004_noop_on_sqlite(tmp_path):
     assert chunk.content == "Canary facts."
 
     # --- Re-upgrade: idempotent, still a NO-OP on SQLite ---
-    run_alembic(db_file, "upgrade", "head")
+    run_alembic(db_file, "upgrade", "0004")
     assert _embedding_columns(engine) == EMBEDDING_COLUMNS
 
     engine.dispose()

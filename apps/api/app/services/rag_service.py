@@ -4,6 +4,7 @@ Falls back to direct knowledge chunk retrieval when pgvector is unavailable (SQL
 """
 
 import logging
+import asyncio
 from typing import Optional
 import google.generativeai as genai
 from sqlalchemy import text, select
@@ -19,12 +20,13 @@ logger = logging.getLogger(__name__)
 async def generate_embedding(query: str) -> list[float]:
     """Generate embedding for a query using Gemini."""
     genai.configure(api_key=settings.gemini_api_key)
-    result = genai.embed_content(
+    result = await asyncio.wait_for(asyncio.to_thread(genai.embed_content,
         model=settings.gemini_embedding_model,
         content=query,
         task_type="retrieval_query",
         output_dimensionality=settings.embedding_dimensions,
-    )
+        request_options={"timeout": settings.ai_timeout_seconds},
+    ), timeout=settings.ai_timeout_seconds + 1)
     return result["embedding"]
 
 
@@ -43,7 +45,7 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
         result = await db.execute(
             text("""
                 SELECT kc.id, kc.content, kc.chunk_type,
-                       s.name as source_name, s.url as source_url, s.source_type,
+                       s.name as source_name, s.url as source_url, s.source_type, s.verification_status,
                        1 - (e.embedding <=> CAST(:query_embedding AS vector)) as similarity
                 FROM embeddings e
                 JOIN knowledge_chunks kc ON e.chunk_id = kc.id
@@ -77,6 +79,7 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
                     "name": row.source_name,
                     "url": row.source_url,
                     "source_type": row.source_type,
+                    "verification_status": row.verification_status,
                 },
             })
 
@@ -106,6 +109,7 @@ async def retrieve_context(medicine_id: str, query: str, db: AsyncSession) -> di
 
     except Exception as e:
         logger.warning(f"pgvector retrieval failed: {e}. Falling back to direct database retrieval...")
+        await db.rollback()
         return await _retrieve_context_sqlite(medicine_id, db)
 
 
@@ -139,6 +143,7 @@ async def _retrieve_context_sqlite(medicine_id: str, db: AsyncSession) -> dict:
                     "name": chunk.source.name,
                     "url": chunk.source.url,
                     "source_type": chunk.source.source_type,
+                    "verification_status": chunk.source.verification_status,
                 },
             })
             if chunk.source.name not in seen_sources:

@@ -1,5 +1,6 @@
 "use client";
 
+import AppIcon from "@/components/shared/AppIcon";
 import { useState, useRef, useEffect } from "react";
 import type { ChatMessage as ChatMsg, Language, Source, MedicineDetail } from "@/lib/types";
 import { sendMessage } from "@/lib/api";
@@ -235,26 +236,24 @@ export default function ChatInterface({
   return (
     <div className="flex flex-col h-[500px] sm:h-[560px] bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
       {/* Header Bar */}
-      <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-border bg-gradient-to-r from-surface via-primary/[0.04] to-accent/[0.04] flex items-center justify-between">
+      <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-border bg-surface flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20 shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-md  shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-xs sm:text-sm font-bold text-foreground">
-                {t(language, "chat.headerTitle")}
+                {language === "ur" ? "ادویات کے متعلق سوالات" : language === "roman_ur" ? "Dawa se mutaliq sawal" : "Medicine questions"}
               </h3>
-              <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
-                DRAP Grounded
-              </span>
+
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+
               <p className="text-[10px] sm:text-[11px] text-muted font-medium">
-                {t(language, "chat.headerStatus")}
+                {language === "ur" ? "AI کی مدد سے معلومات • طبی مشورہ نہیں" : language === "roman_ur" ? "AI ki madad se maloomat • Medical advice nahi" : "AI-assisted information • Not medical advice"}
               </p>
             </div>
           </div>
@@ -278,18 +277,18 @@ export default function ChatInterface({
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center px-4 sm:px-8 py-6">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10 flex items-center justify-center mb-3 shadow-inner">
-              <span className="text-2xl">{prescriptionContext ? "📋" : "🩺"}</span>
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+              <span className="text-2xl"><AppIcon symbol={prescriptionContext ? "📋" : "🩺"} /></span>
             </div>
             <p className="text-sm sm:text-base font-bold text-foreground mb-1">
               {prescriptionContext
-                ? (language === "ur" ? "نسخے کے متعلق رہنمائی" : language === "roman_ur" ? "Prescription AI Assistant" : "Prescription Assistant Ready")
+                ? (language === "ur" ? "نسخے کے متعلق رہنمائی" : language === "roman_ur" ? "Prescription ke sawal" : "Prescription questions")
                 : t(language, "chat.emptyTitle")}
             </p>
             <p className="text-xs text-muted max-w-sm mb-5 leading-relaxed">
               {prescriptionContext
                 ? (language === "ur" ? "دوائیوں کے اوقات، کھانے سے پہلے یا بعد، احتیاطی تدابیر، یا سستے متبادل کے بارے میں پوچھیں۔" : language === "roman_ur" ? "Dawaiyon ke auqaat, khane se pehle ya baad, ehtiyat, ya saste generic alternatives ke bare mein poochein." : "Ask about dosages, meal timings (before/after food), precautions, or cheaper generic alternatives.")
-                : t(language, "chat.emptySubtitle")}
+                : (language === "ur" ? "دستیاب ذرائع کا جائزہ لیں اور طبی فیصلوں کے لیے اپنے ڈاکٹر سے رجوع کریں۔" : language === "roman_ur" ? "Dastiyab sources check karein. Medical faislon ke liye doctor se mashwara karein." : "Review the available sources and consult your healthcare professional for medical decisions.")}
             </p>
 
             {/* Starter Suggestion Chips */}
@@ -298,9 +297,9 @@ export default function ChatInterface({
                 <button
                   key={q}
                   onClick={() => handleSend(q)}
-                  className="text-xs bg-background hover:bg-primary/10 border border-border hover:border-primary/40 text-foreground/80 hover:text-primary font-medium rounded-xl px-3 py-1.5 transition-all shadow-sm hover:scale-[1.02] text-left"
+                  className="text-xs bg-background hover:bg-primary/10 border border-border hover:border-primary/40 text-foreground/80 hover:text-primary font-medium rounded-xl px-3 py-1.5 transition-all shadow-sm  text-left"
                 >
-                  💬 {q}
+                  <AppIcon symbol="💬" /> {q}
                 </button>
               ))}
             </div>
@@ -317,10 +316,10 @@ export default function ChatInterface({
               {msg.role === "assistant" && (
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] text-white font-bold">
+                    <span className="w-4 h-4 rounded-md bg-primary flex items-center justify-center text-[10px] text-white font-bold">
                       A
                     </span>
-                    <span className="text-[11px] font-bold text-foreground/80">Afiya AI Assistant</span>
+                    <span className="text-[11px] font-bold text-foreground/80">Afiya</span>
                   </div>
 
                   {/* Actions: Copy & TTS */}
@@ -332,7 +331,7 @@ export default function ChatInterface({
                       className="p-1 rounded hover:bg-surface-hover text-muted hover:text-primary transition-colors text-xs"
                       title={speakingId === msg.id ? "Stop voice" : "Listen to answer"}
                     >
-                      {speakingId === msg.id ? "⏹️" : "🔊"}
+                      <AppIcon symbol={speakingId === msg.id ? "⏹️" : "🔊"} />
                     </button>
                     <button
                       type="button"
@@ -351,13 +350,13 @@ export default function ChatInterface({
               <div
                 className={`rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                   msg.role === "user"
-                    ? "bg-gradient-to-br from-primary to-primary-dark text-white rounded-br-sm shadow-md shadow-primary/15 font-medium"
+                    ? "bg-primary text-white rounded-br-sm shadow-md  font-medium"
                     : "bg-background text-foreground border border-border/80 rounded-bl-sm shadow-sm"
                 }`}
               >
                 {msg.content}
                 {isStreaming && msg.role === "assistant" && (
-                  <span className="inline-block w-2 h-4 bg-primary ml-1.5 animate-pulse align-middle rounded-sm shadow-sm shadow-primary/50" />
+                  <span className="inline-block w-2 h-4 bg-primary ml-1.5 animate-pulse align-middle rounded-sm shadow-sm " />
                 )}
               </div>
 
@@ -367,7 +366,7 @@ export default function ChatInterface({
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-base">💊</span>
+                        <span className="text-base"><AppIcon symbol="💊" /></span>
                         <h4 className="text-xs sm:text-sm font-extrabold text-foreground">
                           {msg.medicine.brand_name} {msg.medicine.strength}
                         </h4>
@@ -392,9 +391,9 @@ export default function ChatInterface({
                   <button
                     type="button"
                     onClick={() => onSelectMedicine && msg.medicine && onSelectMedicine(msg.medicine)}
-                    className="w-full flex items-center justify-center gap-1.5 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-md shadow-primary/20 hover:scale-[1.01]"
+                    className="w-full flex items-center justify-center gap-1.5 bg-primary hover:opacity-95 text-white rounded-xl py-2 px-3 text-xs font-bold transition-all shadow-md  "
                   >
-                    <span>🔍</span>
+                    <span><AppIcon symbol="🔍" /></span>
                     <span>View {msg.medicine.brand_name} Full Prices, MRP & Alternatives</span>
                     <span>→</span>
                   </button>
@@ -410,7 +409,7 @@ export default function ChatInterface({
                       key={i}
                       className="text-[10px] bg-primary/10 text-primary font-bold rounded-md px-2 py-0.5 border border-primary/20"
                     >
-                      🛡️ {s.name}
+                      <AppIcon symbol="🛡️" /> {s.name}
                     </span>
                   ))}
                 </div>
@@ -429,7 +428,7 @@ export default function ChatInterface({
                         onClick={() => handleSend(q)}
                         className="text-[11px] bg-surface hover:bg-primary/10 text-foreground/80 hover:text-primary font-medium border border-border hover:border-primary/30 rounded-xl px-2.5 py-1 transition-all shadow-sm"
                       >
-                        👉 {q}
+                        <AppIcon symbol="👉" /> {q}
                       </button>
                     ))}
                   </div>
@@ -443,10 +442,10 @@ export default function ChatInterface({
           <div className="flex justify-start animate-fade-in">
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5 px-1">
-                <span className="w-4 h-4 rounded-md bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[10px] text-white font-bold">
+                <span className="w-4 h-4 rounded-md bg-primary flex items-center justify-center text-[10px] text-white font-bold">
                   A
                 </span>
-                <span className="text-[11px] font-bold text-foreground/80">Afiya AI is typing...</span>
+                <span className="text-[11px] font-bold text-foreground/80">Preparing your answer...</span>
               </div>
               <div className="bg-background border border-border rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2 shadow-sm">
                 <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -462,7 +461,7 @@ export default function ChatInterface({
       {disclaimer && (
         <div className="px-4 py-2 bg-warning/5 border-t border-warning/15">
           <p className="text-[10px] text-muted leading-relaxed">
-            🛡️ {disclaimer}
+            <AppIcon symbol="🛡️" /> {disclaimer}
           </p>
         </div>
       )}
@@ -482,7 +481,7 @@ export default function ChatInterface({
                 ? "Dawa ka naam ya sawal yahan likhein..."
                 : "Ask about uses, side effects, precautions, food interactions..."
             }
-            className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-inner"
+            className="min-w-0 flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-xs sm:text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-inner"
             disabled={loading}
           />
           <VoiceButton
@@ -508,7 +507,7 @@ export default function ChatInterface({
           <button
             onClick={() => handleSend()}
             disabled={loading || !input.trim()}
-            className="bg-primary hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 transition-all duration-200 hover:shadow-md hover:shadow-primary/20 font-bold text-xs flex items-center gap-1.5 shrink-0"
+            className="bg-primary hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 transition-all duration-200 hover:shadow-md font-bold text-xs flex items-center gap-1.5 shrink-0"
           >
             <span>Send</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

@@ -92,6 +92,7 @@ def verify_token_payload(token: str) -> dict | None:
                 options={"verify_exp": True},
                 leeway=60,
             )
+            payload["_auth_provider"] = "local"
             return payload
         except PyJWTError:
             return None
@@ -131,6 +132,7 @@ def verify_token_payload(token: str) -> dict | None:
                 signing_key.key,
                 **kwargs,
             )
+            payload["_auth_provider"] = "clerk"
             return payload
         except Exception as e:
             logger.warning(f"Clerk RS256 token verification failed: {e}")
@@ -149,10 +151,16 @@ def decode_access_token(token: str) -> str | None:
     return None
 
 
+_clerk_user_cache: dict[str, dict] = {}
+_clerk_user_cache_times: dict[str, float] = {}
+
+
 async def fetch_clerk_user_info(user_id: str) -> dict | None:
     """Fetch verified user profile from Clerk API if CLERK_SECRET_KEY is configured."""
     if not settings.clerk_secret_key:
         return None
+    if user_id in _clerk_user_cache and time.monotonic() - _clerk_user_cache_times.get(user_id, 0) < 60:
+        return _clerk_user_cache[user_id]
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.get(
@@ -168,15 +176,20 @@ async def fetch_clerk_user_info(user_id: str) -> dict | None:
                 emails = data.get("email_addresses", [])
                 primary_id = data.get("primary_email_address_id")
                 for em in emails:
-                    if em.get("id") == primary_id or not email:
+                    if em.get("id") == primary_id and em.get("verification", {}).get("status") == "verified":
                         email = em.get("email_address")
                 name = (
                     f"{data.get('first_name', '')} {data.get('last_name', '')}".strip()
                     or data.get("username")
                     or "Clerk User"
                 )
-                return {"email": email, "name": name}
+                res = {"email": email, "name": name}
+                if len(_clerk_user_cache) >= 1000:
+                    _clerk_user_cache.clear()
+                    _clerk_user_cache_times.clear()
+                _clerk_user_cache_times[user_id] = time.monotonic()
+                _clerk_user_cache[user_id] = res
+                return res
     except Exception as e:
         logger.warning(f"Failed to fetch Clerk user info for {user_id}: {e}")
     return None
-

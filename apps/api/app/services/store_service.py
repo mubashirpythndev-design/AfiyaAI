@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import Order, OrderItem, StoreInventory, User
 from app.models.marketplace_schemas import CartItem, CheckoutRequest, ConciergeRequest
 from app.services.catalog_records import money
+from app.services.marketplace_policy import demo_order
 from app.services.duplication_service import check_duplications
 from app.services.store_catalog import CatalogEntry, load_catalog, alternative, equivalent, medicine_info
 
@@ -244,7 +245,7 @@ async def order_payloads(db: AsyncSession, orders: list[Order], *, include_buyer
             "customer_note":order.customer_note,"has_duplication_override":order.has_duplication_override,
             "verified_by_pharmacist":order.verified_by_pharmacist,"total_amount":money(order.total_amount),
             "total_savings_pkr":money(order.total_savings_pkr),"created_at":order.created_at,"items":rows,
-            "is_demo":bool(order.customer_note and order.customer_note.startswith("[DEMO]"))}
+            "is_demo":demo_order(order, [item.medicine_id for item in grouped.get(order.id, [])], catalog)}
         if include_buyer:
             buyer = buyers.get(order.user_id)
             payload.update(user_id=order.user_id,buyer_name=buyer.name if buyer else None,buyer_email=buyer.email if buyer else None)

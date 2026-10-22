@@ -8,9 +8,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.config import settings, validate_production_settings
 from app.routers import ocr, medicines, chat, price_check, auth, admin, cabinet, feedback
-from app.routers import duplication, store
+from app.routers import duplication, store, prescriptions
 from app.models.schemas import HealthResponse
 from sqlalchemy import select, func
 from app.db.database import init_db, is_sqlite, async_session, Medicine
@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     logger.info("Gemini OCR model: %s; fallbacks: %s; transport timeout: %.1fs", OCR_MODEL_CHAIN[0], ",".join(OCR_MODEL_CHAIN[1:]), OCR_REQUEST_TIMEOUT_SECONDS)
     logger.info(f"Database: {'SQLite (local testing)' if is_sqlite else 'PostgreSQL (Neon Live)'}")
 
+    validate_production_settings()
     # SQLite development may create tables; production schema changes are explicit migrations.
     if is_sqlite:
         await init_db()
@@ -68,7 +69,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Afiya AI API",
-    description="AI-powered medicine assistant backend",
+    description="Afiya AI — Medicine Intelligence & Prescription Benchmark Backend",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -87,7 +88,6 @@ cors_origins = list(dict.fromkeys(filter(None, cors_origins)))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,6 +104,7 @@ app.include_router(chat.router)
 app.include_router(price_check.router)  # Phase-1 Feature A: MRP checker
 app.include_router(duplication.router)
 app.include_router(store.router)
+app.include_router(prescriptions.router)
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import Medicine, MrpReference, PharmacySeller, StoreInventory, DrapAlert, Order, OrderItem
 from app.models.marketplace_schemas import InventoryPatch
 from app.services.catalog_records import money, record_fields, new_medicine_fields
-from app.services.marketplace_policy import requires_rx, demo_seller
+from app.services.marketplace_policy import requires_rx, demo_seller, demo_order
 from app.services.store_catalog import load_catalog, catalog_row
 from app.services.mrp_refresh import refresh_reference
 
@@ -65,7 +65,7 @@ async def analytics(db: AsyncSession) -> dict[str,Any]:
         .where(Order.status.in_(["CONFIRMED","DELIVERED"])).group_by(Medicine.category)
         .order_by(func.sum(OrderItem.unit_price*OrderItem.quantity).desc(),Medicine.category))).all()
     catalog = await load_catalog(db)
-    return {"today_revenue_pkr":money(sum((o.total_amount for o in revenue_orders if o.created_at.replace(tzinfo=None) >= today),Decimal(0))),
+    combined = {"today_revenue_pkr":money(sum((o.total_amount for o in revenue_orders if o.created_at.replace(tzinfo=None) >= today),Decimal(0))),
         "monthly_revenue_pkr":money(sum((o.total_amount for o in revenue_orders if o.created_at.replace(tzinfo=None) >= month),Decimal(0))),
         "total_orders_count":len(orders),"pending_rx_count":sum(o.status == "PENDING_RX_REVIEW" for o in orders),
         "concierge_queue_count":sum(o.status == "AWAITING_PHARMACIST_CART" for o in orders),
@@ -74,6 +74,40 @@ async def analytics(db: AsyncSession) -> dict[str,Any]:
         "top_categories":[{"category":category or "Uncategorized","order_count":count,"revenue_pkr":money(amount)} for category,count,amount in rows],
         "includes_demo_orders":any(o.customer_note and o.customer_note.startswith("[DEMO]") for o in orders),
         "revenue_basis":"CONFIRMED and DELIVERED order snapshots"}
+    items = list((await db.scalars(select(OrderItem))).all())
+    by_order: dict[str, list[OrderItem]] = {}
+    for item in items:
+        by_order.setdefault(item.order_id, []).append(item)
+    demo_ids = {o.id for o in orders if demo_order(o, [i.medicine_id for i in by_order.get(o.id, [])], catalog)}
+    combined["includes_demo_orders"] = bool(demo_ids)
+
+    def metrics(is_demo: bool) -> dict[str, Any]:
+        selected = [o for o in orders if (o.id in demo_ids) == is_demo]
+        paid = [o for o in selected if o.status in {"CONFIRMED", "DELIVERED"}]
+        categories: dict[str, dict[str, Any]] = {}
+        for order in paid:
+            for item in by_order.get(order.id, []):
+                entry = catalog.get(item.medicine_id)
+                category = entry.medicine.category if entry else "Uncategorized"
+                group = categories.setdefault(category or "Uncategorized", {"orders": set(), "revenue": Decimal(0)})
+                group["orders"].add(order.id)
+                group["revenue"] += item.unit_price * item.quantity
+        return {
+            "today_revenue_pkr": money(sum((o.total_amount for o in paid if o.created_at.replace(tzinfo=None) >= today), Decimal(0))),
+            "monthly_revenue_pkr": money(sum((o.total_amount for o in paid if o.created_at.replace(tzinfo=None) >= month), Decimal(0))),
+            "total_orders_count": len(selected),
+            "pending_rx_count": sum(o.status == "PENDING_RX_REVIEW" for o in selected),
+            "concierge_queue_count": sum(o.status == "AWAITING_PHARMACIST_CART" for o in selected),
+            "total_patient_savings_pkr": money(sum((o.total_savings_pkr for o in paid), Decimal(0))),
+            "low_stock_items": [row for row in combined["low_stock_items"] if row["is_demo_seller"] == is_demo],
+            "top_categories": [{"category": name, "order_count": len(value["orders"]), "revenue_pkr": money(value["revenue"])}
+                               for name, value in sorted(categories.items(), key=lambda pair: (-pair[1]["revenue"], pair[0]))],
+            "includes_demo_orders": is_demo and bool(selected),
+            "revenue_basis": "Simulated demo orders; no payments collected" if is_demo else "Non-demo order snapshots; not payment receipts",
+        }
+    combined["real_metrics"] = metrics(False)
+    combined["demo_metrics"] = metrics(True)
+    return combined
 
 
 async def catalog_sync(db: AsyncSession, records: list[dict], dry_run: bool = True) -> dict:

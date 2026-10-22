@@ -9,6 +9,6 @@ const env = {...process.env,
   NODE_OPTIONS:((process.env.NODE_OPTIONS||'')+' --require "'+path.join(__dirname,'no-dotenv-next.cjs').replaceAll('\\','/')+'"').trim(),
 };
 // Explicit webpack avoids the native Turbopack dotenv discovery path.
-const result=spawnSync(process.platform==='win32'?'npm.cmd':'npm',['run','build','--','--webpack'],{cwd:path.join(root,'apps/web'),env,stdio:'inherit',shell:process.platform==='win32'});
+const result=spawnSync(process.platform==='win32'?'npm.cmd':'npm',['run','build'],{cwd:path.join(root,'apps/web'),env,stdio:'inherit',shell:process.platform==='win32'});
 if(result.error)console.error(result.error.message);
 process.exit(result.status??1);

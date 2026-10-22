@@ -24,6 +24,7 @@ parameterized SQL with the pgvector cast.
 """
 
 import logging
+import hashlib
 import uuid
 from dataclasses import dataclass
 
@@ -77,9 +78,9 @@ async def seed_chunk_embeddings(db: AsyncSession) -> EmbeddingSeedReport:
     result = await db.execute(
         text(
             "SELECT id, content FROM knowledge_chunks "
-            "WHERE chunk_type = :chunk_type ORDER BY id"
+            "ORDER BY id"
         ),
-        {"chunk_type": CHUNK_TYPE},
+
     )
     chunks = result.fetchall()
 
@@ -87,26 +88,26 @@ async def seed_chunk_embeddings(db: AsyncSession) -> EmbeddingSeedReport:
         report.chunks_processed += 1
 
         existing = await db.execute(
-            text("SELECT id FROM embeddings WHERE chunk_id = :chunk_id"),
+            text("SELECT id, content_hash FROM embeddings WHERE chunk_id = :chunk_id"),
             {"chunk_id": chunk.id},
         )
-        if existing.first() is not None:
+        existing_row = existing.first()
+        content_hash = hashlib.sha256(chunk.content.encode("utf-8")).hexdigest()
+        if existing_row is not None and existing_row.content_hash == content_hash:
             report.skipped_existing += 1
             continue
 
         vector = await generate_embedding(chunk.content)
         embedding_str = "[" + ",".join(str(v) for v in vector) + "]"
-        await db.execute(
-            text(
-                "INSERT INTO embeddings (id, chunk_id, embedding) "
-                "VALUES (:id, :chunk_id, CAST(:embedding AS vector))"
-            ),
-            {
-                "id": str(uuid.uuid4()),
-                "chunk_id": chunk.id,
-                "embedding": embedding_str,
-            },
-        )
+        if existing_row:
+            statement = "UPDATE embeddings SET embedding = CAST(:embedding AS vector), content_hash = :content_hash WHERE id = :id"
+            embedding_id = existing_row.id
+        else:
+            statement = "INSERT INTO embeddings (id, chunk_id, embedding, content_hash) VALUES (:id, :chunk_id, CAST(:embedding AS vector), :content_hash)"
+            embedding_id = str(uuid.uuid4())
+        await db.execute(text(statement), {
+            "id": embedding_id, "chunk_id": chunk.id, "embedding": embedding_str, "content_hash": content_hash,
+        })
         report.created += 1
 
     await db.commit()

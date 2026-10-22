@@ -13,8 +13,13 @@ from app.services.cheapest_brand_service import (
     MedicineNotFound,
     get_cheapest_brands,
 )
+from app.services.safety_layer import (
+    evaluate_drap_status,
+    evaluate_risk_tier,
+    check_lasa_collision,
+)
 from app.models.schemas import (
-    MatchRequest, MatchResponse, MedicineSchema,
+    MatchRequest, MatchResponse, MedicineSchema, MedicineWithSafetySchema,
     PriceComparison, MedicineInfo, KnowledgeChunkSchema, PriceEntry, SourceSchema,
     CheapestBrandsSchema, CheapestBrandOptionSchema,
 )
@@ -26,11 +31,38 @@ router = APIRouter(prefix="/api/medicines", tags=["Medicines"])
 @router.post("/match", response_model=MatchResponse)
 async def match(req: MatchRequest, db: AsyncSession = Depends(get_db)):
     """Match a candidate text against the verified medicine database."""
-    result = await match_medicine(req.candidate, db)
+    result = await match_medicine(req.candidate, db, extracted_strength=req.strength, extracted_form=req.dosage_form)
+
+    # Enrich with Safety & Legitimacy Layer
+    try:
+        matched_med = result.get("medicine")
+        drap = evaluate_drap_status(matched_med)
+        risk = evaluate_risk_tier(matched_med)
+        result["safety"] = {
+            "drap_status": drap,
+            "risk_tier": risk,
+        }
+
+        # Check for LASA collisions if a medicine was matched or queried
+        all_meds_res = await db.execute(select(Medicine))
+        all_meds = [medicine_to_schema(m) for m in all_meds_res.scalars().all()]
+        lasa = check_lasa_collision(req.candidate, matched_med, all_meds)
+
+        if lasa and lasa.get("confirmation_required"):
+            # Suppress price comparison and direct substitution until user explicitly confirms
+            result["medicine"] = None
+            result["needs_confirmation"] = True
+            result["lasa_warning"] = lasa
+        else:
+            result["lasa_warning"] = None
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning(f"Safety layer check skipped due to error: {exc}")
+
     return MatchResponse(**result)
 
 
-@router.get("/by-category", response_model=list[MedicineSchema])
+@router.get("/by-category", response_model=list[MedicineWithSafetySchema])
 async def get_medicines_by_category(
     category: str = Query(..., description="Therapeutic category name"),
     db: AsyncSession = Depends(get_db),
@@ -42,7 +74,11 @@ async def get_medicines_by_category(
     medicines = result.scalars().all()
     if not medicines:
         raise HTTPException(status_code=404, detail=f"No medicines found in category: {category}")
-    return [medicine_to_schema(m) for m in medicines]
+    records = [medicine_to_schema(m) for m in medicines]
+    return [MedicineWithSafetySchema(**record.model_dump(), safety={
+        "drap_status": evaluate_drap_status(record),
+        "risk_tier": evaluate_risk_tier(record),
+    }) for record in records]
 
 
 @router.get("/{medicine_id}", response_model=MedicineSchema)
@@ -105,6 +141,7 @@ async def get_medicine_info(
             name=src_name,
             url=src_url,
             source_type=src_type,
+            verification_status=chunk.source.verification_status if chunk.source else "needs_source_verification",
         )
         knowledge_chunks.append(KnowledgeChunkSchema(
             id=str(chunk.id),

@@ -8,13 +8,22 @@ const ts=require('../apps/web/node_modules/typescript');
 const tmpRoot=path.resolve(os.tmpdir());
 const temporary=fs.mkdtempSync(path.join(tmpRoot,'afiya-marketplace-test-'));
 const root=path.resolve(__dirname,'..');
+const attachments=new Map();
 function load(file,overrides={}){
   const exports={};
   const customRequire=id=>id in overrides?overrides[id]:require(id);
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText,
-    {exports,require:customRequire,process:{cwd:()=>path.join(temporary,'apps/web')},Buffer,Response,Request,File,Uint8Array,AbortSignal,fetch:async(_url,options)=>{
+    {exports,require:customRequire,process:{cwd:()=>path.join(temporary,'apps/web')},Buffer,Response,Request,File,FormData,Blob,Uint8Array,AbortSignal,fetch:async(url,options)=>{
       const role=options.headers.authorization?.replace('Bearer ','');
-      return ['buyer','other','admin'].includes(role)?Response.json({id:role,is_admin:role==='admin'}):Response.json({detail:'Not authenticated'},{status:401});
+      if (!['buyer','other','admin'].includes(role)) return Response.json({detail:'Not authenticated'},{status:401});
+      if (url.endsWith('/api/auth/me')) return Response.json({id:role,is_admin:role==='admin'});
+      if(options.method==='POST'){
+        const id=require('node:crypto').randomUUID(),file=options.body.get('image');
+        attachments.set(id,{owner:role,bytes:Buffer.from(await file.arrayBuffer()),type:file.type});
+        return Response.json({prescription_image_url:`/uploads/${id}`});
+      }
+      const entry=attachments.get(url.split('/').pop());
+      return entry&&(entry.owner===role||role==='admin')?new Response(entry.bytes,{headers:{'Content-Type':entry.type}}):new Response('Not found',{status:404});
     }});
   return exports;
 }
@@ -26,7 +35,7 @@ function request(role,bytes=png,type='image/png'){
   const body=new FormData();body.append('image',new File([bytes],'prescription.png',{type}));
   return new Request('http://local.test/api/marketplace/prescriptions',{method:'POST',headers:role?{Authorization:`Bearer ${role}`}:{},body});
 }
-test('real local upload returns a backend-compatible private reference, accessible only to its owner and admins',async()=>{
+test('upload proxy preserves the backend reference and authenticates owner/admin reads without local disk storage',async()=>{
   const response=await upload.POST(request('buyer'));
   assert.equal(response.status,200);
   const {prescription_image_url:reference}=await response.json();

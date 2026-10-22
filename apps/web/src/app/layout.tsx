@@ -1,8 +1,10 @@
+import CabinetReminders from "@/components/medicine/CabinetReminders";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import MarketplaceProvider from "@/components/marketplace/MarketplaceProvider";
+import ScrollProgress from "@/components/shared/ScrollProgress";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,18 +23,17 @@ const notoNastaliq = Noto_Nastaliq_Urdu({
 });
 
 export const metadata: Metadata = {
-  title: "Afiya AI - Your Intelligent Medicine Assistant",
+  title: "Afiya — Medicine Information & Price Comparison",
   description:
-    "AI-powered medicine assistant that extracts medicine names from prescriptions, provides verified information, and compares prices. Available in English, Urdu, and Roman Urdu.",
-  keywords: ["medicine", "prescription", "OCR", "price comparison", "Pakistan", "health"],
+    "Medicine information, reference price comparisons, AI-assisted prescription scanning, and personal medicine cabinets and reminder schedules. Available in English, Urdu, and Roman Urdu.",
+  keywords: ["medicine", "prescription", "OCR", "DRAP MRP", "price comparison", "Pakistan", "health", "Afiya AI"],
   icons: {
-    icon: "/Afiya_icon.ico",
-    shortcut: "/Afiya_icon.ico",
-    apple: "/Afiya_icon.ico",
+    icon: {url:"/afiya-favicon-6dad2394.ico",type:"image/x-icon"},
+    shortcut: "/afiya-favicon-6dad2394.ico",
+    apple: {url:"/afiya-apple-touch-icon-6dad2394.png",sizes:"180x180",type:"image/png"},
   },
 };
 
-import CustomCursor from "@/components/shared/CustomCursor";
 import ClerkAuthSync from "@/components/auth/ClerkAuthSync";
 
 export default function RootLayout({
@@ -108,8 +109,8 @@ export default function RootLayout({
           />
         </head>
         <body className="min-h-full flex flex-col" suppressHydrationWarning>
-          <ClerkAuthSync />
-          <CustomCursor />
+          <ScrollProgress/>
+          <ClerkAuthSync /><CabinetReminders />
           <MarketplaceProvider>{children}</MarketplaceProvider>
         </body>
       </html>

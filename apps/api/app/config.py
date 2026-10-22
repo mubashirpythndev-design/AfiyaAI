@@ -11,6 +11,7 @@ INSECURE_DEV_JWT_SECRET = "dev-insecure-change-me"
 
 
 class Settings(BaseSettings):
+    app_env: str = "development"
     ai_timeout_seconds: float = 28.0
     ocr_request_timeout_seconds: float = Field(default=35.0, gt=0, le=180)
     ocr_total_timeout_seconds: float = Field(default=180.0, gt=0, le=600)
@@ -28,8 +29,8 @@ class Settings(BaseSettings):
 
     gemini_chat_model: str = "models/gemini-3.5-flash"
     # OCR uses the fixed ordered chain in services/ocr_models.py, independently of chat.
-    gemini_ocr_model: str = Field(default="gemini-3.5-flash-lite", min_length=1)
-    gemini_ocr_fallback_models: str = "gemini-3.1-flash-lite,gemini-3.8-flash"
+    gemini_ocr_model: str = Field(default="gemini-3.8-flash", min_length=1)
+    gemini_ocr_fallback_models: str = "gemini-3.5-flash-lite,gemini-3.1-flash-lite"
     ocr_thinking_level: str = Field(default="medium", pattern="^(low|medium|high)$")
     gemini_embedding_model: str = "models/gemini-embedding-001"
 
@@ -76,3 +77,10 @@ if settings.jwt_secret == INSECURE_DEV_JWT_SECRET:
         "JWT_SECRET is using the insecure dev default - set a real "
         "JWT_SECRET env var before any non-local deployment."
     )
+
+
+def validate_production_settings() -> None:
+    if settings.app_env.lower() in {"production", "prod"} and (
+        settings.jwt_secret == INSECURE_DEV_JWT_SECRET or len(settings.jwt_secret) < 32
+    ):
+        raise RuntimeError("Production requires a non-default JWT_SECRET of at least 32 characters")

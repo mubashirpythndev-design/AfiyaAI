@@ -1,5 +1,7 @@
 "use client";
 
+import useModalFocus from "@/components/shared/useModalFocus";
+import AppIcon from "@/components/shared/AppIcon";
 import { useState, useEffect } from "react";
 import type { Language } from "@/lib/types";
 
@@ -25,6 +27,7 @@ interface GuideTab {
 }
 
 export default function OnboardingGuideModal({ language, onClose, onAction }: OnboardingGuideModalProps) {
+  const modalRef = useModalFocus(true, onClose);
   const [currentStep, setCurrentStep] = useState(0);
 
   const guideTabs: GuideTab[] = [
@@ -35,9 +38,9 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       badge: "Step 1: Instant Search",
       badgeColor: "bg-primary/10 text-primary border-primary/20",
       title: "Where & How to Search for Any Medicine",
-      subtitle: "Instant access to 100+ DRAP-aligned comparison medicines",
+      subtitle: "Search the supported medicine directory",
       description:
-        "Type any commercial brand name (e.g. Panadol, Brufen, Risek, Augmentin) or generic chemical name (e.g. Paracetamol, Ibuprofen, Omeprazole) in the search bar. Afiya AI instantly retrieves clinical guidance and registered alternatives.",
+        "Type any commercial brand name (e.g. Panadol, Brufen, Risek, Augmentin) or generic chemical name (e.g. Paracetamol, Ibuprofen, Omeprazole) in the search bar. Afiya displays available medicine information and comparison records.",
       previewType: "search",
       actionText: "Try Searching 'Panadol'",
       actionType: "search",
@@ -52,7 +55,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       title: "Where & How to Upload Your Prescription",
       subtitle: "AI extracts medicines from doctor's handwriting or printed slips",
       description:
-        "Click the prescription upload box or drag & drop a photo of your prescription. Our medical OCR model extracts candidate drug names, matches them against DRAP records, and checks price ceilings automatically.",
+        "Upload a clear, complete prescription photo. AI-assisted scanning extracts candidate medicine names. Review every line, including missing or uncertain entries, before continuing.",
       previewType: "upload",
       actionText: "Go to Prescription Upload",
       actionType: "upload",
@@ -79,9 +82,9 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       badge: "Step 4: Multi-Brand Comparison",
       badgeColor: "bg-success/10 text-success border-success/20",
       title: "How to Compare Brands & Find 'Sab se Sasta'",
-      subtitle: "Save up to 60% with identical active ingredients",
+      subtitle: "Compare the stored reference prices for compatible products",
       description:
-        "When doctors prescribe an expensive brand name, other licensed pharmaceutical companies manufacture the exact same active generic molecule at a much lower cost. Look for the green '🌟 Sab se Sasta' badge to find the most affordable certified option.",
+        "Compare products with matching ingredients, strength and dosage form. Prices are reference values, not live pharmacy quotes. Ask your pharmacist or prescriber before switching products.",
       previewType: "comparison",
       actionText: "Compare Paracetamol Brands",
       actionType: "search",
@@ -94,9 +97,9 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       badge: "Step 5: DRAP MRP Protection",
       badgeColor: "bg-danger/10 text-danger border-danger/20",
       title: "How to Check if a Pharmacy Overcharged You",
-      subtitle: "Official price gouging detector backed by DRAP ceilings",
+      subtitle: "Compare your purchase against the available price reference",
       description:
-        "Every registered medicine in Pakistan has a legal Maximum Retail Price (MRP). In the MRP Checker, select your quantity (Strips, Tablets, or Full Box) and enter what the medical store charged you to immediately calculate overcharges.",
+        "Select the correct pack or unit quantity and enter the amount you paid. The checker compares it with stored reference data; review the displayed source and date before drawing conclusions.",
       previewType: "mrp",
       actionText: "Check Risek 20mg MRP",
       actionType: "search",
@@ -105,11 +108,11 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
     {
       id: "chat",
       icon: "💬",
-      shortLabel: "AI Assistant",
+      shortLabel: "Medicine questions",
       badge: "Step 6: Multilingual AI Chat",
       badgeColor: "bg-primary/10 text-primary border-primary/20",
-      title: "24/7 AI Medical Assistant (English & Roman Urdu)",
-      subtitle: "Grounded in DRAP baseline data with real-time streaming",
+      title: "Ask about a medicine",
+      subtitle: "AI-assisted information with available sources",
       description:
         "Ask questions like 'What are the side effects of Brufen?' or in Roman Urdu 'Panadol ke kya faiday hain?'. Afiya AI provides stream typing answers with clickable badges to view full medicine profiles.",
       previewType: "chat",
@@ -155,26 +158,25 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
       onClick={onClose}
     >
       <div
+        ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="guide-title" tabIndex={-1}
         className="bg-surface rounded-3xl border-2 border-primary/25 shadow-2xl w-full max-w-2xl overflow-hidden animate-slide-up flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header Bar */}
-        <div className="px-5 sm:px-6 py-4 bg-gradient-to-r from-primary/15 via-surface to-accent/10 border-b border-border flex items-center justify-between">
+        <div className="px-5 sm:px-6 py-4 bg-surface border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/20 text-lg shrink-0">
-              💡
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md  text-lg shrink-0">
+              <AppIcon symbol="💡" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
-                  Afiya AI — Quick Start Guide & Walkthrough
+                <h2 id="guide-title" className="text-base sm:text-lg font-extrabold text-foreground tracking-tight">
+                  Getting started with Afiya
                 </h2>
-                <span className="hidden sm:inline-flex text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
-                  Interactive Tour
-                </span>
+
               </div>
               <p className="text-xs text-muted font-medium">
-                Master how to search, upload prescriptions, compare brands, and detect overcharges
+                Find medicine information, scan a prescription, and compare reference prices
               </p>
             </div>
           </div>
@@ -195,11 +197,11 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
               onClick={() => setCurrentStep(idx)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 currentStep === idx
-                  ? "bg-primary text-white shadow-md shadow-primary/20 scale-[1.02]"
+                  ? "bg-primary text-white shadow-md  scale-[1.02]"
                   : "bg-surface text-muted hover:text-foreground border border-border hover:border-primary/30"
               }`}
             >
-              <span>{tab.icon}</span>
+              <span><AppIcon symbol={tab.icon} /></span>
               <span>{tab.shortLabel}</span>
             </button>
           ))}
@@ -229,159 +231,6 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
             </p>
           </div>
 
-          {/* Interactive Feature Visual Mockup */}
-          <div className="bg-background/80 rounded-2xl p-4 sm:p-5 border border-border shadow-inner space-y-3">
-            {/* Step 1 Preview: Search Bar Mockup */}
-            {current.previewType === "search" && (
-              <div className="space-y-3">
-                <div className="bg-surface rounded-xl border-2 border-primary/30 p-2.5 flex items-center gap-2 shadow-sm">
-                  <span className="text-primary text-base">🔍</span>
-                  <span className="text-xs sm:text-sm font-bold text-foreground">
-                    Panadol <span className="text-muted font-normal">(or Paracetamol 500mg)</span>
-                  </span>
-                  <span className="ml-auto bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">
-                    Search
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-surface/80 p-2.5 rounded-xl border border-border">
-                    <p className="font-bold text-foreground">💊 Commercial Brand Search</p>
-                    <p className="text-[11px] text-muted">Type names like Panadol, Brufen, Risek, Augmentin.</p>
-                  </div>
-                  <div className="bg-surface/80 p-2.5 rounded-xl border border-border">
-                    <p className="font-bold text-foreground">🧪 Generic Salt Search</p>
-                    <p className="text-[11px] text-muted">Type salts like Paracetamol, Ibuprofen, Omeprazole.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2 Preview: Prescription Upload Mockup */}
-            {current.previewType === "upload" && (
-              <div className="space-y-3">
-                <div className="border-2 border-dashed border-primary/40 rounded-2xl p-4 bg-primary/[0.03] text-center space-y-1.5">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto text-primary text-lg">
-                    📸
-                  </div>
-                  <p className="text-xs sm:text-sm font-bold text-foreground">
-                    Drop doctor prescription image here or Browse Files
-                  </p>
-                  <p className="text-[11px] text-muted">
-                    Supports JPG, PNG, WebP (Camera shots & scanned prescriptions)
-                  </p>
-                </div>
-                <div className="bg-surface p-2.5 rounded-xl border border-border flex items-center justify-between text-xs">
-                  <span className="font-bold text-foreground">✨ AI OCR Recognition</span>
-                  <span className="text-success font-bold bg-success/10 px-2 py-0.5 rounded-md">
-                    Matches with DRAP Baseline DB
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3 Preview: Therapeutic Category Mockup */}
-            {current.previewType === "category" && (
-              <div className="space-y-2.5">
-                <p className="text-xs font-bold text-muted uppercase tracking-wider">
-                  Quick Filter by Therapeutic Need:
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="bg-surface border-2 border-primary/30 px-3 py-1.5 rounded-xl text-xs font-bold text-foreground flex items-center gap-1.5 shadow-sm">
-                    <span>💊</span> Pain & Fever (Analgesics)
-                  </span>
-                  <span className="bg-surface border border-border px-3 py-1.5 rounded-xl text-xs font-medium text-muted flex items-center gap-1.5">
-                    <span>🦠</span> Broad Antibiotics
-                  </span>
-                  <span className="bg-surface border border-border px-3 py-1.5 rounded-xl text-xs font-medium text-muted flex items-center gap-1.5">
-                    <span>🫁</span> Gastro & Acid Reflux
-                  </span>
-                  <span className="bg-surface border border-border px-3 py-1.5 rounded-xl text-xs font-medium text-muted flex items-center gap-1.5">
-                    <span>🩸</span> Diabetes Control
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted">
-                  💡 Clicking any category filters all 100+ comparison medicines instantly.
-                </p>
-              </div>
-            )}
-
-            {/* Step 4 Preview: Multi-Brand Comparison Mockup */}
-            {current.previewType === "comparison" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold text-muted px-1">
-                  <span>Paracetamol 500mg Comparison</span>
-                  <span className="text-success">Same Active Salt</span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="p-2.5 rounded-xl border border-border bg-surface flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">Panadol (GSK)</p>
-                      <p className="text-[10px] text-muted">Popular Brand</p>
-                    </div>
-                    <span className="font-bold text-foreground">Rs. 3.50 / tab</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl border border-border bg-surface flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">Calpol (GSK)</p>
-                      <p className="text-[10px] text-muted">Alternative</p>
-                    </div>
-                    <span className="font-bold text-foreground">Rs. 3.20 / tab</span>
-                  </div>
-                  <div className="p-2.5 rounded-xl border-2 border-success/40 bg-success/10 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-foreground">Febrol (Barrett Hodgson)</p>
-                      <span className="text-[10px] font-extrabold text-success bg-success/20 px-1.5 py-0.5 rounded">
-                        🌟 Sab se Sasta (Cheapest)
-                      </span>
-                    </div>
-                    <span className="font-extrabold text-success text-sm">Rs. 2.80 / tab (Save 20%)</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5 Preview: MRP Overcharge Mockup */}
-            {current.previewType === "mrp" && (
-              <div className="space-y-2.5">
-                <div className="bg-surface rounded-xl p-3 border border-border space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-foreground">1. Selected: 2 Strips of Risek 20mg</span>
-                    <span className="text-primary">DRAP Legal MRP: Rs. 610.00</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-foreground">2. Pharmacy Charged: Rs. 700.00</span>
-                    <span className="text-danger bg-danger/10 px-2 py-0.5 rounded">
-                      ⚠️ Overcharged by Rs. 90.00!
-                    </span>
-                  </div>
-                </div>
-                <p className="text-[11px] text-muted">
-                  🛡️ Afiya AI lets you print and export official price gouging complaints according to DRAP S.R.O. regulations.
-                </p>
-              </div>
-            )}
-
-            {/* Step 6 Preview: AI Chat Mockup */}
-            {current.previewType === "chat" && (
-              <div className="space-y-2">
-                <div className="bg-surface rounded-xl p-3 border border-border space-y-1.5 text-xs">
-                  <div className="bg-primary text-white p-2 rounded-xl rounded-br-none ml-auto max-w-[80%] font-medium">
-                    Brufen ke side effects kya hain?
-                  </div>
-                  <div className="bg-background text-foreground p-2.5 rounded-xl rounded-bl-none border border-border max-w-[90%] space-y-1">
-                    <p className="font-bold text-primary text-[11px]">Afiya AI (DRAP Grounded):</p>
-                    <p className="text-[11px]">
-                      - Mede mein jalan aur matli (Stomach upset, nausea)<br />
-                      - Zyada miqdar lene se ulcer ka khatra
-                    </p>
-                    <span className="inline-block text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold mt-1">
-                      🔍 View Brufen 400mg Details
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Footer Navigation Bar */}
@@ -417,7 +266,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
                 onClick={handleExecuteAction}
                 className="hidden sm:inline-flex items-center gap-1 bg-surface hover:bg-surface-hover text-primary border border-primary/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
               >
-                <span>⚡</span>
+                <span><AppIcon symbol="⚡" /></span>
                 <span>{current.actionText}</span>
               </button>
             )}
@@ -426,7 +275,7 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
               <button
                 type="button"
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md shadow-primary/20 transition-all hover:scale-[1.02]"
+                className="bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md  transition-all "
               >
                 Next Step →
               </button>
@@ -434,9 +283,9 @@ export default function OnboardingGuideModal({ language, onClose, onAction }: On
               <button
                 type="button"
                 onClick={handleFinish}
-                className="bg-gradient-to-r from-success to-primary hover:opacity-95 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-lg shadow-success/25 transition-all hover:scale-[1.02]"
+                className="bg-primary hover:opacity-95 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-lg  transition-all "
               >
-                🚀 Start Exploring Afiya AI
+                <AppIcon symbol="🚀" /> Explore Afiya
               </button>
             )}
           </div>

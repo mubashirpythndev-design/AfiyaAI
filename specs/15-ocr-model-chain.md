@@ -4,9 +4,16 @@
 
 The prescription upload endpoint uses Gemini Vision directly, in this exact order:
 
-1. `gemini-3.5-flash-lite`
-2. `gemini-3.1-flash-lite`
-3. `gemini-3.8-flash`
+1. `gemini-3.8-flash`
+2. `gemini-3.5-flash-lite`
+3. `gemini-3.1-flash-lite`
+
+Cache version `vision-primary-38-v9` prevents reuse of prior-model results.
+Transcription keeps products and their attributes separate across lines/columns.
+An unreadable independent reading of an initially readable line retains the first
+transcription, flags the uncertainty and triggers the bounded detail-crop path;
+it cannot silently count as agreement. Existing conflicting alternatives remain
+visible. This does not guarantee correct recognition of illegible handwriting.
 
 The model array is defined in `ocr_models.py` and cannot be reordered by legacy
 model environment overrides. Stable endpoint lifecycle information is available

@@ -100,7 +100,8 @@ def test_migration_0006_re_upgrade_idempotent(tmp_path):
 
 
 @pytest_asyncio.fixture
-async def admin_db(tmp_path):
+async def admin_db(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "admin_emails", "admin@example.com,admin2@example.com,pageadmin@example.com")
     db_file = tmp_path / "afiya_admin.db"
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_file}")
     async with engine.begin() as conn:
@@ -123,6 +124,7 @@ async def _create_user(factory, email: str, name: str = "Test", is_admin: bool =
             email=email.lower(),
             password_hash="unused",
             is_admin=is_admin,
+            is_verified=is_admin,
         )
         db.add(user)
         await db.commit()
@@ -222,8 +224,8 @@ async def test_admin_endpoint_pagination(admin_db):
 # ───────────────────────────────────────────────────────────────────────────
 
 
-async def test_register_promotes_admin_email(admin_db):
-    """An email in ADMIN_EMAILS gets is_admin=True on register."""
+async def test_register_does_not_promote_unverified_admin_email(admin_db):
+    """An allowlisted email does not prove ownership during public registration."""
     with patch("app.routers.auth.get_admin_emails_set", return_value={"boss@example.com"}):
         async with admin_db() as db:
             resp = await register(
@@ -233,7 +235,8 @@ async def test_register_promotes_admin_email(admin_db):
     # Check the row directly.
     async with admin_db() as db:
         user = (await db.execute(select(User).where(User.email == "boss@example.com"))).scalar_one()
-    assert user.is_admin is True
+    assert user.is_admin is False
+    assert user.is_verified is False
 
 
 async def test_register_non_admin_email_stays_non_admin(admin_db):
@@ -262,6 +265,12 @@ async def test_login_promotes_on_admin_email_addition(admin_db):
         user = (await db.execute(select(User).where(User.email == "later@example.com"))).scalar_one()
     assert user.is_admin is False
 
+    # Trusted review verifies ownership; allowlisting alone cannot promote.
+    async with admin_db() as db:
+        user = (await db.execute(select(User).where(User.email == "later@example.com"))).scalar_one()
+        user.is_verified = True
+        await db.commit()
+
     # Now login with the email in ADMIN_EMAILS → promoted.
     with patch("app.routers.auth.get_admin_emails_set", return_value={"later@example.com"}):
         async with admin_db() as db:
@@ -282,7 +291,12 @@ async def test_login_demotes_on_admin_email_removal(admin_db):
             )
     async with admin_db() as db:
         user = (await db.execute(select(User).where(User.email == "ex@example.com"))).scalar_one()
-    assert user.is_admin is True
+    assert user.is_admin is False
+    async with admin_db() as db:
+        user = (await db.execute(select(User).where(User.email == "ex@example.com"))).scalar_one()
+        user.is_verified = True
+        user.is_admin = True
+        await db.commit()
 
     # Login with the email REMOVED from ADMIN_EMAILS → demoted.
     with patch("app.routers.auth.get_admin_emails_set", return_value=set()):

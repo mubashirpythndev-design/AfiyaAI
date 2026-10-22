@@ -1,0 +1,2 @@
+import {FlaskConical} from "lucide-react";
+export default function DemoNotice(){return <aside className="demo-mode-notice" aria-label="Marketplace demonstration mode"><FlaskConical size={18}/><div><strong>Marketplace demonstration mode</strong><p>Demo pharmacies, licenses, stock and orders are simulated. No payment, dispensing, physical delivery or verified professional service is provided by this demonstration. Medicine reference records are separate from this simulated activity.</p></div></aside>;}

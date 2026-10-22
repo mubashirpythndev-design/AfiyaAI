@@ -1,5 +1,6 @@
 "use client";
 
+import AppIcon from "@/components/shared/AppIcon";
 import { useState } from "react";
 import { checkPrice } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -10,6 +11,7 @@ interface MrpCheckerProps {
   /** The medicine already resolved on screen (spec-04 verified match). */
   medicine: MedicineDetail;
   language: Language;
+  packSize?: string;
 }
 
 const STATUS_TONE: Record<
@@ -49,7 +51,7 @@ const FALLBACK_TONE = {
   icon: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
 };
 
-export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
+export default function MrpChecker({ medicine, language, packSize = "" }: MrpCheckerProps) {
   const [priceInput, setPriceInput] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,23 +73,29 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
   } | null>(null);
 
   // Parse package dimensions from medicine
-  const packInfo = parsePackInfo(medicine.registration_info || "1x10's", medicine.dosage_form);
+  const packInfo = parsePackInfo(result?.pack_size || packSize, medicine.dosage_form);
+
+  const invalidateResult = () => { setCustomCalculation(null); setResult(null); setRequestError(null); };
 
   const runCheck = async (query: string) => {
     const parsed = Number(priceInput);
     if (!priceInput.trim() || !Number.isFinite(parsed) || parsed <= 0) {
       setValidationError(t(language, "mrp.invalidPrice"));
+      invalidateResult();
       return;
     }
+    if (loading) return;
     setValidationError(null);
     setRequestError(null);
     setLoading(true);
     setCustomCalculation(null);
+    setResult(null);
 
     try {
       // 1. Fetch official baseline MRP from backend API
       const resp = await checkPrice({
         medicine_query: query,
+        pack_size: packSize || undefined,
         price_paid: parsed,
         lang: language,
       });
@@ -95,14 +103,15 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
       // 2. If user selected custom quantity (e.g. 2 strips, 5 tabs, 1 box),
       // calculate the exact proportional MRP and status for that selection.
-      if (resp.mrp !== null) {
+      const packInfo = parsePackInfo(resp.pack_size || "", medicine.dosage_form);
+      if (resp.mrp !== null && packInfo.totalUnits > 0 && !resp.needs_confirmation) {
         const basePackMrp = resp.mrp;
         const pricePerUnit =
           packInfo.totalUnits > 0 ? basePackMrp / packInfo.totalUnits : basePackMrp;
         const pricePerStrip =
           packInfo.strips > 0 ? basePackMrp / packInfo.strips : basePackMrp;
         const boxStrips =
-          packInfo.strips === 1 && packInfo.unitsPerStrip === 10 ? 10 : packInfo.strips;
+          packInfo.strips;
         const pricePerBox = pricePerStrip * boxStrips;
 
         let expectedMrp = 0;
@@ -154,11 +163,11 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
   return (
     <div className="animate-slide-up mt-6">
-      <div className="bg-surface rounded-2xl border-2 border-primary/20 shadow-lg shadow-primary/5 overflow-hidden">
+      <div className="bg-surface rounded-2xl border-2 border-primary/20 shadow-lg  overflow-hidden">
         {/* Header - High Visibility */}
-        <div className="px-4 sm:px-5 py-4 bg-gradient-to-r from-primary/10 via-surface-hover to-accent/5 border-b border-primary/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="px-4 sm:px-5 py-4 bg-surface border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white shadow-md shadow-primary/25 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-md  shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
               </svg>
@@ -170,11 +179,11 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                 </h3>
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-success/15 text-success border border-success/30 px-2.5 py-0.5 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                  DRAP Verified
+                  {result?.statutory_verified ? "Statutory source verified" : "Source verification pending"}
                 </span>
               </div>
               <p className="text-xs sm:text-sm font-semibold text-foreground/90 mt-0.5 flex items-center gap-1.5">
-                <span className="text-primary font-extrabold text-sm">💡 Check what you paid:</span>
+                <span className="text-primary font-extrabold text-sm"><AppIcon symbol="💡" /> Check what you paid:</span>
                 <span className="text-foreground/80">{t(language, "mrp.subtitle")}</span>
               </p>
             </div>
@@ -195,36 +204,39 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => { setUnitMode("strip"); setQty(1); }}
+                  disabled={loading}
+                  onClick={() => { invalidateResult(); setUnitMode("strip"); setQty(1); }}
                   className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "strip"
-                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      ? "bg-primary text-white border-primary  scale-105"
                       : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
-                  💊 Strips
+                  <AppIcon symbol="💊" /> Strips
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setUnitMode("unit"); setQty(packInfo.unitsPerStrip || 10); }}
+                  disabled={loading}
+                  onClick={() => { invalidateResult(); setUnitMode("unit"); setQty(packInfo.unitsPerStrip || 1); }}
                   className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "unit"
-                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      ? "bg-primary text-white border-primary  scale-105"
                       : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
-                  🔢 {packInfo.unitName}
+                  <AppIcon symbol="🔢" /> {packInfo.unitName}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setUnitMode("box"); setQty(1); }}
+                  disabled={loading}
+                  onClick={() => { invalidateResult(); setUnitMode("box"); setQty(1); }}
                   className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all shadow-sm ${
                     unitMode === "box"
-                      ? "bg-primary text-white border-primary shadow-primary/20 scale-105"
+                      ? "bg-primary text-white border-primary  scale-105"
                       : "bg-surface text-foreground/70 hover:text-foreground border-border hover:bg-surface-hover"
                   }`}
                 >
-                  📦 Full Box
+                  <AppIcon symbol="📦" /> Full Box
                 </button>
               </div>
             </div>
@@ -235,8 +247,8 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => qty > 1 && setQty(qty - 1)}
-                  disabled={qty <= 1}
+                  onClick={() => { invalidateResult(); if (qty > 1) setQty(qty - 1); }}
+                  disabled={loading || qty <= 1}
                   className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-extrabold text-sm hover:bg-border transition-colors disabled:opacity-30 text-foreground"
                 >
                   -
@@ -246,12 +258,15 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   min="1"
                   max="500"
                   value={qty}
-                  onChange={(e) => setQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  aria-label="Purchased quantity"
+                  disabled={loading}
+                  onChange={(e) => { invalidateResult(); setQty(Math.min(500, Math.max(1, parseInt(e.target.value, 10) || 1))); }}
                   className="w-16 text-center bg-surface border-2 border-primary/30 rounded-lg py-1 text-sm font-bold text-foreground focus:outline-none focus:border-primary shadow-inner"
                 />
                 <button
                   type="button"
-                  onClick={() => setQty(qty + 1)}
+                  disabled={loading}
+                  onClick={() => { invalidateResult(); setQty(Math.min(500, qty + 1)); }}
                   className="w-8 h-8 rounded-lg bg-surface-hover border border-border flex items-center justify-center font-extrabold text-sm hover:bg-border transition-colors text-foreground"
                 >
                   +
@@ -259,7 +274,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
               </div>
               <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-lg border border-primary/20">
                 {unitMode === "strip"
-                  ? `${qty} Strip${qty > 1 ? "s" : ""} (${qty * packInfo.unitsPerStrip} ${packInfo.unitName})`
+                  ? packInfo.totalUnits > 0 ? `${qty} Strip${qty > 1 ? "s" : ""} (${qty * packInfo.unitsPerStrip} ${packInfo.unitName})` : `${qty} Strip${qty > 1 ? "s" : ""} (pack size unavailable)`
                   : unitMode === "box"
                   ? `${qty} Full Box${qty > 1 ? "es" : ""}`
                   : `${qty} ${packInfo.unitName}`}
@@ -283,6 +298,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   inputMode="decimal"
                   value={priceInput}
                   onChange={(e) => {
+                    invalidateResult();
                     setPriceInput(e.target.value);
                     setValidationError(null);
                   }}
@@ -299,7 +315,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                 <button
                   onClick={() => runCheck(`${medicine.brand_name} ${medicine.strength}`)}
                   disabled={loading}
-                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/25"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 hover:shadow-lg "
                 >
                   {loading ? t(language, "mrp.checking") : t(language, "mrp.checkBtn")}
                 </button>
@@ -335,6 +351,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
             </div>
           )}
 
+          {result && !customCalculation && !loading && <p className="text-sm text-muted">{result.message} {result.disclaimer}</p>}
           {/* Result Card */}
           {customCalculation && !loading && (
             <div className={`rounded-xl border ${tone.border} p-4 space-y-3`}>
@@ -348,10 +365,10 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   {/* Status badge */}
                   <span className={`inline-block text-[11px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full ${tone.badgeBg} ${tone.badgeText} mb-1`}>
                     {customCalculation.status === "BELOW_MRP"
-                      ? "✓ BELOW MRP (SAVING)"
+                      ? "BELOW REFERENCE"
                       : customCalculation.status === "OK_AT_MRP"
-                      ? "✓ OK AT MRP (FAIR PRICE)"
-                      : "⚠️ OVERCHARGED"}
+                      ? "AT REFERENCE"
+                      : "ABOVE REFERENCE"}
                   </span>
 
                   <p className="text-sm font-semibold text-foreground">
@@ -361,13 +378,13 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   {/* Verdict Message */}
                   <p className="text-sm text-foreground/90 mt-1 leading-relaxed">
                     {customCalculation.status === "BELOW_MRP" && (
-                      <>Good news! You paid <strong className="text-success">Rs. {customCalculation.diff.toFixed(2)} LESS</strong> ({customCalculation.diffPercent}% discount) than the DRAP Reference MRP of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>Good news! You paid <strong className="text-success">Rs. {customCalculation.diff.toFixed(2)} LESS</strong> ({customCalculation.diffPercent}% discount) than the stored reference price of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                     {customCalculation.status === "OK_AT_MRP" && (
-                      <>Fair price! You paid exactly the DRAP Reference MRP baseline of <strong className="text-success">Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>You paid approximately the stored reference price baseline of <strong className="text-success">Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                     {customCalculation.status === "OVERCHARGED" && (
-                      <>Notice: You paid <strong className="text-danger">Rs. {customCalculation.diff.toFixed(2)} MORE</strong> (+{customCalculation.diffPercent}%) above the DRAP Reference MRP baseline of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
+                      <>Notice: You paid <strong className="text-danger">Rs. {customCalculation.diff.toFixed(2)} MORE</strong> (+{customCalculation.diffPercent}%) above the stored reference price baseline of <strong>Rs. {customCalculation.expectedMrp.toFixed(2)}</strong> for {customCalculation.quantityLabel}.</>
                     )}
                   </p>
                 </div>
@@ -382,7 +399,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
                   </p>
                 </div>
                 <div className="bg-background/50 rounded-lg p-2.5 border border-border/50">
-                  <p className="text-muted mb-0.5">DRAP Reference MRP</p>
+                  <p className="text-muted mb-0.5">stored reference price</p>
                   <p className="font-bold text-foreground">
                     Rs. {customCalculation.expectedMrp.toFixed(2)}
                   </p>
@@ -403,7 +420,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
               {/* Provenance source */}
               <div className="flex items-center justify-between text-xs text-muted pt-1">
-                <span>Referenced against DRAP Pakistan Price Baseline</span>
+                <span>Compared with stored dataset reference</span>
                 <a
                   href="https://e.dra.gov.pk/public/price"
                   target="_blank"
@@ -416,7 +433,7 @@ export default function MrpChecker({ medicine, language }: MrpCheckerProps) {
 
               {/* Mandatory disclaimer */}
               <p className="text-[11px] text-muted border-t border-border/60 pt-2 leading-relaxed">
-                Referenced against DRAP-aligned pricing data. Official statutory enforcement requires a published Statutory Regulatory Order (SRO) gazette reference. Always verify with official DRAP publications.
+                These are stored reference prices. Official statutory enforcement requires a published Statutory Regulatory Order (SRO) gazette reference. Always verify with official DRAP publications.
               </p>
             </div>
           )}

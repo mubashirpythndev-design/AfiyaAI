@@ -1,11 +1,13 @@
 "use client";
 
+import { Archive, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { addToCabinet, removeFromCabinet, checkCabinetStatus } from "@/lib/api";
 import { isLoggedIn } from "@/lib/auth";
 
 interface SaveToCabinetButtonProps {
   medicineId: string;
+  dosageInstruction?: string;
   onRequireAuth?: () => void;
   className?: string;
   variant?: "default" | "compact";
@@ -13,6 +15,7 @@ interface SaveToCabinetButtonProps {
 
 export default function SaveToCabinetButton({
   medicineId,
+  dosageInstruction,
   onRequireAuth,
   className = "",
   variant = "default",
@@ -53,7 +56,7 @@ export default function SaveToCabinetButton({
         await removeFromCabinet(medicineId);
         setInCabinet(false);
       } else {
-        await addToCabinet(medicineId);
+        await addToCabinet(medicineId, dosageInstruction);
         setInCabinet(true);
       }
     } catch (err) {
@@ -75,7 +78,7 @@ export default function SaveToCabinetButton({
             : "bg-surface border-border text-muted hover:text-foreground hover:border-primary/30"
         } ${className}`}
       >
-        <span>{inCabinet ? "✓" : "⭐"}</span>
+        <span>{inCabinet ? <Check size={16} aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}</span>
         <span>{loading ? "..." : inCabinet ? "Saved" : "Save"}</span>
       </button>
     );
@@ -91,7 +94,7 @@ export default function SaveToCabinetButton({
           : "bg-surface hover:bg-surface-hover text-foreground border-border hover:border-primary/30 shadow-sm"
       } ${className}`}
     >
-      <span className="text-base leading-none">{inCabinet ? "✓" : "⭐"}</span>
+      <span className="text-base leading-none">{inCabinet ? <Check size={16} aria-hidden="true" /> : <Archive size={16} aria-hidden="true" />}</span>
       <span>
         {loading
           ? "Updating..."

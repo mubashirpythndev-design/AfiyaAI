@@ -226,6 +226,7 @@ async def price_check(
             name=mrp_row.source.name,
             url=mrp_row.source.url,
             source_type=mrp_row.source.source_type,
+            verification_status=mrp_row.source.verification_status or "needs_source_verification",
         )
 
     return PriceCheckResponse(
@@ -240,6 +241,7 @@ async def price_check(
         overcharge_amount=float(result.amount) if result.amount > 0 else 0.0,
         pack_size=mrp_row.pack_size,
         sro_ref=mrp_row.sro_ref,
+        statutory_verified=bool(mrp_row.sro_ref and mrp_row.source and mrp_row.source.verification_status == "verified"),
         effective_date=mrp_row.effective_date.isoformat() if mrp_row.effective_date else None,
         source=source_schema,
         message=localize(

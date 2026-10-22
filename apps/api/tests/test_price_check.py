@@ -135,7 +135,7 @@ async def test_price_check_ok_at_mrp_english(phase1_db):
 
     assert resp.status == STATUS_OK_AT_MRP
     assert resp.overcharge_amount == 0.0
-    assert "DRAP-notified MRP" in resp.message
+    assert "stored reference price" in resp.message
     assert resp.disclaimer  # disclaimer always present in every language
 
 

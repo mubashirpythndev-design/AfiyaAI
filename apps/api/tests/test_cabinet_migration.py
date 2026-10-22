@@ -14,6 +14,11 @@ EXPECTED_COLUMNS = {
     "user_id",
     "medicine_id",
     "created_at",
+    "dosage_instruction",
+    "reminder_times",
+    "monthly_units",
+    "monthly_quantity",
+    "monthly_quantity_unit",
 }
 
 PRE_EXISTING_TABLES = {

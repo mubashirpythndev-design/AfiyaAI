@@ -45,7 +45,7 @@ async def test_migration_upgrade_idempotence_downgrade(tmp_path):
     engine = create_engine(f"sqlite:///{db_file}")
     with engine.connect() as connection:
         from sqlalchemy import text
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0012_marketplace_merge"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "0013"
     engine.dispose()
 
 

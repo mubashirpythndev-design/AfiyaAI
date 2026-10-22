@@ -42,7 +42,7 @@ async def test_service_enters_vision_directly_without_any_local_engine(monkeypat
     ai_runtime.COOLDOWNS.clear()
     call = provider(monkeypatch, response([row("Unknownmed")]))
     result = await service.extract_from_image(image_bytes(), "image/png", scan_mode="fast")
-    assert call.await_count == 1 and call.call_args.args[0] == "gemini-3.5-flash-lite"
+    assert call.await_count == 1 and call.call_args.args[0] == "gemini-3.8-flash"
     assert call.call_args.kwargs["timeout_seconds"] == 35.0
     assert result["candidates"][0]["original_name"] == "Unknownmed"
     assert not result["candidates"][0]["is_verified"]

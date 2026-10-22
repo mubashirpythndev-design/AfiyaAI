@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Language } from "./types";
 import { transcribeAudio } from "./api";
+import { applyVoiceGuardrail } from "./voiceGuardrail";
 
 interface SpeechRecognitionResultItem {
   readonly transcript: string;
@@ -193,10 +194,18 @@ export function useSpeechRecognition({
       prefersMediaRecorderRef.current = true;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: { ideal: 1 },
+          sampleRate: { ideal: 48000 },
+          // WebRTC / Chromium background noise cancellation flags
+          googEchoCancellation: { ideal: true },
+          googAutoGainControl: { ideal: true },
+          googNoiseSuppression: { ideal: true },
+          googHighpassFilter: { ideal: true },
+          googTypingNoiseDetection: { ideal: true },
+        } as MediaTrackConstraints,
       });
       streamRef.current = stream;
       startAudioVisualizer(stream);
@@ -238,7 +247,8 @@ export function useSpeechRecognition({
         setIsTranscribing(true);
         try {
           const res = await transcribeAudio(recordedBlob, language);
-          const recognized = res.transcript?.trim() || "";
+          const rawRecognized = res.transcript?.trim() || "";
+          const recognized = applyVoiceGuardrail(rawRecognized);
           if (recognized) {
             setTranscript(recognized);
             finalTranscriptRef.current = recognized;
@@ -357,13 +367,18 @@ export function useSpeechRecognition({
             }
           }
 
-          finalTranscriptRef.current = completeFinal.trim();
-          interimTranscriptRef.current = completeInterim.trim();
+          const guardedFinal = applyVoiceGuardrail(completeFinal.trim());
+          const guardedInterim = applyVoiceGuardrail(completeInterim.trim());
 
-          const combined = (completeFinal + " " + completeInterim).trim();
-          if (combined) {
+          finalTranscriptRef.current = guardedFinal;
+          interimTranscriptRef.current = guardedInterim;
+
+          const combined = (guardedFinal + (guardedFinal && guardedInterim ? " " : "") + guardedInterim).trim();
+
+          // Noise gate: only process if there is substantial speech content (at least 2 letters/numbers)
+          if (combined && /[a-zA-Z0-9\u0600-\u06FF]{2,}/.test(combined)) {
             setTranscript(combined);
-            setInterimTranscript(completeInterim.trim());
+            setInterimTranscript(guardedInterim);
             onResult?.(combined, false);
 
             // Auto-stop countdown after 2.4s of complete silence following speech
@@ -434,8 +449,9 @@ export function useSpeechRecognition({
           }
 
           // Crucial fallback: preserve interim transcript if final is empty
-          const recognized = finalTranscriptRef.current.trim() || interimTranscriptRef.current.trim();
-          if (recognized) {
+          const rawRecognized = finalTranscriptRef.current.trim() || interimTranscriptRef.current.trim();
+          const recognized = applyVoiceGuardrail(rawRecognized);
+          if (recognized && /[a-zA-Z0-9\u0600-\u06FF]{2,}/.test(recognized)) {
             onEnd?.(recognized);
           }
         };

@@ -1,0 +1,5 @@
+import Link from "next/link";
+import {ArrowLeft,Search} from "lucide-react";
+import BrandLogo from "@/components/shared/BrandLogo";
+import Footer from "@/components/layout/Footer";
+export default function NotFound(){return <><main className="page-shell not-found-page"><Link href="/" className="wordmark" aria-label="Afiya home"><BrandLogo/><span className="brand-name">Afiya.</span></Link><div className="not-found-card"><span className="not-found-icon"><Search size={30} strokeWidth={1.4}/></span><p className="eyebrow">PAGE NOT FOUND · 404</p><h1>A little lost?<br/>Let’s find your way back.</h1><p>This page may have moved, or the address may be incomplete. Your medicines and account are not affected by this missing page.</p><Link href="/" className="market-button bg-primary text-white rounded-xl px-5 py-3 inline-flex items-center justify-center gap-2"><ArrowLeft size={16}/>Back to Afiya</Link><Link href="/#store-catalog" className="quiet-link">Browse the medicine directory</Link></div></main><Footer/></>;}

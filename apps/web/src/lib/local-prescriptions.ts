@@ -1,17 +1,15 @@
-/** Local disk storage only. Each image is private to its buyer and backend-authorized admins. */
+﻿/** Compatibility adapter: private attachment bytes live in the API database. */
 import "server-only";
-import {mkdir, readFile, writeFile} from "node:fs/promises";
-import path from "node:path";
-import {randomUUID} from "node:crypto";
 import {API_BASE_URL} from "./constants";
 
-const directory = path.resolve(process.cwd(), "../../.local/marketplace-prescriptions");
-export async function prescriptionUser(request: Request): Promise<{id:string; is_admin:boolean} | null> {
+type PrescriptionUser = {id:string; is_admin:boolean; authorization:string};
+export async function prescriptionUser(request: Request): Promise<PrescriptionUser | null> {
   const authorization = request.headers.get("authorization");
   if (!authorization || !API_BASE_URL) return null;
   const response = await fetch(`${API_BASE_URL}/api/auth/me`, {headers:{authorization},cache:"no-store",signal:AbortSignal.timeout(15000)});
   if (!response.ok) return null;
-  return response.json();
+  const user = await response.json();
+  return {...user,authorization};
 }
 export function imageType(bytes: Uint8Array): string | null {
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
@@ -19,21 +17,22 @@ export function imageType(bytes: Uint8Array): string | null {
   if (Buffer.from(bytes.slice(0,4)).toString() === "RIFF" && Buffer.from(bytes.slice(8,12)).toString() === "WEBP") return "image/webp";
   return null;
 }
-export async function savePrescription(bytes: Uint8Array, owner: string, type: string): Promise<string> {
-  const id = randomUUID();
-  await mkdir(directory,{recursive:true});
-  await writeFile(path.join(directory,id),bytes,{flag:"wx",mode:0o600});
-  await writeFile(path.join(directory,id+".json"),JSON.stringify({owner,type}),{flag:"wx",mode:0o600});
-  return `/uploads/${id}`;
+export async function savePrescription(bytes: Uint8Array, _owner: string, type: string, authorization: string): Promise<string> {
+  const form = new FormData();
+  form.append("image", new Blob([new Uint8Array(bytes)], {type}), "prescription");
+  const response = await fetch(`${API_BASE_URL}/api/v1/store/prescriptions`, {
+    method:"POST",headers:{authorization},body:form,cache:"no-store",signal:AbortSignal.timeout(60000),
+  });
+  if (!response.ok) throw new Error("Prescription storage unavailable");
+  const result = await response.json();
+  return result.prescription_image_url;
 }
-export async function readPrescription(id: string, user: {id:string; is_admin:boolean}): Promise<{bytes:Buffer; type:string} | null> {
+export async function readPrescription(id: string, user: PrescriptionUser): Promise<{bytes:Buffer; type:string} | null> {
   if (!/^[a-f0-9-]{36}$/.test(id)) return null;
-  try {
-    const meta = JSON.parse(await readFile(path.join(directory,id+".json"),"utf8")) as {owner:string;type:string};
-    if (meta.owner !== user.id && !user.is_admin) return null;
-    return {bytes:await readFile(path.join(directory,id)),type:meta.type};
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
+  const response = await fetch(`${API_BASE_URL}/api/v1/store/prescriptions/${id}`, {
+    headers:{authorization:user.authorization},cache:"no-store",signal:AbortSignal.timeout(30000),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error("Prescription unavailable");
+  return {bytes:Buffer.from(await response.arrayBuffer()),type:response.headers.get("content-type") || "application/octet-stream"};
 }

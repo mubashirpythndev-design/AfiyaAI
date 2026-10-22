@@ -99,6 +99,22 @@ def test_cabinet_flow(client):
     assert cab_body["items"][0]["medicine_id"] == med_id
     assert cab_body["items"][0]["medicine"]["brand_name"] == "Augmentin"
 
+    # Persist purchase units over HTTP and return their normalized budget quantity.
+    options = cab_body["items"][0]["quantity_options"]
+    strip = next(o for o in options if o["unit"] == "strip")
+    updated = client.patch(f"/api/v1/cabinet/{med_id}/reminder", headers=auth_header,
+        json={"monthly_quantity": 3, "monthly_quantity_unit": "strip"})
+    assert updated.status_code == 200
+    assert updated.json()["monthly_units"] == 3 * strip["units_per_quantity"]
+    reloaded = client.get("/api/v1/cabinet", headers=auth_header).json()
+    assert reloaded["items"][0]["monthly_quantity_unit"] == "strip"
+    assert reloaded["items"][0]["monthly_quantity"] == 3
+    assert reloaded["budget"]["monthly_cost"] > 0
+    invalid = client.patch(f"/api/v1/cabinet/{med_id}/reminder", headers=auth_header,
+        json={"monthly_quantity": 3, "monthly_quantity_unit": "capsule"})
+    assert invalid.status_code == 422
+    assert client.get("/api/v1/cabinet", headers=auth_header).json()["items"][0]["monthly_quantity_unit"] == "strip"
+
     # 8. DELETE /api/v1/cabinet/{med_id} -> 204 No Content
     del_res = client.delete(f"/api/v1/cabinet/{med_id}", headers=auth_header)
     assert del_res.status_code == 204

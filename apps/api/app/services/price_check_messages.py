@@ -8,21 +8,21 @@ The disclaimer is ALWAYS attached and always carries the freshness warning:
 
 EN = {
     "overcharged": (
-        "You were charged Rs. {amount} MORE than the DRAP-notified MRP "
+        "You were charged Rs. {amount} MORE than the stored reference price "
         "of Rs. {mrp} for this pack."
     ),
     "ok_at_mrp": (
-        "The price you paid is exactly at the DRAP-notified MRP of Rs. {mrp}."
+        "The price you paid is exactly at the stored reference price of Rs. {mrp}."
     ),
     "below_mrp": (
-        "You paid Rs. {amount} LESS than the DRAP-notified MRP of Rs. {mrp}."
+        "You paid Rs. {amount} LESS than the stored reference price of Rs. {mrp}."
     ),
     "no_data": (
-        "We do not have a DRAP-notified MRP for this medicine and pack "
+        "We do not have a stored reference price for this medicine and pack "
         "size yet, so no comparison was made."
     ),
     "currency_mismatch": (
-        "Price comparison is only available for PKR (DRAP-notified prices) "
+        "Price comparison is only available for PKR (reference prices) "
         "right now, so no comparison was made."
     ),
     "needs_confirmation": (
@@ -45,20 +45,20 @@ EN = {
 
 UR = {
     "overcharged": (
-        "آپ سے اس پیک کی سرکاری ایم آر پی (Rs. {mrp}) سے Rs. {amount} زیادہ لیے گئے ہیں۔"
+        "آپ سے اس پیک کی محفوظ حوالہ قیمت (Rs. {mrp}) سے Rs. {amount} زیادہ لیے گئے ہیں۔"
     ),
     "ok_at_mrp": (
-        "آپ نے جو قیمت ادا کی وہ DRAP کی مقررہ ایم آر پی (Rs. {mrp}) کے بالکل برابر ہے۔"
+        "آپ نے جو قیمت ادا کی وہ محفوظ حوالہ قیمت (Rs. {mrp}) کے بالکل برابر ہے۔"
     ),
     "below_mrp": (
         "آپ نے ایم آر پی (Rs. {mrp}) سے Rs. {amount} کم ادا کیے۔"
     ),
     "no_data": (
-        "اس دوا اور پیک سائز کے لیے ہمارے پاس ابھی DRAP کی مقررہ ایم آر پی "
+        "اس دوا اور پیک سائز کے لیے ہمارے پاس ابھی محفوظ حوالہ قیمت "
         "موجود نہیں، اس لیے کوئی موازنہ نہیں کیا گیا۔"
     ),
     "currency_mismatch": (
-        "قیمت کا موازنہ فی الحال صرف PKR (DRAP کی مقررہ قیمتوں) کے لیے دستیاب ہے، "
+        "قیمت کا موازنہ فی الحال صرف PKR (محفوظ حوالہ قیمتوں) کے لیے دستیاب ہے، "
         "اس لیے کوئی موازنہ نہیں کیا گیا۔"
     ),
     "needs_confirmation": (
@@ -84,17 +84,17 @@ ROMAN_UR = {
         "Aap se is pack ki MRP (Rs. {mrp}) se Rs. {amount} zyada liye gaye."
     ),
     "ok_at_mrp": (
-        "Aap ne jo price di wo DRAP notified MRP (Rs. {mrp}) ke barabar hai."
+        "Aap ne jo price di wo stored reference price (Rs. {mrp}) ke barabar hai."
     ),
     "below_mrp": (
         "Aap ne MRP (Rs. {mrp}) se Rs. {amount} kam diye."
     ),
     "no_data": (
-        "Is dawai aur pack size ke liye hamare paas abhi DRAP notified MRP "
+        "Is dawai aur pack size ke liye hamare paas abhi stored reference price "
         "mojood nahi, is liye koi comparison nahi ki gayi."
     ),
     "currency_mismatch": (
-        "Price comparison filhaal sirf PKR (DRAP notified prices) ke liye "
+        "Price comparison filhaal sirf PKR (reference prices) ke liye "
         "available hai, is liye koi comparison nahi ki gayi."
     ),
     "needs_confirmation": (

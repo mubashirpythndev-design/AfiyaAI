@@ -179,11 +179,14 @@ export interface StoreOrder {
   items: (StoreMedicine & StoreCartItem & {id?: string; unit_price: Money; quantity_unit: "pack"; cheapest_alternative: StoreAlternative | null})[];
   user_id?: string; buyer_name?: string | null; buyer_email?: string | null;
 }
-export interface AdminAnalytics {
+export interface AdminAnalyticsMetrics {
   today_revenue_pkr: Money; monthly_revenue_pkr: Money; total_orders_count: number;
   pending_rx_count: number; concierge_queue_count: number; total_patient_savings_pkr: Money;
   low_stock_items: StoreCatalogItem[]; top_categories: {category: string; order_count: number; revenue_pkr: Money}[];
   includes_demo_orders: boolean; revenue_basis: string;
+}
+export interface AdminAnalytics extends AdminAnalyticsMetrics {
+  real_metrics: AdminAnalyticsMetrics; demo_metrics: AdminAnalyticsMetrics;
 }
 export interface PharmacySeller {
   id: string; pharmacy_name: string; city: string; address: string | null; drug_license_no: string;
@@ -213,9 +216,20 @@ export const verifyAdminSeller = (id: string, payload: {verification_status:"VER
 export const syncAdminCatalog = (payload: {records: Record<string, unknown>[]; dry_run?: boolean}) => apiFetch<CatalogSyncResult>("/api/admin/catalog-sync", jsonRequest(payload));
 export async function uploadStorePrescription(file: File): Promise<{prescription_image_url: string}> {
   const body = new FormData(); body.append("image",file);
-  const response = await fetch("/api/marketplace/prescriptions", {method:"POST", headers:await authHeaders(),body});
+  const response = await fetchResponse("/api/v1/store/prescriptions", {method:"POST", headers:await authHeaders(),body}, 60000);
   if (response.status === 401) handleUnauthorized();
   return responseData(response);
+}
+
+export async function fetchStorePrescription(reference: string, signal?: AbortSignal): Promise<Blob> {
+  if (!/^\/uploads\/[a-f0-9-]{36}$/.test(reference)) throw new Error("Invalid private prescription reference.");
+  const id = reference.split("/").pop();
+  const response = await fetchResponse(`/api/v1/store/prescriptions/${id}`, {
+    headers:await authHeaders(signal, 10000),cache:"no-store",signal,
+  },30000);
+  if (response.status === 401) handleUnauthorized();
+  if (!response.ok) await responseData(response);
+  return response.blob();
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit, timeoutMs = 60000): Promise<T> {
@@ -371,11 +385,27 @@ export async function fetchAdminUsers(opts?: {
 
 // Digital Medicine Cabinet
 export async function addToCabinet(
-  medicineId: string
+  medicineId: string,
+  dosageInstruction?: string,
+  reminderTimes?: string[]
 ): Promise<CabinetItem> {
   return apiFetch<CabinetItem>("/api/v1/cabinet", {
     method: "POST",
-    body: JSON.stringify({ medicine_id: medicineId }),
+    body: JSON.stringify({
+      medicine_id: medicineId,
+      dosage_instruction: dosageInstruction,
+      reminder_times: reminderTimes,
+    }),
+  });
+}
+
+export async function updateCabinetReminder(
+  medicineId: string,
+  data: { dosage_instruction?: string; reminder_times?: string[]; monthly_units?: number | null; monthly_quantity?: number | null; monthly_quantity_unit?: string | null }
+): Promise<CabinetItem> {
+  return apiFetch<CabinetItem>(`/api/v1/cabinet/${medicineId}/reminder`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
   });
 }
 
@@ -437,19 +467,8 @@ export async function transcribeAudio(
   formData.append("file", audioBlob, "speech.webm");
   formData.append("language", language);
 
-  const res = await fetch(`${API_BASE_URL}/api/chat/transcribe-voice`, {
-    method: "POST",
-    body: formData,
+  const res = await fetchResponse("/api/chat/transcribe-voice", {
+    method: "POST", body: formData,
   });
-
-  if (!res.ok) {
-    throw new Error(`Audio transcription failed: HTTP ${res.status}`);
-  }
-
-  return res.json();
+  return responseData<{ transcript: string; error?: string }>(res);
 }
-
-
-
-
-

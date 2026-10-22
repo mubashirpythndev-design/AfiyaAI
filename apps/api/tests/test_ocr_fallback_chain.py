@@ -11,7 +11,7 @@ from app.services.ocr_errors import OCRServiceBusy
 from app.services.ocr_models import OCR_MODEL_CHAIN
 from test_ocr_review import image_bytes, provider, response, row
 
-CHAIN=("gemini-3.5-flash-lite","gemini-3.1-flash-lite","gemini-3.8-flash")
+CHAIN=("gemini-3.8-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite")
 
 @pytest.fixture(autouse=True)
 def isolated(monkeypatch,tmp_path):

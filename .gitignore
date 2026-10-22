@@ -1,7 +1,19 @@
 # ---------- Environment / secrets ----------
 .env
 .env.*
+.envrc
+.envrc.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+credentials.json
+service-account*.json
+*service_account*.json
+.aws/
 
 # ---------- Node / Next.js ----------
 node_modules/
@@ -12,6 +24,7 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 .vercel/
+.turbo/
 
 # Testing
 coverage/
@@ -35,7 +48,12 @@ dist/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+coverage.xml
+junit*.xml
 htmlcov/
+.tox/
+.nox/
 
 # Virtual environments
 venv/
@@ -44,7 +62,16 @@ env/
 
 # Databases (local dev)
 *.db
+*.db-*
+*.sqlite
+*.sqlite-*
 *.sqlite3
+*.sqlite3-*
+*.dump
+*.backup
+*.sql.gz
+.prescription_ocr_cache*
+prescription_ocr_cache.sqlite*
 
 # ---------- Logs ----------
 logs/
@@ -61,12 +88,36 @@ desktop.ini
 *.swp
 *.swo
 
-# ---------- Misc ----------
-*.pem
-*.key
-
-# Test artifacts (screenshots / synthetic inputs / prescriptions / PDFs) — never commit to repo root
+# ---------- Presentations and generated documents ----------
 *.pdf
+*.ppt
+*.pptx
+*.pps
+*.ppsx
+*.odp
+
+# ---------- Private uploads, screenshots and local image inputs ----------
+# Required frontend assets are explicitly allowed below.
+*.jpeg
+*.jpg
+*.png
+*.webp
+*.gif
+*.bmp
+*.tif
+*.tiff
+*.heic
+*.heif
+!/apps/web/public/**/*.jpeg
+!/apps/web/public/**/*.jpg
+!/apps/web/public/**/*.png
+!/apps/web/public/**/*.webp
+!/apps/web/public/**/*.gif
+!/apps/web/src/**/*.jpeg
+!/apps/web/src/**/*.jpg
+!/apps/web/src/**/*.png
+!/apps/web/src/**/*.webp
+!/apps/web/src/**/*.gif
 /prescription*
 /e2e_test_*.png
 /test1_*.png
@@ -74,12 +125,18 @@ desktop.ini
 /alert_check_swagger_final.png
 /[0-9][0-9]_*.png
 /Screenshot*.png
-/*.jpeg
-/*.jpg
-/*.png
-
-
-
-
-# Private marketplace prescription images (local only)
-/.local/marketplace-prescriptions/
+# ---------- Local previews, generated artifacts and scratch work ----------
+.local/
+/scratch/
+/artifacts/
+playwright-report/
+test-results/
+/generate_presentation_pdf.py
+/generate_presentation_pdf_en.py
+/generate_separate_guides.py
+/generate_technical_master_pdf.py
+*.bak
+*.tmp
+*.temp
+*.orig
+*.rej

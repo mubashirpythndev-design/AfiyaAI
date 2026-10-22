@@ -1,0 +1,7 @@
+import { Pill, Search, ScanLine, Camera, Tags, Scale, ShieldCheck, MessageSquare, BookOpen, Wallet, Bell, Archive, Clock, Sunrise, Sun, Moon, Share2, Pencil, ClipboardList, FlaskConical, CircleAlert, CircleCheck, HeartPulse, Wind, Droplets, Syringe, Package, Hash, ArrowRight, Square, Volume2, Copy, LockKeyhole, Lightbulb, type LucideIcon } from "lucide-react";
+const symbols: Record<string, LucideIcon> = {"💊":Pill,"🔍":Search,"📸":Camera,"🏷️":Tags,"⚖️":Scale,"🛡️":ShieldCheck,"💬":MessageSquare,"💡":Lightbulb,"💰":Wallet,"🔔":Bell,"🗄️":Archive,"⭐":Archive,"🕒":Clock,"⏰":Clock,"🌅":Sunrise,"☀️":Sun,"🌙":Moon,"📲":Share2,"✍️":Pencil,"📋":ClipboardList,"🧪":FlaskConical,"⚠️":CircleAlert,"⚠":CircleAlert,"🔴":CircleAlert,"🟡":CircleAlert,"🟢":CircleCheck,"🌟":CircleCheck,"🩺":HeartPulse,"💨":Wind,"🌬️":Wind,"💧":Droplets,"🩸":Droplets,"💉":Syringe,"📦":Package,"🔢":Hash,"👉":ArrowRight,"🚀":ArrowRight,"⚡":ScanLine,"✨":BookOpen,"⏹️":Square,"🔊":Volume2,"🔒":LockKeyhole,"🤖":MessageSquare,"🇵🇰":HeartPulse,"🦠":ShieldCheck,"🫁":HeartPulse,"🤧":Wind,"❤️":HeartPulse,"🫄":HeartPulse};
+export default function AppIcon({symbol, className="", size=18}: {symbol:string;className?:string;size?:number}) {
+ const Icon=symbols[symbol] ?? Pill;
+ return <Icon size={size} strokeWidth={1.7} aria-hidden="true" className={"inline-block shrink-0 align-middle " + className}/>;
+}
+export {Search, ScanLine, ShieldCheck, MessageSquare, Archive, ArrowRight, BookOpen, Copy};

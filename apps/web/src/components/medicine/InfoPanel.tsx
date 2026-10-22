@@ -1,5 +1,6 @@
 "use client";
 
+import AppIcon from "@/components/shared/AppIcon";
 import type { MedicineInfo, Language } from "@/lib/types";
 import { t } from "@/lib/i18n";
 import SaveToCabinetButton from "./SaveToCabinetButton";
@@ -32,7 +33,7 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
   }, {} as Record<string, typeof knowledge_chunks>);
 
   const typeLabels: Record<string, string> = {
-    verified_profile: "Verified Profile & Classification",
+    verified_profile: "Medicine Profile & Classification",
     when_to_use: "When to Use / Indications",
     uses: "Uses & Indications",
     side_effects: "Side Effects & Adverse Reactions",
@@ -57,12 +58,12 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
   return (
     <div className="animate-slide-up space-y-4">
       {/* Medicine header */}
-      <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-5 border border-primary/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-surface rounded-2xl p-5 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {isGenericSearch ? (
           <div>
             <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-accent/20 text-accent border border-accent/30">
-                🧪 Generic Molecule Overview
+                <AppIcon symbol="🧪" /> Generic Molecule Overview
               </span>
               <span className="text-[11px] font-semibold text-muted">
                 {medicine.strength} {medicine.dosage_form}
@@ -184,7 +185,7 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
                             : "bg-surface-hover hover:bg-primary hover:text-white border border-border"
                         }`}
                       >
-                        {isSelected ? "✓ Active View" : "⚖️ Compare Prices"}
+                        {isSelected ? "✓ Active View" : "Compare Prices"}
                       </button>
                     )}
                   </div>
@@ -244,7 +245,7 @@ export default function InfoPanel({ info, language = "en", onRequireAuth, isGene
                 title="Verify at DRAP Price Portal"
               >
                 <span>{s.name}</span>
-                <span className="text-[10px]">↗</span>
+                <span className="text-[10px]"><AppIcon symbol="↗" /></span>
               </a>
             </span>
           ))}

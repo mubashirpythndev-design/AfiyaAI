@@ -17,7 +17,7 @@ test('OCR busy response survives the client parser and an attached image can be 
     calls.push({url,options});
     assert.equal(options.headers.Authorization,'Bearer test-token');
     if(url.endsWith('/api/ocr/extract'))return Response.json({error:'OCR_SERVICE_BUSY',message:'AI OCR models are temporarily busy.',fallback_available:true},{status:503});
-    if(url==='/api/marketplace/prescriptions')return Response.json({prescription_image_url:'/uploads/test-reference'});
+    if(url==='http://backend.test/api/v1/store/prescriptions')return Response.json({prescription_image_url:'/uploads/test-reference'});
     if(url.endsWith('/concierge-rx')){assert.equal(JSON.parse(options.body).prescription_image_url,'/uploads/test-reference');return Response.json({id:'order-1',status:'AWAITING_PHARMACIST_CART'});}
     throw Error('Unexpected endpoint');
   }});
@@ -29,6 +29,17 @@ test('OCR busy response survives the client parser and an attached image can be 
 test('a non-JSON proxy 503 is still recognized as an OCR fallback condition',async()=>{
   const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=>null,clearSession:()=>{}}},{fetch:async()=>new Response('Unavailable',{status:503})});
   await assert.rejects(api.extractFromImage(new File(['image'],'rx.png')),error=>api.isOCRServiceBusy(error)&&error.status===503);
+});
+test('private attachment reads go directly to the API with bearer authentication',async()=>{
+  const reference='/uploads/00000000-0000-0000-0000-000000000001';
+  const api=compile('apps/web/src/lib/api.ts',{'./constants':{API_BASE_URL:'http://backend.test'},'./auth':{getAuthToken:async()=> 'test-token',clearSession:()=>{}}},{fetch:async(url,options)=>{
+    assert.equal(url,'http://backend.test/api/v1/store/prescriptions/00000000-0000-0000-0000-000000000001');
+    assert.equal(options.headers.Authorization,'Bearer test-token');
+    assert.equal(options.cache,'no-store');
+    return new Response('synthetic-image',{headers:{'Content-Type':'image/png'}});
+  }});
+  assert.equal(await (await api.fetchStorePrescription(reference)).text(),'synthetic-image');
+  await assert.rejects(api.fetchStorePrescription('/uploads/../../escape'),/Invalid private prescription/);
 });
 test('browser OCR deadlines leave room for the complete server fallback chain',async()=>{
   const deadlines=[];
@@ -48,7 +59,7 @@ test('fallback button submits once, keeps the image and records the awaiting-pha
   const updates=[],state=[],uploaded=[],submitted=[],file=new File(['image'],'rx.png');let index=0;
   const react={useState:value=>{const key=index++;state[key]=value;return[value,next=>{state[key]=next;updates.push(next);}];},useRef:value=>({current:value})};
   const api={uploadStorePrescription:async actual=>{uploaded.push(actual);await new Promise(resolve=>setImmediate(resolve));return {prescription_image_url:'/uploads/photo'};},submitConciergeRx:async payload=>{submitted.push(payload);return{id:'order-2',status:'AWAITING_PHARMACIST_CART'};}};
-  const component=compile('apps/web/src/components/marketplace/OCRBusyFallback.tsx',{'react':react,'react/jsx-runtime':require('../apps/web/node_modules/react/jsx-runtime'),'lucide-react':{},'@/lib/api':api,'@/lib/marketplace':{errorMessage:error=>error.message},'./MarketplaceProvider':{useMarketplace:()=>({requireAuth:()=>true,openOrders:()=>{}})},'./MarketplaceUI':{button:'',secondary:'',ErrorBanner:()=>null}}).default;
+  const component=compile('apps/web/src/components/marketplace/OCRBusyFallback.tsx',{'react':react,'react/jsx-runtime':require('../apps/web/node_modules/react/jsx-runtime'),'lucide-react':{},'@/lib/api':api,'@/lib/marketplace':{errorMessage:error=>error.message},'./MarketplaceProvider':{useMarketplace:()=>({catalog:[],requireAuth:()=>true,openOrders:()=>{}})},'./DemoNotice':{default:()=>null},'./MarketplaceUI':{button:'',secondary:'',ErrorBanner:()=>null}}).default;
   const button=elements(component({file})).find(node=>node.type==='button');
   assert.ok(button);button.props.onClick();button.props.onClick();
   for(let i=0;i<10&&!state[0];i++)await new Promise(resolve=>setImmediate(resolve));

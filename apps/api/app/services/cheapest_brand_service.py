@@ -65,6 +65,8 @@ def _normalize_dosage_form(form: str | None) -> str:
     if not form:
         return ""
     f = form.strip().lower()
+    if any(marker in f for marker in EXTENDED_RELEASE_MARKERS) or any(tok in re.split(r"[^a-z0-9]+", f) for tok in EXTENDED_RELEASE_TOKENS):
+        return f
     if "tablet" in f or "caplet" in f or "tab" in f:
         return "tablet"
     if "capsule" in f or "cap" in f:
@@ -202,32 +204,35 @@ async def get_cheapest_brands(
         .where(Medicine.generic_name.isnot(None))
         .where(Medicine.strength.isnot(None))
     )
-    result = await db.execute(stmt)
+    result = await db.execute(stmt.where(
+        Medicine.generic_name.ilike(generic_key), Medicine.strength.ilike(strength_key)
+    ))
     same_group = [
         m
         for m in result.scalars().all()
         if _normalize(m.generic_name) == generic_key
         and _normalize(m.strength) == strength_key
-        and (not form_key or _normalize_dosage_form(m.dosage_form) == form_key)
+        and bool(form_key) and _normalize_dosage_form(m.dosage_form) == form_key
     ]
 
+    # Fetch the group prices once instead of one query per brand.
+    rows = (await db.execute(
+        select(MedicinePrice)
+        .where(MedicinePrice.medicine_id.in_([m.id for m in same_group]))
+        .order_by(MedicinePrice.collected_at.desc(), MedicinePrice.created_at.desc(), MedicinePrice.id.desc())
+    )).scalars().all()
+    latest = {}
+    for row in rows:
+        latest.setdefault(row.medicine_id, row)
     options: list[BrandOption] = []
     for med in same_group:
-        # Current price: most recently collected DB price for this medicine.
-        price_stmt = (
-            select(MedicinePrice)
-            .where(MedicinePrice.medicine_id == med.id)
-            .order_by(
-                MedicinePrice.collected_at.desc(),
-                MedicinePrice.created_at.desc(),
-            )
-            .limit(1)
-        )
-        price_row = (await db.execute(price_stmt)).scalar_one_or_none()
+        price_row = latest.get(med.id)
         if price_row is None:
             continue  # no stored price -> excluded; never estimate (spec 08)
 
         units, parsed_ok = parse_pack_units(price_row.package_size)
+        if not parsed_ok or units <= 0 or price_row.currency != "PKR":
+            continue
         per_unit = _q2(Decimal(price_row.price) / Decimal(units))
 
         options.append(
@@ -253,7 +258,7 @@ async def get_cheapest_brands(
             "No stored prices found for this (generic, strength) group."
         )
 
-    options.sort(key=lambda o: (o.per_unit, o.brand_name.lower()))
+    options.sort(key=lambda o: (o.price / Decimal(o.units), o.brand_name.lower()))
     cheapest = options[0]
 
     queried_option = next((o for o in options if o.medicine_id == medicine_id), None)

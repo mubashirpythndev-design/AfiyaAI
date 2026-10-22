@@ -345,3 +345,105 @@ async def test_client_name_header_not_trusted(auth_db, monkeypatch):
         assert user.name == "User"
         assert user.name != "Malicious Spoofed Name"
 
+
+async def test_clerk_user_collision_reconciled_with_existing_user(auth_db, monkeypatch):
+    """Verify that when a Clerk token comes in for a user whose email matches an existing account,
+
+    the accounts are reconciled without UNIQUE constraint errors, placeholder records are deleted,
+    and child data is preserved.
+    """
+    from unittest.mock import AsyncMock
+    from app.services import auth_dependency
+    from app.db.database import User, Medicine, UserCabinet
+    from sqlalchemy import select
+
+    clerk_id = "user_3Ik5cE8TrOYCYLmtLXyHlmd7Ht1"
+    existing_uuid = "01373079-6bde-4168-bc83-82b72c6c841e"
+    user_email = "imforextrader991@gmail.com"
+
+    async with auth_db() as db:
+        # 1. Pre-populate existing user with email and a medicine in cabinet
+        med = Medicine(
+            id="test-panadol-id",
+            brand_name="Panadol",
+            generic_name="Paracetamol",
+            dosage_form="Tablet",
+            strength="500mg",
+        )
+        db.add(med)
+        primary = User(
+            id=existing_uuid,
+            name="Mubashir",
+            email=user_email,
+            password_hash="hash123",
+            is_verified=True,
+            is_admin=True,
+        )
+        db.add(primary)
+        # Orphaned placeholder created before Clerk email resolution
+        placeholder = User(
+            id=clerk_id,
+            name="User",
+            email=f"{clerk_id}@clerk.user",
+            password_hash=None,
+            is_verified=True,
+            is_admin=False,
+        )
+        db.add(placeholder)
+        cab = UserCabinet(
+            id="cab-1",
+            user_id=existing_uuid,
+            medicine_id="test-panadol-id",
+        )
+        db.add(cab)
+        await db.commit()
+
+    # Mock Clerk token returning sub=clerk_id and verified user info
+    token_payload = {
+        "sub": clerk_id,
+        "iss": "https://pro-alien-4201.clerk.accounts.dev",
+        "exp": 9999999999,
+    }
+    monkeypatch.setattr(auth_dependency, "verify_token_payload", lambda t: token_payload)
+    monkeypatch.setattr(
+        auth_dependency,
+        "fetch_clerk_user_info",
+        AsyncMock(return_value={"email": user_email, "name": "Mubashir Khalid"}),
+    )
+
+    async with auth_db() as db:
+        user = await auth_dependency.get_current_user(
+            authorization="Bearer valid_clerk_token",
+            db=db,
+        )
+        # Must resolve to the primary user row without crashing
+        assert user.id == existing_uuid
+        assert user.email == user_email
+        assert user.name == "Mubashir Khalid"
+
+        # The placeholder row must be reconciled and cleaned up
+        res_place = await db.execute(select(User).where(User.id == clerk_id))
+        assert res_place.scalar_one_or_none() is None
+
+        # Cabinet item must still be intact on primary user
+        res_cab = await db.execute(select(UserCabinet).where(UserCabinet.user_id == existing_uuid))
+        assert res_cab.scalar_one_or_none() is not None
+
+
+async def test_get_optional_current_user_safe_on_unexpected_error(auth_db, monkeypatch):
+    """Optional auth dependency must never bubble unexpected exceptions to public routes."""
+    from app.services import auth_dependency
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(
+        auth_dependency,
+        "get_current_user",
+        AsyncMock(side_effect=RuntimeError("Database transient connection error")),
+    )
+
+    async with auth_db() as db:
+        res = await auth_dependency.get_optional_current_user(
+            authorization="Bearer some_token",
+            db=db,
+        )
+        assert res is None

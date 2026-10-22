@@ -55,7 +55,7 @@ def test_upgrade_downgrade_returns_schema_to_prior_state(tmp_path):
         )
 
     # --- Upgrade ---
-    run_alembic(db_file, "upgrade", "head")
+    run_alembic(db_file, "upgrade", "0001")
     assert _columns(engine) == PRE_COLUMNS | {"drap_reg_no"}, (
         "upgrade must add ONLY drap_reg_no — nothing dropped/renamed/retyped"
     )
@@ -67,7 +67,7 @@ def test_upgrade_downgrade_returns_schema_to_prior_state(tmp_path):
     assert row.brand_name == "Canary"  # data survives upgrade
 
     # --- Upgrade again (idempotency) ---
-    run_alembic(db_file, "upgrade", "head")
+    run_alembic(db_file, "upgrade", "0001")
     assert _columns(engine) == PRE_COLUMNS | {"drap_reg_no"}
 
     # --- Downgrade ---

@@ -5,9 +5,12 @@
  * Author / Developer: Mubashir (Lead Developer)
  */
 
-import { useState } from "react";
+import AppIcon from "@/components/shared/AppIcon";
+import { useEffect, useState } from "react";
 import type { MedicineCandidate, Language } from "@/lib/types";
 import { t, localizeDirections } from "@/lib/i18n";
+import SaveToCabinetButton from "@/components/medicine/SaveToCabinetButton";
+import { addToCabinet } from "@/lib/api";
 
 function getFormBadge(form?: string | null, language: Language = "en") {
   const f = (form || "").toLowerCase();
@@ -64,6 +67,7 @@ interface OCRResultsProps {
   candidates: MedicineCandidate[];
   rawText: string;
   clinicalSummary?: string | null;
+  globalSafetyNotes?: string[] | null;
   onSelectCandidate: (candidate: MedicineCandidate) => void;
   onAskAI?: (prompt: string) => void;
   language?: Language;
@@ -73,13 +77,25 @@ export default function OCRResults({
   candidates,
   rawText,
   clinicalSummary,
+  globalSafetyNotes,
   onSelectCandidate,
   onAskAI,
   language = "en",
 }: OCRResultsProps) {
   const [filter, setFilter] = useState<"all" | "available" | "unavailable">("all");
+  const [savingAll, setSavingAll] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [allSaved, setAllSaved] = useState(false);
 
-  const isCandidateAvailable = (c: MedicineCandidate) => Boolean(c.is_verified && c.matched_medicine);
+  useEffect(() => { setFilter("all"); setAllSaved(false); setSaveError(null); }, [candidates]);
+
+  const isCandidateAvailable = (c: MedicineCandidate) =>
+    Boolean(
+      c.is_verified && c.reviewed && !c.needs_confirmation &&
+      c.matched_medicine &&
+      c.strength_assessment?.status !== "STRENGTH_MISMATCH" &&
+      c.form_assessment?.status !== "FORM_MISMATCH"
+    );
 
   const availableCandidates = candidates.filter(isCandidateAvailable);
   const unavailableCandidates = candidates.filter((c) => !isCandidateAvailable(c));
@@ -91,8 +107,31 @@ export default function OCRResults({
       ? unavailableCandidates
       : candidates;
 
+  const handleSaveAll = async () => {
+    if (savingAll || !availableCandidates.length) return;
+    setSavingAll(true);
+    setSaveError(null);
+    try {
+      for (const candidate of availableCandidates) {
+        if (candidate.matched_medicine) {
+          await addToCabinet(
+            candidate.matched_medicine.id,
+            candidate.dosage_instruction || undefined
+          );
+        }
+      }
+      setAllSaved(true);
+      setTimeout(() => setAllSaved(false), 4000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not save medicines. Please try again. Some entries may already have been saved.");
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
   return (
     <div className="animate-slide-up space-y-4">
+      {saveError && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger">{saveError}</p>}
       {/* Header & Status Counters */}
       <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -130,38 +169,76 @@ export default function OCRResults({
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 pt-3 border-t border-border">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-              filter === "all"
-                ? "bg-primary text-white shadow-sm"
-                : "bg-background/60 text-muted hover:text-foreground"
-            }`}
-          >
-            All ({candidates.length})
-          </button>
-          <button
-            onClick={() => setFilter("available")}
-            className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
-              filter === "available"
-                ? "bg-success text-white shadow-sm"
-                : "bg-background/60 text-muted hover:text-foreground"
-            }`}
-          >
-            ✓ Available ({availableCandidates.length})
-          </button>
-          {unavailableCandidates.length > 0 && (
+        {/* Filter Pills & Batch Action */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-border">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <button
-              onClick={() => setFilter("unavailable")}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
-                filter === "unavailable"
-                  ? "bg-warning text-white shadow-sm"
+              onClick={() => setFilter("all")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                filter === "all"
+                  ? "bg-primary text-white shadow-sm"
                   : "bg-background/60 text-muted hover:text-foreground"
               }`}
             >
-              ⚠️ Not in DB ({unavailableCandidates.length})
+              All ({candidates.length})
+            </button>
+            <button
+              onClick={() => setFilter("available")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                filter === "available"
+                  ? "bg-success text-white shadow-sm"
+                  : "bg-background/60 text-muted hover:text-foreground"
+              }`}
+            >
+              ✓ Ready ({availableCandidates.length})
+            </button>
+            {unavailableCandidates.length > 0 && (
+              <button
+                onClick={() => setFilter("unavailable")}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                  filter === "unavailable"
+                    ? "bg-warning text-white shadow-sm"
+                    : "bg-background/60 text-muted hover:text-foreground"
+                }`}
+              >
+                <AppIcon symbol="⚠️" /> Review / Unmatched ({unavailableCandidates.length})
+              </button>
+            )}
+          </div>
+
+          {availableCandidates.length > 0 && (
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={savingAll || allSaved}
+              className={`text-xs font-semibold px-3.5 py-1.5 rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 ${
+                allSaved
+                  ? "bg-success/20 text-success border-success/40"
+                  : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 "
+              }`}
+            >
+              {savingAll ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span>{language === "ur" ? "محفوظ ہو رہا ہے..." : "Saving All..."}</span>
+                </>
+              ) : allSaved ? (
+                <>
+                  <span>✓</span>
+                  <span>{language === "ur" ? "تمام محفوظ ہو گئے!" : "Saved All to Cabinet!"}</span>
+                </>
+              ) : (
+                <>
+                  <span><AppIcon symbol="⭐" /></span>
+                  <span>
+                    {language === "ur"
+                      ? `تمام (${availableCandidates.length}) کیبنٹ میں محفوظ کریں`
+                      : language === "roman_ur"
+                      ? `Tamam (${availableCandidates.length}) cabinet mein save karein`
+                      : `Save All to Cabinet (${availableCandidates.length})`}
+                  </span>
+                </>
+              )}
             </button>
           )}
         </div>
@@ -169,10 +246,10 @@ export default function OCRResults({
 
       {/* Clinical Prescription Analysis & Instructions Banner */}
       {clinicalSummary && (
-        <div className="bg-gradient-to-br from-primary/10 via-surface to-accent/10 rounded-2xl border border-primary/25 p-4 sm:p-5 shadow-sm space-y-2.5">
+        <div className="bg-surface rounded-2xl border border-border p-4 sm:p-5 shadow-sm space-y-2.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-primary font-bold text-sm">
-              <span className="text-base">🩺</span>
+              <span className="text-base"><AppIcon symbol="🩺" /></span>
               <span>
                 {language === "ur"
                   ? "ڈاکٹر کے نسخے کا طبی جائزہ اور ہدایات"
@@ -195,13 +272,34 @@ export default function OCRResults({
                 }
                 className="text-xs font-semibold text-primary hover:text-primary-dark inline-flex items-center gap-1 transition-colors cursor-pointer"
               >
-                <span>💬 {language === "ur" ? "چیٹ میں پوچھیں" : "Ask in Chat"}</span>
+                <span><AppIcon symbol="💬" /> {language === "ur" ? "چیٹ میں پوچھیں" : "Ask in Chat"}</span>
               </button>
             )}
           </div>
           <p className="text-sm text-foreground/90 leading-relaxed font-normal">
             {clinicalSummary}
           </p>
+        </div>
+      )}
+
+      {/* Global Prescription Safety Notes */}
+      {globalSafetyNotes && globalSafetyNotes.length > 0 && (
+        <div className="bg-amber-500/10 rounded-2xl border border-amber-500/30 p-4 sm:p-5 shadow-sm space-y-2">
+          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-sm">
+            <span className="text-base"><AppIcon symbol="🛡️" /></span>
+            <span>
+              {language === "ur"
+                ? "نسخے کے حفاظتی رہنما اصول (Safety Guardrails)"
+                : "Prescription Safety & Legitimacy Guardrails"}
+            </span>
+          </div>
+          <ul className="space-y-1 text-xs text-foreground/90 list-disc list-inside">
+            {globalSafetyNotes.map((note, idx) => (
+              <li key={idx} className="leading-relaxed font-medium">
+                {note}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -257,6 +355,7 @@ export default function OCRResults({
                       </h4>
                       {/* Show form badge only if form is not already part of raw_text */}
                       {(() => {
+                        if (!candidate.detected_form) return null;
                         const formBadge = getFormBadge(candidate.detected_form, language);
                         const alreadyContainsForm =
                           candidate.detected_form &&
@@ -266,51 +365,175 @@ export default function OCRResults({
                           <span
                             className={`text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 ${formBadge.classes}`}
                           >
-                            <span>{formBadge.icon}</span>
+                            <span><AppIcon symbol={formBadge.icon} /></span>
                             <span>{formBadge.label}</span>
                           </span>
                         );
                       })()}
-                      {/* Availability Tag */}
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 border ${
-                          isAvailable
-                            ? "bg-success/15 text-success border-success/30"
-                            : "bg-warning/15 text-warning border-warning/30"
-                        }`}
-                      >
-                        {isAvailable
-                          ? `✓ ${t(language, "ocr.available")}`
-                          : `⚠️ ${t(language, "ocr.unavailable")}`}
-                      </span>
+                      {/* Availability or Strength / Form Mismatch Tag */}
+                      {candidate.form_assessment?.status === "FORM_MISMATCH" ? (
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 border bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30">
+                          <AppIcon symbol="⚠️" /> {language === "ur" ? "خوراک کی شکل میں فرق" : "Dosage Form Mismatch"}
+                        </span>
+                      ) : candidate.strength_assessment?.status === "STRENGTH_MISMATCH" ? (
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 border bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30">
+                          <AppIcon symbol="⚠️" /> {language === "ur" ? "طاقت میں فرق" : "Strength Mismatch"}
+                        </span>
+                      ) : (
+                        <span
+                          className={`text-xs font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 border ${
+                            isAvailable
+                              ? "bg-success/15 text-success border-success/30"
+                              : "bg-warning/15 text-warning border-warning/30"
+                          }`}
+                        >
+                          {isAvailable
+                            ? `✓ ${t(language, "ocr.available")}`
+                            : candidate.reviewed ? `⚠️ ${t(language, "ocr.unavailable")}` : language === "ur" ? "تصدیق ضروری ہے" : language === "roman_ur" ? "Review zaroori hai" : "Review required"}
+                        </span>
+                      )}
+
+                      {/* No Strength Detected Badge */}
+                      {candidate.strength_assessment?.status === "NO_STRENGTH_DETECTED" && candidate.matched_medicine && (
+                        <span
+                          className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
+                          title="Prescription strength could not be confirmed from image. Showing database record strength."
+                        >
+                          <span><AppIcon symbol="ℹ️" /></span>
+                          <span>
+                            {language === "ur"
+                              ? `طاقت غیر تصدیق شدہ (ڈیٹا بیس: ${candidate.matched_medicine.strength})`
+                              : `Strength Unconfirmed (DB: ${candidate.matched_medicine.strength})`}
+                          </span>
+                        </span>
+                      )}
+
+                      {/* DRAP Legitimacy Badge */}
+                      {candidate.safety?.drap_status && (
+                        <span
+                          className={`text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                            candidate.safety.drap_status.is_verified
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                              : "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                          }`}
+                        >
+                          <span><AppIcon symbol={candidate.safety.drap_status.is_verified ? "🛡️" : "⚠️"} /></span>
+                          <span>{candidate.safety.drap_status.is_verified ? "DRAP Verified" : "Unverified"}</span>
+                        </span>
+                      )}
+
+                      {/* Risk Tier Badge */}
+                      {candidate.safety?.risk_tier && (
+                        <span
+                          title={candidate.safety.risk_tier.advisory}
+                          className={`text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                            candidate.safety.risk_tier.tier === 3
+                              ? "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30"
+                              : candidate.safety.risk_tier.tier === 2
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                              : "bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30"
+                          }`}
+                        >
+                          <span>{candidate.safety.risk_tier.tier === 3 ? "🔴" : candidate.safety.risk_tier.tier === 2 ? "🟡" : "🟢"}</span>
+                          <span>{candidate.safety.risk_tier.tier === 3 ? "Rx Only" : candidate.safety.risk_tier.tier === 2 ? "Caution" : "OTC"}</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Clinical Purpose Badge */}
                     {candidate.clinical_purpose && (
                       <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary font-medium bg-primary/10 border border-primary/20 px-3 py-1 rounded-xl">
-                        <span>💡</span>
+                        <span><AppIcon symbol="💡" /></span>
                         <span>{candidate.clinical_purpose}</span>
                       </div>
                     )}
 
-                    {isAvailable && candidate.matched_medicine ? (
+                    {candidate.form_assessment?.status === "FORM_MISMATCH" ? (
+                      <div className="mt-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                          <span><AppIcon symbol="⚠️" /></span>
+                          <span>
+                            {language === "ur"
+                              ? "خوراک کی شکل (فارم) میں فرق کی تنبیہ"
+                              : language === "roman_ur"
+                              ? "Dosage Form Mismatch Caution"
+                              : "Dosage Form Mismatch Caution"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-foreground/90 font-medium leading-relaxed">
+                          {language === "ur" || language === "roman_ur"
+                            ? (candidate.form_assessment.urdu_warning_message || candidate.form_assessment.warning_message)
+                            : candidate.form_assessment.warning_message}
+                        </p>
+                        {candidate.matched_medicine && (
+                          <p className="mt-1.5 text-muted text-[11px]">
+                            {language === "ur"
+                              ? "قریب ترین دستیاب ڈیٹا بیس ریکارڈ:"
+                              : language === "roman_ur"
+                              ? "Closest database match:"
+                              : "Closest database match:"}{" "}
+                            <span className="font-semibold text-foreground">{candidate.matched_medicine.brand_name}</span>{" "}
+                            ({candidate.matched_medicine.generic_name} &bull; {candidate.matched_medicine.dosage_form} &bull; {candidate.matched_medicine.strength})
+                          </p>
+                        )}
+                      </div>
+                    ) : candidate.strength_assessment?.status === "STRENGTH_MISMATCH" ? (
+                      <div className="mt-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-300">
+                          <span><AppIcon symbol="⚠️" /></span>
+                          <span>
+                            {language === "ur"
+                              ? "طاقت / خوراک میں فرق کی تنبیہ"
+                              : language === "roman_ur"
+                              ? "Strength Mismatch Caution"
+                              : "Strength Mismatch Caution"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-foreground/90 font-medium leading-relaxed">
+                          {language === "ur" || language === "roman_ur"
+                            ? (candidate.strength_assessment.urdu_warning_message || candidate.strength_assessment.warning_message)
+                            : candidate.strength_assessment.warning_message}
+                        </p>
+                        {candidate.matched_medicine && (
+                          <p className="mt-1.5 text-muted text-[11px]">
+                            {language === "ur"
+                              ? "قریب ترین دستیاب ڈیٹا بیس ریکارڈ:"
+                              : language === "roman_ur"
+                              ? "Closest database match:"
+                              : "Closest database match:"}{" "}
+                            <span className="font-semibold text-foreground">{candidate.matched_medicine.brand_name}</span>{" "}
+                            ({candidate.matched_medicine.generic_name} &bull; {candidate.matched_medicine.dosage_form} &bull; {candidate.matched_medicine.strength})
+                          </p>
+                        )}
+                      </div>
+                    ) : isAvailable && candidate.matched_medicine ? (
                       <p className="text-xs text-primary font-medium mt-1.5">
                         Matched Database Medicine:{" "}
                         <span className="font-bold text-foreground">
                           {candidate.matched_medicine.brand_name}
                         </span>{" "}
-                        ({candidate.matched_medicine.generic_name} &bull; {candidate.matched_medicine.strength})
+                        ({candidate.matched_medicine.generic_name} &bull; {candidate.matched_medicine.dosage_form} &bull; {candidate.matched_medicine.strength})
                       </p>
                     ) : (
-                      <p className="text-xs text-muted mt-1.5 leading-relaxed">
-                        {t(language, "ocr.unavailableDesc")}
-                      </p>
+                      <>
+                        <p className="text-xs text-muted mt-1.5 leading-relaxed">
+                          {candidate.matched_medicine
+                            ? language === "ur" ? "ڈیٹا بیس میں ممکنہ ریکارڈ ملا ہے۔ استعمال یا محفوظ کرنے سے پہلے اوپر ریڈنگ چیک اور کنفرم کریں۔" : language === "roman_ur" ? "Catalog mein mumkin record mila hai. Use ya save se pehle upar reading check aur confirm karein." : "A possible catalog record was found. Review and confirm the reading above before using or saving it."
+                            : t(language, "ocr.unavailableDesc")}
+                        </p>
+                        {candidate.safety?.drap_status?.warning && (
+                          <p className="text-xs text-rose-600 dark:text-rose-400 mt-1 font-medium leading-relaxed">
+                            <AppIcon symbol="⚠️" /> {language === "ur" || language === "roman_ur"
+                              ? candidate.safety.drap_status.urdu_warning
+                              : candidate.safety.drap_status.warning}
+                          </p>
+                        )}
+                      </>
                     )}
-
                     {candidate.dosage_instruction && (
                       <div className="mt-3 inline-flex flex-wrap items-center gap-2 px-3.5 py-1.5 rounded-xl bg-teal-950/40 border border-teal-500/30 text-xs">
                         <span className="text-teal-400 font-bold flex items-center gap-1.5 shrink-0">
-                          <span>🕒</span>
+                          <span><AppIcon symbol="🕒" /></span>
                           <span>{t(language, "ocr.directions")}:</span>
                         </span>
                         <span className="text-foreground/90 font-medium leading-relaxed">
@@ -321,7 +544,7 @@ export default function OCRResults({
                   </div>
                 </div>
 
-                {/* Right side: Confidence indicator */}
+                {/* Reported legibility is not a calibrated correctness probability. */}
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <span
                     className={`text-xs font-semibold px-3 py-1 rounded-full border ${
@@ -331,8 +554,9 @@ export default function OCRResults({
                         ? "bg-warning/15 text-warning border-warning/30"
                         : "bg-danger/15 text-danger border-danger/30"
                     }`}
+                  title="Model-reported legibility, not measured accuracy. Catalog similarity is separate."
                   >
-                    OCR: {Math.round(candidate.confidence * 100)}%
+                    {candidate.user_edited ? "User reviewed" : `Reported legibility: ${Math.round(candidate.confidence * 100)}%`}
                   </span>
                 </div>
               </div>
@@ -352,7 +576,7 @@ export default function OCRResults({
                           : `Explain ${candidate.raw_text} from my prescription: what is its clinical purpose, dosage timing, and precautions?`
                       );
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-dark bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-xl border border-accent/20 transition-all active:scale-95 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:text-accent-dark bg-accent/10 hover:bg-accent/20 px-3 py-1.5 rounded-xl border border-accent/20 transition-all  cursor-pointer"
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -367,24 +591,34 @@ export default function OCRResults({
                   </button>
                 )}
 
-                {isAvailable && (
-                  <button
-                    type="button"
-                    onClick={() => onSelectCandidate(candidate)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl border border-primary/20 transition-all active:scale-95 ml-auto cursor-pointer"
-                  >
-                    <span>
-                      {language === "ur"
-                        ? "قیمتیں اور متبادل دیکھیں"
-                        : language === "roman_ur"
-                        ? "Prices aur alternatives dekhein"
-                        : "View Prices & Alternatives"}
-                    </span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
-                )}
+                <div className="flex items-center gap-2 ml-auto flex-wrap">
+                  {isAvailable && candidate.matched_medicine && (
+                    <SaveToCabinetButton
+                      medicineId={candidate.matched_medicine.id}
+                      dosageInstruction={candidate.dosage_instruction || undefined}
+                      variant="compact"
+                    />
+                  )}
+
+                  {isAvailable && (
+                    <button
+                      type="button"
+                      onClick={() => onSelectCandidate(candidate)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-dark bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl border border-primary/20 transition-all  cursor-pointer"
+                    >
+                      <span>
+                        {language === "ur"
+                          ? "قیمتیں اور متبادل دیکھیں"
+                          : language === "roman_ur"
+                          ? "Prices aur alternatives dekhein"
+                          : "View Prices & Alternatives"}
+                      </span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

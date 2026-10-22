@@ -120,7 +120,8 @@ async def seed_or_sync_drap_data(db: AsyncSession):
     if not source:
         source = Source(
             id=SOURCE_DRAP_ID,
-            name="DRAP Pakistan",
+            name="Afiya Dataset Reference",
+            verification_status="needs_source_verification",
             url="https://www.dra.gov.pk/",
             source_type="government_regulatory",
         )
@@ -180,7 +181,9 @@ async def seed_or_sync_drap_data(db: AsyncSession):
                     med_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"med:{seed_key}"))
                     price_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"price:{med_id}"))
 
+        verification = (item.get("source") or {}).get("verification_status", "needs_source_verification") if isinstance(item.get("source"), dict) else "needs_source_verification"
         if med:
+            med.source_verification_status = verification
             med.brand_name = brand_name
             med.generic_name = generic_name
             med.dosage_form = dosage_form
@@ -191,18 +194,15 @@ async def seed_or_sync_drap_data(db: AsyncSession):
             med.category = category
             med.aliases = [generic_name, product_name]
 
-            # Lookup existing price row strictly by medicine_id
-            price_res = await db.execute(select(MedicinePrice).where(MedicinePrice.medicine_id == med.id))
-            price_obj = price_res.scalar_one_or_none()
-
-            if price_obj:
-                price_obj.price = Decimal(str(price_val))
-                price_obj.package_size = pack_size
-                price_obj.package_description = pack_size
-                price_obj.source_id = SOURCE_DRAP_ID
-            else:
+            # Preserve prior observations; append only a distinct source/pack/price.
+            existing_price = (await db.execute(select(MedicinePrice).where(
+                MedicinePrice.medicine_id == med.id,
+                MedicinePrice.source_id == SOURCE_DRAP_ID,
+                MedicinePrice.package_size == pack_size,
+                MedicinePrice.price == Decimal(str(price_val)),
+            ))).scalars().first()
+            if existing_price is None:
                 db.add(MedicinePrice(
-                    id=price_id,
                     medicine_id=med.id,
                     price=Decimal(str(price_val)),
                     currency="PKR",
@@ -213,6 +213,7 @@ async def seed_or_sync_drap_data(db: AsyncSession):
         else:
             new_med = Medicine(
                 id=med_id,
+                source_verification_status=verification,
                 brand_name=brand_name,
                 generic_name=generic_name,
                 dosage_form=dosage_form,
@@ -253,4 +254,10 @@ async def seed_if_empty():
 
         logger.info("Seeding SQLite database with DRAP data...")
         await seed_or_sync_drap_data(db)
+
+
+if __name__ == "__main__":
+    import asyncio
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(seed_if_empty())
 

@@ -146,6 +146,34 @@ def test_truncated_output_rejected():
     with pytest.raises(OCRFormatError): service._response_text(SimpleNamespace(text="{}",candidates=[candidate]))
 
 
+@pytest.mark.asyncio
+async def test_unreadable_verification_of_confident_name_triggers_detail_review(monkeypatch):
+    box = [100,100,200,500]
+    first = response([row("Oilum", .98, box)])
+    unreadable = response([row("", 0, box)], complete=False)
+    crop = response([row("Oilum", .9, [0,0,1000,1000])])
+    call = provider(monkeypatch, first, unreadable, crop)
+    result = await service.extract_from_image(image_bytes(), "image/png")
+    candidate = result["candidates"][0]
+    assert call.await_count == 3
+    assert candidate["original_name"] == "Oilum"
+    assert candidate["needs_confirmation"] and candidate["alternative_reading"]
+    assert result["review_required"] and not candidate["is_verified"]
+    assert not service._PRESCRIPTION_OCR_CACHE
+
+
+def test_unreadable_review_retains_existing_conflict_and_original_transcription():
+    box = [100,100,200,500]
+    first = parse_ocr_response(json.dumps(response([row("Oilum", .98, box)])))["candidates"]
+    second = parse_ocr_response(json.dumps(response([row("Oilatum", .9, box)])))["candidates"]
+    unreadable = parse_ocr_response(json.dumps(response([row("", 0, box)], complete=False)))["candidates"]
+    conflict = merge_candidates(first, second)
+    merged = merge_candidates(conflict, unreadable)
+    assert len(merged) == 1 and merged[0]["original_name"] == "Oilum"
+    assert merged[0]["alternative_reading"] == conflict[0]["alternative_reading"]
+    assert merged[0]["needs_confirmation"] and service._needs_detail(merged[0])
+
+
 @pytest.mark.parametrize("name,line,model_form,expected,conflict", [
     ("Oilum", "Oilum Bar", "Tablet", "Bar", True),
     ("Oilum Bar", "Oilum Bar", "Bar", "Bar", False),

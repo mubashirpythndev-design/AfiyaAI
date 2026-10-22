@@ -1,340 +1,286 @@
 <div align="center">
+<img src="apps/web/public/afiya-logo-6dad2394.png" width="88" height="88" alt="Afiya AI logo" />
 
-<img src="apps/web/public/logo.svg" width="88" height="88" alt="Afiya AI Logo" />
+# Afiya AI
 
-# Afiya AI (عافیہ)
-### *Your Intelligent Medicine Assistant for Pakistan*
+Medicine information, prescription review, and price transparency for Pakistan.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.6-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![pgvector](https://img.shields.io/badge/pgvector-0.8.6-green?style=flat-square&logo=vector&logoColor=white)](https://github.com/pgvector/pgvector)
-[![Gemini](https://img.shields.io/badge/Google%20Gemini-3.5%20Flash-8E75B2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev/)
-[![Tests](https://img.shields.io/badge/Tests-146%20Passed-brightgreen?style=flat-square&logo=pytest&logoColor=white)](https://docs.pytest.org/)
+**Hackathon MVP · Next.js + FastAPI · PostgreSQL / SQLite**
 
-**Afiya AI is an AI-powered medicine assistant designed for Pakistan.** It extracts medicine names from doctor prescription images via multimodal vision, verifies them against authoritative Drug Regulatory Authority of Pakistan (DRAP) records across **100+ medicines in 36 comparison groups**, discovers verified same-generic alternative brands to unlock massive healthcare savings, checks government-notified Maximum Retail Prices (MRP), compares retail pharmacy prices, and delivers multilingual medical explanations in **English, Urdu (اردو), and Roman Urdu** using vector RAG.
-
-[Live Demo](#-deployment--live-links) • [Features](#-key-features) • [Architecture](#-system-architecture) • [Tech Stack](#-technology-stack) • [Setup Guide](#-local-development-setup) • [Team](#-team--project-credits)
-
+[Features](#features) · [Local setup](#local-setup) · [Verification](#verification) · [Deployment](#deployment) · [Limitations](#limitations-and-medical-safety)
 </div>
 
----
+Afiya AI helps users read prescription images, review extracted medicine names, find supported medicines in a curated catalog, and compare stored price references. English, Urdu, and Roman Urdu interfaces make the information more accessible. A demonstration pharmacy marketplace connects reviewed items to a smart cart and a pharmacist review workflow.
 
-## 📌 Problem Statement & Solution
+This is an educational hackathon prototype. It does not diagnose, prescribe, recommend treatment, or establish that two products are clinically interchangeable. Users must confirm OCR readings and consult a qualified doctor or pharmacist about medication decisions.
 
-In Pakistan and developing healthcare systems:
+## Features
 
-1. **Handwritten Prescriptions**: Doctor handwriting is notoriously difficult for patients to decipher.
-2. **Price Gouging & Overcharging**: Patients often pay inflated prices above government-regulated MRP ceilings due to a lack of price transparency.
-3. **Expensive Brand Monopolies**: Patients are often prescribed expensive originator brands unaware that identical, bioequivalent generic alternatives exist at up to 60% lower costs.
-4. **Language Barrier**: Most pharmaceutical documentation and inserts are strictly in English, creating a disconnect for Urdu and Roman Urdu speakers.
-5. **Safety & AI Hallucinations**: Generic AI chatbots frequently invent medical advice or dosages, posing real health risks.
+| Area | Implemented functionality |
+| --- | --- |
+| Prescription review | Gemini Vision extraction, image preprocessing, bounded model fallback, uncertainty indicators, manual confirmation, and scan progress |
+| Medicine catalog | Search, category filters, pagination, stored source references, and supported medicine details |
+| Price transparency | Stored pharmacy prices, pack-aware comparisons, MRP reference checks, and same-generic/strength/form comparison candidates |
+| Safety checks | Rule-based therapeutic duplication warnings, reference batch alerts, and prescription gates in the demonstration cart |
+| Personal cabinet | Saved medicines, quantity/pack selection, budget estimates, and reminder preferences |
+| Multilingual assistance | English, Urdu, and Roman Urdu chat with retrieval and safety checks; voice input where supported |
+| Marketplace demo | Smart cart, switch suggestions, prescription review queue, concierge requests, and buyer order history |
+| Admin portal | Analytics, order review, inventory guards, catalog sync, seller status management, and registered users |
+| Transparency | Privacy and terms pages, contextual disclosures, source labels, explicit demo labeling, and custom 404 page |
 
-### 💡 The Afiya AI Solution:
+### Dataset and provenance
 
-- **Vision OCR Extraction**: Uses Google Gemini Multimodal Vision to accurately extract drug names, strengths, and forms from prescription photos.
-- **Authoritative Matching**: Fuzzy-matches extracted candidates against 100+ curated, DRAP-registered medicines across 36 therapeutic comparison groups.
-- **Bioequivalent Alternatives & Savings Engine**: Instantly discovers cheaper alternative brands with the exact same active pharmaceutical generic ingredient, strength, and dosage form, calculating per-unit savings and percent discounts.
-- **Price Transparency & MRP Watchdog**: Compares real-time prices across leading Pakistani retail pharmacies (Dvago, Sehat, Dawaai) and checks compliance against DRAP-aligned Maximum Retail Price reference baselines.
-- **Symptom & Condition Advisory**: Intelligently identifies common symptoms (headache, fever, body aches, acidity, allergies) and suggests generally used medicines from the database with strict non-guarantee advisories and doctor confirmation directives.
-- **Grounded Vector RAG (pgvector)**: Queries 768-dimensional dense vector embeddings stored in PostgreSQL to provide strict, zero-hallucination medical explanations.
-- **Multilingual Support**: Fully localized in **English**, authentic **Nastaliq Urdu (اردو)**, and **Roman Urdu**.
-- **Mandatory Auth Protection**: Protects search, category browsing, prescription uploading, and clinical views with secure Clerk/JWT authentication while keeping the AI chatbot open for guest visitors.
-- **Digital Medicine Cabinet**: Allows logged-in users to save medications and receive automatic safety alerts if any batch is recalled by DRAP.
+The bundled medicine dataset contains **102 records**. Catalog inclusion alone does not prove current DRAP registration, source verification, availability, or clinical equivalence. Price values are stored reference snapshots; this application does not guarantee live pharmacy pricing.
 
----
+The root dataset, `afiya_medicine_comparison_dataset_clean.json`, is used by the current medicine and MRP seeders. Preserve its path when building the monorepo. Sources and verification status should be reviewed before relying on any record.
 
-## ✨ Key Features
+### Demonstration marketplace
 
-```
-├── 📷 Multimodal Clinical OCR            ── OpenCV adaptive preprocessing, CLAHE contrast & Gemini Vision
-├── 🔤 Pharmaceutical Spell Corrector     ── Levenshtein phonetic correction & clinical shorthand parsing
-├── ⚡ Deterministic Repeat Scan Cache     ── SHA-256 cryptographic image hashing for reproducible scans
-├── 💡 Bioequivalent Brand Alternatives   ── Cheaper same-generic alternatives with unit prices & % savings
-├── ⚖️ Multi-Pharmacy Price Comparison   ── Real-time price tracking across top Pakistani pharmacies
-├── 🛡️ DRAP MRP Overcharge Checker       ── Compares pharmacy prices against DRAP baseline price references
-├── 🩺 Symptom & Condition Advisory      ── Guardrailed medicine advice for symptoms with doctor confirmation
-├── 🎙️ Hands-Free Voice Search & Chat    ── Dual-engine voice input (Web Speech API + Gemini Audio) in Urdu & English with TTS
-├── 🧠 Multilingual Chat RAG (pgvector)  ── Grounded AI responses in English, Urdu (اردو), and Roman Urdu
-├── 🔒 Mandatory Authentication Gates    ── Protected search, categories, upload & info with guest chat access
-├── 🗄️ Digital Medicine Cabinet          ── Personal prescription manager with DRAP recall watchdog alerts
-├── 🔐 Role-Based Access Control (RBAC)   ── Secure JWT authentication with dedicated Admin & Auditor portal
-├── 💬 Community Feedback System         ── In-app user rating and feedback collection
-└── 🏥 Strict Medical Safety Guardrails  ── Zero diagnosis/prescribing, instant emergency keyword interception
-```
+Synthetic pharmacy names, license identifiers, stock quantities, and historical orders are retained for presentations and labeled as demonstrations. They do not represent completed patient sales or verified pharmacy partners.
 
----
+The admin dashboard defaults to demo metrics and provides a switch to non-demo activity. Both views summarize order records; neither proves that payment was collected. Payment processing, delivery integration, and real professional license verification are outside the current implementation.
 
-## 🏗️ System Architecture
+## Architecture
 
 ```mermaid
-graph TD
-    subgraph Client ["Frontend Layer (Next.js 16 + TypeScript)"]
-        UI["Modern Responsive UI (Tailwind CSS)"]
-        OCR_UI["Prescription Dropzone & Preview"]
-        Chat_UI["Multilingual Chat (EN / UR / Roman UR)"]
-        Price_UI["Price Comparison & MRP Checker"]
-        Cabinet_UI["Digital Medicine Cabinet"]
-    end
-
-    subgraph API ["Backend Layer (Python + FastAPI)"]
-        Router["FastAPI Gateway & Auth Middleware"]
-        Prep_Svc["OpenCV Image Preprocessor (CLAHE & Unsharp)"]
-        OCR_Svc["Gemini Vision OCR Extraction"]
-        Cache_Svc["Deterministic SHA-256 Repeat Cache"]
-        Spell_Svc["Pharmaceutical Spell & Shorthand Corrector"]
-        Match_Svc["DRAP Fuzzy Match Engine (thefuzz)"]
-        RAG_Svc["RAG Retrieval & Guardrail Engine"]
-        Safety_Svc["Emergency & Diagnostic Interceptor"]
-    end
-
-    subgraph Database ["Cloud Database (Neon Serverless PostgreSQL)"]
-        PG["PostgreSQL 18.6 Database Engine"]
-        VEC["pgvector 0.8.6 (768-dim Embeddings)"]
-        Tables["Tables: medicines, sources, mrp_reference, knowledge_chunks, user_cabinet, users"]
-    end
-
-    subgraph AI ["AI & LLM Services"]
-        Gemini_Vision["Google Gemini 3.5 Flash (Vision OCR)"]
-        Gemini_Chat["Google Gemini 3.5 Flash (Multilingual LLM)"]
-        Gemini_Embed["Google Gemini Embedding-001 (768-dim)"]
-    end
-
-    UI --> Router
-    Router --> Prep_Svc
-    Prep_Svc --> Cache_Svc
-    Cache_Svc --> OCR_Svc
-    OCR_Svc --> Gemini_Vision
-    OCR_Svc --> Spell_Svc
-    Spell_Svc --> Match_Svc
-    Router --> RAG_Svc
-    Router --> Safety_Svc
-
-    RAG_Svc --> Gemini_Embed
-    RAG_Svc --> VEC
-    RAG_Svc --> Gemini_Chat
-    Match_Svc --> Tables
-    Router --> PG
+flowchart LR
+    User[Browser] --> Web[Next.js frontend]
+    Web --> API[FastAPI API]
+    API --> OCR[Gemini Vision OCR]
+    API --> Rules[Matching, prices, safety and cart rules]
+    API --> Retrieval[Knowledge retrieval and chat]
+    Rules --> DB[(PostgreSQL / local SQLite)]
+    Retrieval --> DB
+    Retrieval --> Gemini[Gemini services]
 ```
 
----
+OCR output is a reading to review, not verified medicine data. Matching and price calculations use stored records. PostgreSQL supports pgvector retrieval when embeddings are populated; local SQLite uses a different retrieval path. Generated explanations and summaries can still be incorrect.
 
-## 🛠️ Technology Stack
+| Layer | Stack |
+| --- | --- |
+| Web | Next.js 16, React 19, TypeScript, Tailwind CSS, Lucide, Framer Motion |
+| API | Python, FastAPI, Pydantic, SQLAlchemy async |
+| Persistence | Neon PostgreSQL, pgvector, Alembic; SQLite for local development/tests |
+| AI | Google Gemini; OCR uses the `google-genai` SDK |
+| Authentication | Clerk integration and signed bearer tokens, admin authorization |
+| Verification | Pytest and frontend regression scripts, production Next.js build |
+| Hosting | Vercel frontend, Render backend, Neon database |
 
-| Layer                         | Technologies                                                                                                                                                                                                        |
-| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Frontend**                  | [Next.js 16](https://nextjs.org/) (App Router), [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Tailwind CSS](https://tailwindcss.com/), Lucide Icons                               |
-| **Backend**                   | [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), [Pydantic v2](https://docs.pydantic.dev/), [Python 3.12](https://www.python.org/)                                                    |
-| **Database & Vector Search**  | [Neon Serverless PostgreSQL](https://neon.tech/) (v18.6), [pgvector](https://github.com/pgvector/pgvector) (0.8.6), [SQLAlchemy 2.0 Async](https://www.sqlalchemy.org/), [Alembic](https://alembic.sqlalchemy.org/) |
-| **AI / OCR / Embeddings**     | [Google Gemini 3.5 Flash](https://ai.google.dev/) (Multimodal OCR & Multilingual Chat), [Gemini Embedding-001](https://ai.google.dev/) (768-dim Vector Embeddings)                                                  |
-| **Authentication & Security** | [Clerk](https://clerk.com/) & PyJWT (Signed Bearer Tokens), Passlib (Bcrypt Hashing), Role-Based Access Control (RBAC)                                                                                              |
-| **Testing**                   | [Pytest](https://pytest.org/), [Pytest-Asyncio](https://pytest-asyncio.readthedocs.io/) (146 Automated Unit & Integration Tests)                                                                                    |
-| **Deployment**                | [Vercel](https://vercel.com/) (Frontend), [Railway](https://railway.app/) / [Render](https://render.com/) (Backend), [Neon](https://neon.tech/) (Database)                                                          |
+## Repository layout
 
----
-
-## 📂 Repository Structure
-
-```
-AfiyaAI/
-├── apps/
-│   ├── api/                          # FastAPI Python Backend
-│   │   ├── alembic/                  # Database migration versions (0001 - 0009)
-│   │   ├── app/
-│   │   │   ├── db/                   # Database engine, ORM models, seeders & pgvector scripts
-│   │   │   │   ├── database.py       # SQLAlchemy Base & declarative models
-│   │   │   │   ├── seed_data.py      # 100+ DRAP-registered medicines & market prices
-│   │   │   │   ├── seed_mrp.py       # DRAP-aligned MRP price baseline reference
-│   │   │   │   ├── seed_knowledge.py # Grounded knowledge chunk generation
-│   │   │   │   └── seed_embeddings.py# 768-dim Gemini vector embeddings generator
-│   │   │   ├── models/               # Pydantic request/response schemas
-│   │   │   ├── routers/              # API endpoints (auth, ocr, medicines, chat, price_check, cabinet, feedback, admin)
-│   │   │   ├── services/             # Core business logic (OCR, OpenCV preprocessor, spell corrector, matching, RAG, safety, disease advisory, alternatives)
-│   │   │   ├── config.py             # App environment configuration
-│   │   │   └── main.py               # FastAPI entrypoint, lifespan & CORS
-│   │   ├── tests/                    # 146 unit and integration test suite (incl. OCR pipeline)
-│   │   ├── requirements.txt          # Python dependencies
-│   │   └── alembic.ini               # Alembic database configuration
-│   │
-│   └── web/                          # Next.js 16 TypeScript Frontend
-│       ├── public/                   # Static assets, branding, and icons
-│       ├── src/
-│       │   ├── app/                  # Next.js App Router (layout, page, admin)
-│       │   ├── components/           # Reusable UI component modules
-│       │   │   ├── auth/             # Login / Register & Clerk auth sync
-│       │   │   ├── chat/             # AI RAG Chat interface
-│       │   │   ├── feedback/         # Community rating & feedback modal
-│       │   │   ├── guide/            # Interactive onboarding tour
-│       │   │   ├── layout/           # Header, Footer, Navigation
-│       │   │   ├── medicine/         # MedicineCard, PriceTable, MrpChecker, CabinetModal
-│       │   │   ├── shared/           # CustomCursor, ThemeToggle, Toast, Disclaimer, VoiceButton
-│       │   │   └── upload/           # Prescription ImageUploader & OCRResults (Doctor's Guidance card)
-│       │   └── lib/                  # API client, auth helpers, types, i18n, useSpeechRecognition
-│       ├── package.json              # Node.js dependencies
-│       ├── tailwind.config.ts        # Tailwind styling & dark mode setup
-│       └── tsconfig.json             # TypeScript compiler settings
-│
-├── data/                             # Curated DRAP reference datasets (102 medicines, 36 comparison groups)
-├── docs/                             # Architecture Decision Records (ADRs) & Specs
-├── AGENTS.md                         # Project development rules & guidelines
-└── README.md                         # Master documentation (this file)
+```text
+apps/api/
+  app/db/              Models and controlled seeders
+  app/routers/         API endpoints
+  app/services/        OCR, retrieval, matching, safety and marketplace logic
+  app/models/          Core API schemas
+  alembic/versions/    Versioned schema migrations
+  tests/               Backend unit and integration tests
+apps/web/
+  src/app/             Main, admin, privacy, terms and server routes
+  src/components/      Buyer, admin and shared UI
+  src/lib/             Typed API client and UI utilities
+  public/              Branding and static assets
+scripts/               Isolated checks and development utilities
+specs/                 Product and implementation specifications
+docs/                  Architecture, local fixes and QA notes
+afiya_medicine_comparison_dataset_clean.json
 ```
 
----
+## Local setup
 
-## ⚡ Local Development Setup
+Use **Python 3.12** and **Node.js 20.9 or newer**. Commands below assume PowerShell and start from the repository root. Keep credentials in local configuration or hosting dashboards; never commit real environment files.
 
-### 1. Prerequisites
-
-- **Node.js**: v18+ or v20+
-- **Python**: v3.11+ or v3.12+
-- **Google Gemini API Key**: Obtainable from [Google AI Studio](https://aistudio.google.com/)
-
----
-
-### 2. Backend Setup (FastAPI)
+### Backend
 
 ```powershell
-# Navigate to api directory
 cd apps/api
-
-# Create & activate Python virtual environment
-python -m venv venv
-.\venv\Scripts\activate      # Windows (PowerShell)
-# source venv/bin/activate   # macOS / Linux
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env configuration
-cp .env.example .env
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-Configure your `apps/api/.env`:
+Configure local settings privately before starting. Important backend settings:
 
-```env
-DATABASE_URL=postgresql+asyncpg://neondb_owner:<password>@<neon-host>/neondb?ssl=require
-GEMINI_API_KEY=your_gemini_api_key_here
-JWT_SECRET=your_super_secret_jwt_key_here
-FRONTEND_URL=http://localhost:3000
-ADMIN_EMAILS=admin@afiya.ai
-```
+| Setting | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Async SQLAlchemy connection URL; use a separate local database for development |
+| `GEMINI_API_KEY` | Provider credentials for OCR/chat/embeddings |
+| `FRONTEND_URL` | Allowed frontend origin, such as `http://localhost:3000` |
+| `JWT_SECRET` | Signing secret; production requires a non-default value of at least 32 characters |
+| `APP_ENV` | `development` locally; `production` on the hosted API |
+| `ADMIN_EMAILS` | Explicit comma-separated admin allowlist |
+| `CLERK_JWKS_URL`, `CLERK_ISSUER`, `CLERK_AUDIENCE` | Configure to match the intended Clerk instance and token validation |
 
-Run database migrations & start the backend:
+For SQLite development, an example connection value is `sqlite+aiosqlite:///./afiya.db`. Do not point development commands at the production database accidentally.
 
 ```powershell
-# Apply all 8 database migrations
-alembic upgrade head
-
-# Start FastAPI server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-- **Backend API**: `http://localhost:8000`
-- **Interactive Swagger Docs**: `http://localhost:8000/docs`
+The API is at `http://localhost:8000`; docs are at `/docs` and the health endpoint is `/api/health`.
 
----
+SQLite startup creates missing tables and runs local seeders. Existing databases still need migrations for new columns. PostgreSQL startup validates the schema and **does not seed or migrate it automatically**.
 
-### 3. Frontend Setup (Next.js)
+### Frontend
+
+Open a second terminal from the repository root:
 
 ```powershell
-# Navigate to web directory
 cd apps/web
-
-# Install dependencies
-npm install
-
-# Create .env.local configuration
-cp .env.example .env.local
+npm ci
 ```
 
-Configure your `apps/web/.env.local`:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
-
-Start the Next.js development server:
+Configure `NEXT_PUBLIC_API_URL=http://localhost:8000` privately, along with the Clerk publishable key and server credentials required by your authentication setup. Public variables are visible to the browser; never put private API keys in `NEXT_PUBLIC_*` variables.
 
 ```powershell
 npm run dev
 ```
 
-- **Web Application**: `http://localhost:3000`
-
----
-
-## 🚀 Deployment & Live Links
-
-| Component | Platform | Configuration / Build Command | Live URL |
-| :--- | :--- | :--- | :--- |
-| **Frontend Web App** | [Vercel](https://vercel.com/) | Next.js 16 App (`apps/web`) | [**`https://afiya-ai.vercel.app`**](https://afiya-ai.vercel.app) |
-| **Backend REST API** | [Railway](https://railway.app/) | FastAPI Python 3.12 (`apps/api`) | [**`https://afiyaai-production.up.railway.app`**](https://afiyaai-production.up.railway.app) |
-| **Interactive API Docs** | [Swagger UI](https://swagger.io/) | Auto-generated OpenAPI 3.1 | [**`https://afiyaai-production.up.railway.app/docs`**](https://afiyaai-production.up.railway.app/docs) |
-| **Vector Database** | [Neon](https://neon.tech/) | PostgreSQL 18.6 + `pgvector` 0.8.6 (768-dim) | *Managed Cloud (Live)* |
-
----
-
-## 🧪 Testing & Quality Assurance
-
-Afiya AI includes a comprehensive automated test suite with **146 unit and integration tests** covering:
-
-- Multimodal prescription OCR candidate extraction, schema integrity, and fallback cascades
-- Computer vision image preprocessing (grayscale normalization, CLAHE contrast enhancement, ink sharpening, corrupt-byte fallback)
-- Pharmaceutical optical typo correction and doctor shorthand parsing (`Tab`, `Cap`, `Syp`, `Inj`, `1x daily`, `BID`, `TID`, `PRN`)
-- Deterministic repeat scan caching with bounded SHA-256 cryptographic hashing and FIFO eviction
-- Fuzzy medicine name matching and DRAP registration verification
-- Bioequivalent alternative brands grouping, price comparisons, and % savings calculations
-- Vector similarity search and pgvector RAG context retrieval
-- Disease, illness, and symptom medicine advisory with mandatory non-guarantee and doctor confirmation directives across all 11 therapeutic categories
-- Emergency keyword detection and diagnostic refusal safety guardrails
-- Price gouging detection and DRAP MRP baseline validations
-- Mandatory authentication gating across search, categories, upload, and clinical views
-- JWT authentication, password hashing, Clerk RS256 issuer/audience verification, and Admin RBAC gating
-- Community feedback submission, validation, and analytics retrieval
-- Migration reversibility (0001 - 0009) and database schema integrity
+Open `http://localhost:3000`. If the local Turbopack compiler stalls on your machine, use the tested Webpack alternative:
 
 ```powershell
-cd apps/api
-pytest -q
+npm run dev -- --webpack
 ```
 
+On another device, `localhost` refers to that device. Mobile testing requires a reachable backend address and an allowed frontend origin; forwarding the frontend alone is insufficient.
+
+### OCR configuration
+
+The current source-defined model order in `apps/api/app/services/ocr_models.py` is:
+
+1. `gemini-3.8-flash`
+2. `gemini-3.5-flash-lite`
+3. `gemini-3.1-flash-lite`
+
+The per-request transport timeout is 35 seconds. These are the identifiers configured in this repository, not a guarantee of current provider availability or account access. Verify model support and quota for your project before a demonstration. Total scan duration can exceed one request because extraction may involve fallback and review.
+
+If cloud extraction fails, the API returns an `OCR_SERVICE_BUSY` response and the UI offers the concierge workflow. The concierge flow also requires working authentication and prescription attachment storage.
+
+## Verification
+
+Run from the repository root:
+
+```powershell
+python scripts/run_backend_tests_isolated.py
+node scripts/test-catalog.cjs
+node scripts/test-ocr-concierge.cjs
+node scripts/test-marketplace-prescriptions.cjs
+node scripts/test-marketplace-web.cjs
+node scripts/build-web-isolated.cjs
 ```
-========================= 146 passed in 108.20s =========================
+
+The isolated runners use test configuration rather than real environment files or production services. Activate the backend virtual environment before running the Python command.
+
+The latest recorded local verification was **386 backend tests passed**, **15 frontend regression tests passed**, and a successful production Webpack build. These are recorded results, not a live CI badge; rerun them for the release commit. They do not establish handwriting accuracy, live model availability, or production database compatibility.
+
+## Deployment
+
+### What updates automatically?
+
+| Service | Effect of pushing to the configured production branch |
+| --- | --- |
+| Vercel | Builds/deploys the frontend when the Git integration and deployment settings permit it |
+| Render | Builds/deploys the API when automatic deployment is enabled for that branch |
+| Neon | Continues hosting PostgreSQL; a code push alone does not apply Alembic migrations or seed data |
+
+The same local folder does not determine deployment. The linked repository, branch, project root, build configuration, and environment variables do.
+
+### Production configuration
+
+| Service | Required configuration |
+| --- | --- |
+| Vercel | Production branch `main`; root `apps/web`; install `npm ci`; build `npm run build` (selects the verified Webpack path); production `NEXT_PUBLIC_API_URL` points to Render |
+| Render | Branch `main`; root `apps/api`; build `pip install -r requirements.txt`; start `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Render environment | Production `DATABASE_URL`, `APP_ENV=production`, secure `JWT_SECRET`, Gemini credentials, correct `FRONTEND_URL`, admin allowlist, and Clerk token configuration |
+| Neon | Correct target branch/database, migrations applied, and deliberately imported reference/demo data as required |
+
+Do not use `--reload` in production. Configure Clerk's production domains and keys for the deployed frontend. Changing a browser-exposed environment value requires rebuilding the frontend.
+
+### Database release procedure
+
+1. Create a database backup or isolated Neon branch before changing the production schema.
+2. Test the release migrations against that branch using the same connection configuration as deployment.
+3. From `apps/api`, with the **intended database connection configured**, run:
+
+   ```text
+   python -m alembic current
+   python -m alembic upgrade head
+   python -m alembic current
+   ```
+
+4. The current migration head is `0013` (private prescription attachments). Do not manually stamp a database to skip unapplied schema changes.
+5. Apply migrations before the new API serves traffic. A Render pre-deploy command can run `python -m alembic upgrade head` on plans that support it. Otherwise arrange a controlled migration task; do not assume startup performs it.
+6. Review reference-data changes separately. Explicit entry points include `python -m app.db.seed_data`, `python -m app.db.seed_mrp`, and `python -m app.db.seed_knowledge`. The catalog seeder can update existing data; inspect its changes before using it on production.
+7. Demo alerts and marketplace inventory/history are separate, opt-in imports on PostgreSQL. `seed_marketplace(db)` is an async seeding function, not a standalone executable module. Run it only through a reviewed task against the intended demo database. Do not import synthetic sales into real business reporting.
+
+Local SQLite databases, users, prescriptions, caches, inventory, and orders are not transferred by Git. Generating PostgreSQL embeddings is also a separate operation, not part of a normal code deployment.
+
+### Private prescription storage
+
+Prescription attachments are stored in the API database with owner/admin access checks. Browser uploads go directly to FastAPI, avoiding frontend function upload limits. Existing `/uploads/{uuid}` references resolve through authenticated API reads; the web read proxy remains for compatibility. Both browser uploads and admin previews bypass frontend function body limits. Apply migration `0013` before deploying this version. Old local-disk attachments are not automatically transferred.
+
+Database-backed image storage is a bounded MVP solution (10 MiB per image), not a complete patient-document platform. Retention, deletion, capacity planning and a future private object-storage migration require operational work.
+
+### Controlled release command
+
+From the repository root, `scripts/prepare_database_release.py` previews the configured database without changing it. By default it only uses `AFIYA_ALEMBIC_DATABASE_URL` or `DATABASE_URL` from the process environment; it disables application dotenv loading. An explicit `--database-env-file apps/api/.env` flag permits reading that file's connection value without printing credentials.
+
+```powershell
+python scripts/prepare_database_release.py --database-env-file apps/api/.env
+python scripts/prepare_database_release.py --database-env-file apps/api/.env --apply-migrations --snapshot-before-migrate
 ```
 
----
+Run the second command only after reviewing the target and securing a database backup/test branch. The snapshot flag additionally copies affected table rows to a private schema in the same PostgreSQL database; this is a migration recovery reference, not an independent backup. Optional `--sync-reference-data` updates stored reference records; `--seed-demo` inserts labeled synthetic marketplace/alert data. These data flags require `--apply-migrations` and are never enabled implicitly. The tool checks the final migration head and model columns before running seeders. It never commits, pushes, merges, or deploys.
 
-## 🔒 Medical Ethics & Safety Guardrails
+### Git release sequence
 
-> [!IMPORTANT]
-> **Afiya AI is strictly an educational information assistant and NOT a medical practitioner.**
->
-> - **Zero Prescriptions / Disease Diagnosis**: The system is programmatically barred from providing clinical diagnoses or prescribing treatments.
-> - **Disease & Symptom Advisory**: When users ask what medicine to take for diseases, illnesses, or symptoms (e.g. diabetes, hypertension, asthma, infections, fever, headache, pain, acidity), the assistant suggests verified medicines indicated in authoritative DRAP records as informational advice, explicitly disclaims any 100% guarantee, and instructs the user to consult a doctor or pharmacist for confirmation before taking any medication.
-> - **Grounded Fact Retrieval**: Structured medicine facts (ingredients, manufacturer, MRP, prices, alternative brands) originate strictly from authoritative DRAP records, never from generative hallucination.
-> - **DRAP Reference Grounding**: Price comparisons are presented as DRAP-aligned baseline references, noting that statutory enforcement requires official published Gazette SRO citations.
-> - **Emergency Interception**: Any critical medical query (e.g., chest pain, overdose, difficulty breathing, poisoning) immediately triggers an urgent emergency deflection advising the user to call 1122 or visit the nearest hospital.
+Work is currently developed on `feature/smart-marketplace`. Review and commit only release files; exclude environment files, local OCR caches, patient images, scratch harnesses, and generated artifacts.
 
----
+```powershell
+git switch feature/smart-marketplace
+git status --short
+git add -u -- . ':!apps/api/data/.prescription_ocr_cache*'
+```
 
-## 👥 Team & Project Credits
+Add required new application files, assets, tests, specs, and scripts by their explicit paths. The command above stages tracked changes only; new files still need deliberate staging. Inspect the result before committing:
 
-<div align="center">
+```powershell
+git diff --cached --stat
+git diff --cached --name-only
+git diff --cached --check
+git commit -m "feat: prepare Afiya AI marketplace and interface release"
+git push -u origin feature/smart-marketplace
+```
 
-| Name                         | Role                                              | Responsibilities & Contributions                                                                                                                                                                                                                                                                                                                                                                                    |
-| :--------------------------- | :------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Muhammad Taha Khan**       | **Team Lead & Project Visionary**                 | • Conceptualized the original project idea<br>• Project planning, strategic direction & team management<br>• Pitch deck preparation & presentation delivery                                                                                                                                                                                                                                                         |
-| **Muhammad Mubashir Khalid** | **Sole Full-Stack Developer & Software Engineer** | • **Engineered the complete technical codebase end-to-end**<br>• Designed & implemented the Next.js 16 UI and interactive components<br>• Built the Python FastAPI backend, REST endpoints & middleware<br>• Architected the PostgreSQL + pgvector (768-dim) RAG pipeline<br>• Integrated Gemini Multimodal Vision OCR with fallback cascades<br>• Authored all 9 Alembic database migrations & 146 automated tests |
-| **Muhammad Sultan Abbasi**   | **Research & Quality Assurance**                  | • DRAP official medicine pricing & registration dataset research<br>• User acceptance testing & edge-case scenario validation<br>• Pharmaceutical data verification & documentation review                                                                                                                                                                                                                          |
+Open a pull request from `feature/smart-marketplace` into `main`, review the diff and checks, then merge when hosting settings, migrations, and deployed attachment checks are ready. A merge to the connected production branch can immediately trigger deployments. Do not force-push to resolve branch differences.
 
-</div>
+After deployment, confirm both services are running the intended commit. Check API health, sign-in, medicine search, catalog, cart gates, admin authorization, privacy/terms routes, and the full prescription upload-to-review flow on the deployed site.
 
----
+Deployment references: [Vercel Git integration](https://vercel.com/docs/git), [Render deployment lifecycle](https://render.com/docs/deploys), and [Neon database branching](https://neon.com/docs/introduction/branching).
 
-<div align="center">
+## Limitations and medical safety
 
-**Built with ❤️ for Pakistan's Digital Healthcare Future.**
+- Handwritten OCR can miss, duplicate, or misread products, forms, and strengths. A representative pharmacist-reviewed accuracy benchmark is still needed.
+- AI-generated summaries and explanations require independent verification. No zero-hallucination or diagnostic accuracy claim is made.
+- Same generic, strength, or dosage form is a comparison rule, not proof of bioequivalence or permission to switch treatment.
+- Prices, alerts, and source verification reflect stored records and their coverage; always check the current source and pharmacy.
+- Quota, timeouts, and model availability affect cloud features. Passing mocked provider tests does not verify live service access.
+- The prototype has no payment gateway, delivery service, or automatic legal/license verification. Order status is not payment confirmation or proof of professional review.
+- Retention, deletion, durable storage, production monitoring, and operational controls need further work before handling real patient data at scale.
+- Use fictional or fully deidentified prescriptions for demonstrations and follow the configured provider's data terms. Read [Google's Gemini API terms](https://ai.google.dev/gemini-api/terms) before submitting sensitive information.
 
-</div>
+The application includes `/privacy` and `/terms`. Until the team publishes an official support address, the existing feedback form is the temporary contact route. These prototype pages require appropriate review before a public medical service launch.
+
+## Team
+
+| Contributor | Role |
+| --- | --- |
+| Muhammad Taha Khan | Team lead, product vision, planning, and presentation |
+| Muhammad Mubashir Khalid | Full-stack engineering, architecture, integrations, and implementation |
+| Muhammad Sultan Abbasi | Research, data review, and quality assurance |
+
+For implementation details, see [specs](specs/), [local fixes](docs/LOCAL_FIXES.md), [OCR notes](docs/OCR_LOCAL_FIXES.md), [feature QA](docs/FEATURE_QA.md), and [transparency and demo mode](specs/16-transparency-and-demo-mode.md).
+
+Latest release preparation and production database verification: [deployment readiness](docs/DEPLOYMENT_READINESS.md).

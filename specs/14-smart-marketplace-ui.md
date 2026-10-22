@@ -2,6 +2,20 @@
 
 ## Buyer flow
 
+The storefront uses a forest-green dark palette, compact pharmacy navigation,
+and shared responsive cart/orders/concierge panels. Catalog browsing shows 12
+medicines per page with numbered pages and previous/next controls. Search combines
+with the stored category, Rx/OTC and availability filters; changing any filter
+resets to page one. Refresh clamps pages to current results. Pack-price sorting
+keeps missing prices last. Friendly category labels reuse the existing directory
+translations while filtering by the original database category. Category labels
+do not constitute a treatment recommendation. No new symptom-to-drug mapping is
+introduced. Cart selections survive catalog paging and filtering.
+
+At narrow widths the upload content stacks and wraps, drawer bodies scroll
+independently, and quantity controls wrap. Inputs and long filenames stay inside
+their containers. Reduced-motion preferences apply to panel transitions.
+
 The header has a dedicated mobile-friendly shop navigation row. Catalog entries,
 search/category cards and price comparison tables offer Add to Cart actions.
 Cart quantities mean whole packs. Catalog unit comparisons do not replace the

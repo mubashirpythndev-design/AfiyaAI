@@ -1,5 +1,7 @@
 "use client";
 
+import useModalFocus from "@/components/shared/useModalFocus";
+import AppIcon from "@/components/shared/AppIcon";
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { getCurrentUser, isLoggedIn } from "@/lib/auth";
@@ -12,12 +14,12 @@ interface FeedbackModalProps {
 }
 
 const PRIMARY_NEEDS = [
-  { id: "Find Affordable Alternative Medicines", label: "💊 Find Affordable Alternative Medicines", desc: "Save money on identical generic formulas" },
-  { id: "Prescription Scanner (OCR)", label: "📸 Prescription Scanner (OCR)", desc: "Read doctor prescriptions accurately" },
-  { id: "Check DRAP MRP & Overcharging", label: "⚖️ Check DRAP MRP & Overcharging", desc: "Verify official legal prices" },
-  { id: "Medicine Safety, Dosages & Side Effects", label: "🛡️ Medicine Safety & Side Effects", desc: "Understand precautions & usage safely" },
-  { id: "AI Medicine Chatbot Assistant", label: "🤖 AI Medicine Chatbot Assistant", desc: "Ask health questions in Urdu / English" },
-  { id: "Digital Medicine Cabinet & Recall Watchdog", label: "📦 Digital Medicine Cabinet", desc: "Track daily medications & safety alerts" },
+  { id: "Find Affordable Alternative Medicines", label: "Find Affordable Alternative Medicines", desc: "Compare prices for matching ingredient, strength and form" },
+  { id: "Prescription Scanner (OCR)", label: "Prescription Scanner (OCR)", desc: "Read doctor prescriptions accurately" },
+  { id: "Check DRAP MRP & Overcharging", label: "Check DRAP MRP & Overcharging", desc: "Compare with stored reference prices" },
+  { id: "Medicine Safety, Dosages & Side Effects", label: "Medicine Safety & Side Effects", desc: "Understand precautions & usage safely" },
+  { id: "AI Medicine Chatbot Assistant", label: "Medicine questions", desc: "Explore medicine information in Urdu / English" },
+  { id: "Digital Medicine Cabinet & Recall Watchdog", label: "Digital Medicine Cabinet", desc: "Track daily medications & safety alerts" },
 ];
 
 const FREQUENCY_OPTIONS = [
@@ -33,6 +35,7 @@ const EASE_OPTIONS = ["Very Easy & Smooth", "Easy", "Neutral", "Needs Improvemen
 const MAJOR_CITIES = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Peshawar", "Multan", "Quetta", "Other"];
 
 export default function FeedbackModal({ isOpen, onClose, language = "en" }: FeedbackModalProps) {
+  const modalRef = useModalFocus(isOpen, onClose);
   const { user: clerkUser, isSignedIn } = useUser();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -115,15 +118,14 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-md overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-surface border border-border/80 rounded-3xl shadow-2xl p-6 sm:p-8 my-auto overflow-hidden">
+      <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="feedback-title" tabIndex={-1} className="relative w-full max-w-2xl bg-surface border border-border/80 rounded-3xl shadow-2xl p-6 sm:p-8 my-auto overflow-hidden">
         {/* Decorative Top Accent Glow */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
         <button
           onClick={handleResetAndClose}
           type="button"
+          aria-label="Close feedback"
           className="absolute top-4 right-4 text-muted hover:text-foreground w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center transition-colors cursor-pointer text-lg"
         >
           ✕
@@ -133,10 +135,10 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
           /* Success Screen */
           <div className="text-center py-8 space-y-4 animate-fade-in">
             <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner border border-primary/20 animate-bounce">
-              ✨
+              <AppIcon symbol="✨" />
             </div>
             <h3 className="text-2xl font-black text-foreground tracking-tight">
-              Thank You for Helping Pakistan! 🇵🇰
+              Thank You for Helping Pakistan! <AppIcon symbol="🇵🇰" />
             </h3>
             <p className="text-muted text-sm sm:text-base max-w-md mx-auto leading-relaxed">
               Your valuable feedback helps us refine Afiya AI to provide accessible, affordable, and accurate medicine intelligence for every family across Pakistan.
@@ -145,7 +147,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
               <button
                 type="button"
                 onClick={handleResetAndClose}
-                className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-bold py-3 px-8 rounded-2xl shadow-lg shadow-primary/20 transition-all hover:scale-105 cursor-pointer"
+                className="bg-primary hover:opacity-95 text-white font-bold py-3 px-8 rounded-2xl shadow-lg  transition-all hover:scale-105 cursor-pointer"
               >
                 Done / Wapis Jayein
               </button>
@@ -157,9 +159,9 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
             {/* Header */}
             <div>
               <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full mb-2 border border-primary/20">
-                <span>💬</span> Community Voice & Feedback
+                <span><AppIcon symbol="💬" /></span> Community Voice & Feedback
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
+              <h2 id="feedback-title" className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                 Share Your Feedback & Healthcare Needs
               </h2>
               <p className="text-xs sm:text-sm text-muted mt-1">
@@ -169,7 +171,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
 
             {error && (
               <div className="bg-danger/10 border border-danger/30 text-danger text-xs sm:text-sm p-3.5 rounded-2xl flex items-center gap-2 animate-fade-in">
-                <span>⚠️</span>
+                <span><AppIcon symbol="⚠️" /></span>
                 <span>{error}</span>
               </div>
             )}
@@ -321,7 +323,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
                     </button>
                   ))}
                   <span className="text-xs font-medium text-muted ml-2">
-                    {rating === 5 ? "🌟 Outstanding!" : rating >= 4 ? "👍 Good & Useful" : rating >= 3 ? "👌 Average" : "Need Improvements"}
+                    {rating === 5 ? "Outstanding!" : rating >= 4 ? "Good & Useful" : rating >= 3 ? "Average" : "Need Improvements"}
                   </span>
                 </div>
               </div>
@@ -350,7 +352,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
               {/* Would Recommend Toggle */}
               <div className="flex items-center justify-between p-3 bg-surface rounded-2xl border border-border">
                 <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <span>❤️</span> Would you recommend Afiya AI to friends or family?
+                  <span><AppIcon symbol="❤️" /></span> Would you recommend Afiya AI to friends or family?
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -379,6 +381,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
               </div>
             </div>
 
+            <p className="text-xs text-muted leading-relaxed">Feedback is stored for review by the Afiya team. Avoid including prescription details or other sensitive information. <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Read the Privacy Policy (opens in a new tab)</a>.</p>
             {/* Submit Actions */}
             <div className="pt-2 flex items-center justify-end gap-3 border-t border-border/70">
               <button
@@ -391,7 +394,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md shadow-primary/20 transition-all hover:scale-[1.02] disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-2 bg-primary hover:opacity-95 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md  transition-all  disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -400,7 +403,7 @@ export default function FeedbackModal({ isOpen, onClose, language = "en" }: Feed
                   </>
                 ) : (
                   <>
-                    <span>🚀</span> Submit Feedback
+                    <span><AppIcon symbol="🚀" /></span> Submit Feedback
                   </>
                 )}
               </button>

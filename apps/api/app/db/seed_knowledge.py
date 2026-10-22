@@ -33,7 +33,7 @@ CHUNK_TYPE = "verified_profile"
 # Provenance source for all seeded chunks. Deliberately NOT labelled
 # "monograph" / "reviewed": nothing here was clinically reviewed — these are
 # structured DB facts plus a general drug-class gloss.
-KNOWLEDGE_SOURCE_NAME = "Afiya Verified DB Facts"
+KNOWLEDGE_SOURCE_NAME = "Afiya Stored Dataset Facts"
 KNOWLEDGE_SOURCE_ID = "a0000004-0000-0000-0000-000000000001"
 
 # Controlled drug-class gloss: ONE general, well-established sentence per

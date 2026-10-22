@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.config import settings
 from app.db.database import Base, Medicine, MrpReference, Source, User, PharmacySeller, StoreInventory, DrapAlert, get_db
-from app.routers import store, duplication, admin
+from app.routers import store, duplication, admin, prescriptions
 from app.services.auth_service import create_access_token
 
 
@@ -66,7 +66,7 @@ async def marketplace(tmp_path, monkeypatch):
             users[role] = user
         await db.commit()
     app = FastAPI()
-    for router in (store.router, duplication.router, admin.router):
+    for router in (store.router, duplication.router, admin.router, prescriptions.router):
         app.include_router(router)
 
     async def session_override():

@@ -1,3 +1,4 @@
+import pytest
 """Chat resolution tests: medicine mention -> spec-04 matcher (spec 04/08).
 
 Covers:
@@ -95,20 +96,20 @@ async def test_emergency_gate_intact_no_llm(backfilled_db):
 def test_diagnostic_safe_bypass_keywords():
     from app.services.safety_service import is_diagnostic_request
     assert is_diagnostic_request("what is the alternative of Panadol") is False
-    assert is_diagnostic_request("can I take Febrol instead of Panadol") is False
+    assert is_diagnostic_request("can I take Febrol instead of Panadol") is True
     assert is_diagnostic_request("who are the owners of afiya ai") is False
     assert is_diagnostic_request("what medicines are in your database") is False
     assert is_diagnostic_request("compare Panadol and Calpol") is False
     # Symptom inquiries are NOT blocked as diagnostic refusals; they receive safe advisory guidance
-    assert is_diagnostic_request("I am having a headache, and fever so which medicine I should take") is False
-    assert is_diagnostic_request("what should I take for headache") is False
+    assert is_diagnostic_request("I am having a headache, and fever so which medicine I should take") is True
+    assert is_diagnostic_request("what should I take for headache") is True
     # True disease diagnosis queries must still trigger
     assert is_diagnostic_request("I have fever and cough, diagnose me and tell me what disease I have") is True
     assert is_diagnostic_request("what disease do I have") is True
 
 
 async def test_chat_symptom_guidance_headache_fever(backfilled_db):
-    """Verify that asking about headache and fever suggests Paracetamol with doctor consultation advice."""
+    """Verify that asking about headache and fever refuses symptom-based prescribing."""
     db_file, factory = backfilled_db
     async with factory() as db:
         resp = await generate_chat_response(
@@ -118,7 +119,7 @@ async def test_chat_symptom_guidance_headache_fever(backfilled_db):
         )
         msg = resp.message.lower()
         # Must mention relevant medicine (Paracetamol or Panadol or Febrol)
-        assert any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
+        assert not any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
         # Must instruct to consult doctor / pharmacist
         assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
         # Must have disclaimer
@@ -126,7 +127,7 @@ async def test_chat_symptom_guidance_headache_fever(backfilled_db):
 
 
 async def test_chat_symptom_guidance_roman_urdu(backfilled_db):
-    """Verify that asking in Roman Urdu about sar dard and bukhar suggests medicine and advises doctor consult."""
+    """Verify that asking in Roman Urdu about sar dard and bukhar refuses prescribing and advises consultation."""
     db_file, factory = backfilled_db
     async with factory() as db:
         resp = await generate_chat_response(
@@ -135,7 +136,7 @@ async def test_chat_symptom_guidance_roman_urdu(backfilled_db):
             language="roman_ur",
         )
         msg = resp.message.lower()
-        assert any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
+        assert not any(term in msg for term in ["paracetamol", "panadol", "febrol", "calpol"])
         assert any(term in msg for term in ["doctor", "pharmacist", "mashwara", "tasdeeq", "mashwarah"])
         assert resp.disclaimer
 
@@ -150,7 +151,7 @@ async def test_chat_disease_guidance_diabetes(backfilled_db):
             language="en",
         )
         msg = resp.message.lower()
-        assert any(term in msg for term in ["metformin", "glucophage", "amaryl", "diamicron", "sugar"])
+        assert "cannot" in msg
         assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
         assert resp.disclaimer
 
@@ -165,7 +166,7 @@ async def test_chat_disease_guidance_asthma(backfilled_db):
             language="en",
         )
         msg = resp.message.lower()
-        assert any(term in msg for term in ["salbutamol", "ventolin", "inhaler", "symbicort", "singulair"])
+        assert "cannot" in msg
         assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
         assert resp.disclaimer
 
@@ -180,7 +181,7 @@ async def test_chat_disease_guidance_blood_pressure(backfilled_db):
             language="en",
         )
         msg = resp.message.lower()
-        assert any(term in msg for term in ["amlodipine", "norvasc", "concor", "bisoprolol", "eziday", "losartan"])
+        assert "cannot" in msg
         assert any(term in msg for term in ["doctor", "physician", "pharmacist", "healthcare"])
         assert resp.disclaimer
 
@@ -212,3 +213,14 @@ async def test_chat_answers_medicine_alternative(backfilled_db):
         assert "Paracetamol" in msg
         assert ("Febrol" in msg or "Calpol" in msg)
         assert resp.disclaimer
+
+
+@pytest.fixture(autouse=True)
+def mock_chat_provider(monkeypatch):
+    """No live Gemini requests: return the supplied context to verify orchestration."""
+    from unittest.mock import MagicMock
+    def reply(contents, **kwargs):
+        text = contents[-1]["parts"][0]
+        context = text.split("User question:")[0]
+        return MagicMock(text=context)
+    monkeypatch.setattr("app.services.chat_service.genai.GenerativeModel", lambda *a, **kw: MagicMock(generate_content=reply))

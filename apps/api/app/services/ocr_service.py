@@ -108,6 +108,8 @@ Carefully inspect this doctor's prescription image (which may contain messy curs
    - Count visible medicine lines including unreadable entries. Return medicine_line_count and coverage_complete.
    - For every candidate return line_id and bbox=[top,left,bottom,right], normalized to 0..1000 across this image.
    - Do not guess a medicine name to fill a missing line.
+   - Return one candidate per prescribed product, even when multiple products share a handwritten line. Never combine their names into one medicine.
+   - Keep each product's strength and form with its own name; do not borrow attributes from neighboring lines or columns.
    - Identify each prescribed drug or pharmaceutical product, including topical lotions, bars, creams, shampoos, washes and other non-oral treatments. Non-tablet products count as medication lines too.
    - Ignore hospital/clinic headers, doctor degrees, registration numbers, patient personal info (Name, Age, Gender), vitals (BP, Pulse, Temp), and lab test names.
 
@@ -163,7 +165,7 @@ def detect_dosage_form(name: str, form_from_llm: str = "", instructions: str = "
     """Accurately determine dosage form from doctor ink, LLM output, and directions."""
     return prescription_form(name, instructions, form_from_llm)[0]
 
-OCR_CACHE_VERSION = "stable-three-models-v8"
+OCR_CACHE_VERSION = "vision-primary-38-v9"
 VERIFY_PROMPT = """Independently transcribe ALL medicine/product lines in this image, including margins, columns and the bottom. This is an image reading and coverage check, not clinical advice. Inspect the visible letters; do not substitute a familiar brand for an unfamiliar name, complete names from memory, or use clinical context to guess them. Include all prescribed medication products: oral medicines, topicals, lotions, soaps/cleansing bars, sprays, shampoos, solutions, washes, powders, patches, suppositories, pessaries, pastes, foams and emulsions. Return JSON with candidates (all visible medicine lines), medicine_line_count (including unreadable lines), coverage_complete, and no clinical summary. Each candidate has name, strength, form, raw_line, confidence (0..1 reported legibility), line_id and bbox [top,left,bottom,right] in 0..1000 coordinates. Names exclude form/strength. Form must follow the ink: Bar, Cream, Ointment, Gel, Lotion, Tablet, Capsule, Syrup, Suspension, Inhaler, Injection, Drops, Spray, Shampoo, Solution, Wash, Mouthwash, Powder, Patch, Suppository, Pessary, Paste, Foam or Emulsion; return "" if absent/unclear. Never default to Tablet. Retain unreadable lines with name="" and do not invent missing names. A valid JSON response alone does not prove completeness.
 """
 

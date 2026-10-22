@@ -233,3 +233,75 @@ async def test_deterministic_repeat_scan_cache(tmp_path, monkeypatch):
         res2 = await extract_from_image(fake_bytes, "image/jpeg", scan_mode="thorough")
         assert mock_gen.call_count == 2
         assert res1 == res2
+
+
+def test_evaluate_form_match_outcomes():
+    """Verify exact match, form mismatch, and no form detected outcomes."""
+    from app.services.matching_service import evaluate_form_match
+
+    # Exact form matches
+    exact1 = evaluate_form_match("Injection", "Injection")
+    assert exact1["status"] == "EXACT_FORM_MATCH"
+    assert exact1["warning_message"] is None
+
+    exact2 = evaluate_form_match("Tablet", "Tablet (Modified-release)")
+    assert exact2["status"] == "EXACT_FORM_MATCH"
+
+    # Incompatible dosage form mismatch (e.g. Injection vs Capsule)
+    mismatch = evaluate_form_match("Injection", "Capsule")
+    assert mismatch["status"] == "FORM_MISMATCH"
+    assert "Prescription specifies Injection" in mismatch["warning_message"]
+    assert "Capsule" in mismatch["warning_message"]
+    assert mismatch["urdu_warning_message"] is not None
+
+    # No form detected
+    none_detected = evaluate_form_match(None, "Capsule")
+    assert none_detected["status"] == "NO_FORM_DETECTED"
+    assert none_detected["warning_message"] is None
+
+
+def test_pharmaceutical_corrector_injection_candidate():
+    """Verify candidate with 'Risek Injection' normalizes to Injection form without duplicate tokens."""
+    res = correct_and_normalize_candidate(
+        name="Risek Injection",
+        confidence=0.92,
+        raw_line="Inj Risek stat",
+    )
+    assert res["detected_brand"] == "Risek"
+    assert res["detected_generic"] == "Omeprazole"
+    assert res["detected_form"] == "Injection"
+    assert res["raw_text"] == "Risek Injection"
+
+
+@pytest.mark.asyncio
+async def test_matching_service_dosage_form_mismatch(backfilled_db):
+    """Verify that prescribing an injection when DB only has capsule flags FORM_MISMATCH and needs_confirmation."""
+    from app.services.matching_service import match_medicine
+
+    _, factory = backfilled_db
+    async with factory() as db:
+        # DB has Risek as Capsule (20mg)
+        res = await match_medicine("Risek Injection", db)
+        assert res["medicine"] is not None
+        assert res["medicine"].brand_name == "Risek"
+        assert res["form_assessment"]["status"] == "FORM_MISMATCH"
+        assert res["form_assessment"]["extracted_form"] == "Injection"
+        assert res["form_assessment"]["database_form"] == "Capsule"
+        assert res["needs_confirmation"] is True
+
+
+@pytest.mark.asyncio
+async def test_matching_service_exact_form_match(backfilled_db):
+    """Verify that prescribing a capsule when DB has capsule results in EXACT_FORM_MATCH and no confirmation needed."""
+    from app.services.matching_service import match_medicine
+
+    _, factory = backfilled_db
+    async with factory() as db:
+        # DB has Risek as Capsule (20mg)
+        res = await match_medicine("Risek Capsule", db)
+        assert res["medicine"] is not None
+        assert res["medicine"].brand_name == "Risek"
+        assert res["form_assessment"]["status"] == "EXACT_FORM_MATCH"
+        assert res["form_assessment"]["extracted_form"] == "Capsule"
+        assert res["form_assessment"]["database_form"] == "Capsule"
+        assert res["needs_confirmation"] is False

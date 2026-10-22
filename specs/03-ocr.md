@@ -1,57 +1,42 @@
 # 03 OCR Specification
 
-## 1. Goal
-Extract text from prescription images and identify potential medicine candidates.
+## Goal and scope
+Extract reviewable medicine candidates from prescription images; preserve unreadable and unsupported entries. Do not automatically fulfill prescriptions or turn model outputs into authoritative medicine facts.
 
-## 2. Scope
-- Image processing and text extraction.
-- Extraction of medicine candidates from raw text.
+## Inputs and outputs
+POST /api/ocr/extract accepts multipart image (JPEG, PNG, WebP, maximum 10 MB and 30 megapixels), optional force_refresh, scan_mode (auto/thorough/fast), and optional region JSON [top,left,bottom,right] normalized to 0..1000. PDF uploads are not supported by this endpoint.
 
-## 3. Out of Scope
-- Automated prescription fulfillment.
+Outputs contain candidates, raw text, existing clinical summary, medicine_line_count, coverage_status, verification_performed, review_required, warnings, image dimensions, models_used and provider_attempts. Candidates preserve raw_line, original_name, bbox, confidence, correction suggestions and review flags. Confidence is reported legibility, not a calibrated probability. Matching confidence is separate.
 
-## 4. Inputs
-- Prescription image (JPEG/PNG/PDF).
+## Pipeline
+Validate and EXIF-orient image → inspect image quality → versioned cache lookup → Pillow contrast/sharpening and high-quality resize → configured Gemini model extraction → strict bounded JSON validation → pharmaceutical spelling suggestions → whole-page coverage reading → selective native-resolution crop retries → original-image review and catalog matching → explicit user confirmation before cabinet saving.
 
-## 5. Outputs
-- Raw extracted text.
-- List of unverified medicine candidates.
+Default auto mode returns a clear, count-complete first reading without another provider call only when reported confidence is at least .9, names/forms have no detected uncertainty, and image inspection gives no warning. This is a latency tradeoff, not a calibrated accuracy guarantee: human review is mandatory and verification_performed remains false. Uncertain auto scans still perform blind coverage and selective detail checks. Thorough mode always requests coverage; fast mode skips it. OCR_AUTO_VERIFY_CLEAR=true restores coverage for clear auto scans too. Intentional force_refresh also requests coverage unless in fast mode.
 
-## 6. Functional Requirements
-- Handle handwritten and printed text.
-- Extract potential drug names and strengths.
+Provider attempts remain capped at four per request with a shared concurrency gate and quota cooldown. Auto/fast scans use the smaller of the general limits and OCR_AUTO_TIMEOUT_SECONDS=65 overall, OCR_AUTO_REQUEST_TIMEOUT_SECONDS=40 per primary call, and OCR_AUTO_REVIEW_TIMEOUT_SECONDS=15 per audit/detail call. Retries are capped at OCR_RETRY_TIMEOUT_SECONDS=12. A timeout is not retried on the same model because the remote job may still be running; configured alternatives can still be tried. Thorough mode retains the configurable OCR_TOTAL_TIMEOUT_SECONDS=150 and OCR_REQUEST_TIMEOUT_SECONDS=90 defaults. Queue wait counts toward the total budget. Local image processing, upload and token lookup add overhead outside that provider budget. OCR has its own settings: GEMINI_OCR_MODEL (default models/gemini-4-argon), comma-separated GEMINI_OCR_FALLBACK_MODELS (default models/gemini-3.1-pro-preview,models/gemini-3.8-flash) and OCR_THINKING_LEVEL (default medium). These do not change chat or embeddings. Paid model access/quota is an external prerequisite. Fallback results visibly require review and are not cached as clean primary-model results.
 
-## 7. Technical Design
-- Python-based OCR pipeline/service using **Google Gemini 3.5 Flash Multimodal Vision**.
-- **Computer Vision Preprocessor (`image_preprocessor.py`)**: Local Pillow/OpenCV image normalization, CLAHE (Contrast Limited Adaptive Histogram Equalization), ink unsharp masking, and adaptive thresholding.
-- **Deterministic Repeat Scan Cache**: Bounded SHA-256 cryptographic hash cache with FIFO eviction (`MAX_OCR_CACHE_ENTRIES = 500`) to ensure 100% repeatable extractions for identical prescription images.
-- **Pharmaceutical Typo & Shorthand Corrector (`pharmaceutical_corrector.py`)**: Levenshtein distance matching against the DRAP medicine catalog, clinical shorthand parsing (`OD`, `BD`, `TID`, `QID`, `PRN`, `AC`, `PC`), and form/strength normalization.
+OCR uses the supported google-genai SDK with high media resolution, configurable thinking and a 32,768-token output/thinking limit. Sampling parameters are omitted because Argon ignores them; fresh readings are not deterministic. HTTP timeouts use milliseconds, SDK attempts are limited to one and the app controls fallback. Cancellation closes the async client. Coverage receives an EXIF-oriented, unenhanced PNG of the original image and no previous candidate names. It uses the configured quality model order rather than deliberately downgrading the audit to Flash. This is a blind reading, not statistically independent evidence. Unknown product names must be transcribed without expansion to familiar brands. Catalog spelling suggestions never replace the displayed original transcription or attach a suggested drug's generic. Written Bar/soap, Cream, Ointment, Gel and Lotion forms are retained; absent forms stay unknown rather than defaulting to Tablet or copying a catalog form. Explicit form disagreements set form_conflict and require review.
 
-## 8. Workflow
-Prescription image → Local CV Preprocessing → SHA-256 Cache Check → Gemini 3.5 Flash Multimodal Vision → Pharmaceutical Typo & Shorthand Corrector → Extracted Candidates → DRAP Fuzzy Match Engine (thefuzz) → Bioequivalent Alternative Brand Retrieval.
+Detail retries prioritize conflicting readings even when the medicine count is complete, then unreadable/low-confidence or otherwise uncertain candidates. A blind whole-page reading corroborated by a sufficiently legible crop reading may become the preferred reading, while the rejected first reading remains visible and human confirmation is still required. Catalog spelling suggestions cannot count as corroboration. Directions generated for a rejected reading are cleared when the preferred medicine changes. The provider budget remains four attempts; this can leave some lines unresolved.
 
-## 9. Error/Edge Cases
-- OCR errors and spelling mistakes (handled by Levenshtein distance and pharmaceutical alias map).
-- Poor handwriting / faded ballpoint ink (enhanced via unsharp masking & contrast stretch).
-- Missing strength or dosage info (safely defaulted to None).
-- Corrupt byte streams (graceful passthrough fallback).
-- Multiple medicines in one image (extracted as candidate list).
-- Low confidence extraction (annotated with confidence score for user review).
+The clean-result memory/SQLite cache holds up to 500 entries, uses image/prompt/model/mode/region/version fingerprints and expires after 24 hours. A separate memory-only cache reuses complete, readable primary-model extractions requiring review for five minutes, retaining all warnings, alternatives and unverified flags. It excludes missing/unreadable lines, low-confidence or form-conflicting entries, fallback results and failed coverage. force_refresh bypasses both caches. Concurrent identical normal uploads share one extraction task but receive separate deep copies; cancelling one waiter does not cancel another, and cancellation of the last waiter cancels local provider work. A bounded in-flight registry is cleaned after success/failure. Repeat scans are stable only within a valid cache entry; fresh scans can differ.
 
-## 10. Security/Safety Considerations
-- OCR output must NEVER automatically become a verified medicine entity without verification against DRAP records.
-- Require user confirmation and visual pill review.
-- Strictly no diagnostic inferencing from prescription images.
+## Review and safety
+Unclear names are visible placeholders. Count gaps remain visible. Audit conflicts retain both readings. Supported catalog matches still need image confirmation and existing strength/form/LASA gates. Unsupported entries remain visible without invented catalog records or prices. Clinical summary behavior is retained at the user's request; this implementation does not certify those statements as database-grounded clinical facts. Medical-safety rules remain applicable.
 
-## 11. Acceptance Criteria
-- Extracts medicine names, strengths, forms, and dosage frequencies accurately enough to feed the matching pipeline.
-- 100% deterministic repeatable output on duplicate image uploads.
+The frontend shows the original image, manual correction/addition, fresh full scan and selected-region rescan. Full rescans replace the extraction; selected-region rescans merge readings and reset confirmation when readings conflict.
 
-## 12. Testing Requirements
-- Test with varied image formats (JPEG, PNG, WebP, mobile `image/pjpeg`), resolutions, and handwriting styles.
-- Unit tests for image preprocessing, shorthand expansion, pharmaceutical correction, and cache consistency (`test_ocr_pipeline.py`).
+Uploader and review screens provide Remove image, including during scanning. Removal aborts the browser request, clears file/results/error and invalidates pending scan/matching callbacks. Same-image re-upload is supported. Preview object URLs are released on replacement/unmount. While scanning or rescanning, show an image scan overlay and prominent live status/indeterminate activity bar; do not fabricate progress percentages. Respect reduced-motion preferences. Cancellation is local and does not promise to cancel an already-started remote provider job.
 
-## 13. Accepted Design Decisions
-- **OCR Engine**: Google Gemini 3.5 Flash Multimodal Vision with prompt-engineered clinical extraction schema.
-- **Preprocessing Engine**: Pure-Python Pillow/NumPy adaptive CLAHE & sharpening with zero external system C-library dependencies.
-- **Repeat Scan Consistency**: SHA-256 in-memory caching.
+## Acceptance and evaluation
+See [OCR local fixes](../docs/OCR_LOCAL_FIXES.md) for the nine fixes, limitations and offline pharmacist-labelled benchmark procedure. Program tests cover missing/unknown retention, fallback, cache refresh/expiry, geometry, confidence, quota controls, API validation and frontend review gates. Real handwriting accuracy and latency require evaluation on representative prescriptions; no 100% completeness or accuracy guarantee is valid.
+
+## Reliability and medication-product follow-up (2026-10-16)
+
+Within each reading, try configured models in order, then allow one retry per model for transient 408/500/502/503/504, network/timeout failures or malformed responses. Retry backoff is one second plus jitter, outside the shared semaphore. All calls still share the four-attempt cap and 150-second deadline; each provider coroutine also has its own processing deadline. Quota errors and hard access/configuration errors are not retried within that request. Failed models with those errors are skipped by subsequent audits. This cannot override provider outages, exhausted quotas or unavailable model access.
+
+The interactive latency policy above supersedes the original timeout/retry defaults in this historical follow-up: do not retry a timed-out model on itself, and apply the 65-second interactive budget. On the website, display extracted names before catalog matching completes. Bound each OCR catalog lookup to eight seconds including token lookup, and retain candidates when matching fails. Confirmation controls remain disabled while enrichment is running, and serial guards prevent stale results or removal from being overwritten. Normal browser OCR upload timeout is 90 seconds; explicit thorough rescans retain 180 seconds. Cache version is interactive-budget-v6.
+
+Logs include numeric HTTP status, safe category and attempt number without provider payloads or prescription text. Public errors distinguish timeout, temporary provider unavailability, quota and model configuration. Partial successful extraction remains reviewable when later checks fail. Browser token lookup before OCR upload has a ten-second bound and supports image-removal cancellation.
+
+Recognized product forms additionally include Spray, Shampoo, Solution, Wash, Mouthwash, Powder, Patch, Suppository, Pessary, Paste, Foam and Emulsion. Unknown forms remain unknown. Inline concentration strengths and percentages are separated from names without duplication; ambiguous strength disagreements require confirmation. Form-only entries and boolean confidence/name fields cannot become apparently readable medicine names. Backend audit merging and frontend region merging use best overlap with one-to-one line assignment so overlapping rows do not overwrite the same candidate twice. Cache version medication-products-retry-v5 invalidates earlier extractions.

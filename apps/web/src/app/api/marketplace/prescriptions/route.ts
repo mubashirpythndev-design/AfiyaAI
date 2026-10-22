@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const type = imageType(bytes);
     if (!type) return Response.json({detail:"Only JPEG, PNG and WebP photos are supported"},{status:422});
-    return Response.json({prescription_image_url:await savePrescription(bytes,user.id,type)},{headers:{"Cache-Control":"no-store"}});
-  } catch { return Response.json({detail:"Could not store the prescription locally. Check that the backend is running and retry."},{status:503}); }
+    return Response.json({prescription_image_url:await savePrescription(bytes,user.id,type,user.authorization)},{headers:{"Cache-Control":"no-store"}});
+  } catch { return Response.json({detail:"Could not store the prescription. Check that the medicine service is available and retry."},{status:503}); }
 }

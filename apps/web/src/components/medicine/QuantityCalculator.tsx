@@ -1,5 +1,6 @@
 "use client";
 
+import AppIcon from "@/components/shared/AppIcon";
 import { useState } from "react";
 import type { Language, MedicineDetail, PriceEntry } from "@/lib/types";
 
@@ -57,8 +58,8 @@ export function parsePackInfo(packageSize: string, dosageForm: string): {
 
   return {
     strips: 1,
-    unitsPerStrip: isTabletOrCap ? 10 : 1,
-    totalUnits: isTabletOrCap ? 10 : 1,
+    unitsPerStrip: 0,
+    totalUnits: 0,
     unitName,
   };
 }
@@ -69,7 +70,7 @@ export default function QuantityCalculator({
   language = "en",
   onSelectCalculatedPrice,
 }: QuantityCalculatorProps) {
-  const baseEntry = prices[0] || { price: 0, package_size: "1x10's" };
+  const baseEntry = prices[0] || { price: 0, package_size: "" };
   const packInfo = parsePackInfo(baseEntry.package_size, medicine.dosage_form);
 
   const [unitMode, setUnitMode] = useState<"strip" | "unit" | "box">("strip");
@@ -82,7 +83,7 @@ export default function QuantityCalculator({
   const pricePerStrip =
     packInfo.strips > 0 ? basePackPrice / packInfo.strips : basePackPrice;
   // Standard box is usually full pack size or 10 strips for 1x10s
-  const boxStrips = packInfo.strips === 1 && packInfo.unitsPerStrip === 10 ? 10 : packInfo.strips;
+  const boxStrips = packInfo.strips;
   const pricePerBox = pricePerStrip * boxStrips;
 
   let calculatedPrice = 0;
@@ -106,6 +107,8 @@ export default function QuantityCalculator({
       setQuantity(val);
     }
   };
+
+  if (!packInfo.totalUnits || !prices.length) return <p className="text-sm text-muted mt-4">Pack size unavailable; quantity prices cannot be calculated.</p>;
 
   return (
     <div className="bg-surface rounded-xl border border-border overflow-hidden mt-6">
@@ -131,12 +134,12 @@ export default function QuantityCalculator({
               Quantity & Pack Price Calculator
             </h3>
             <p className="text-xs text-muted">
-              Calculate exact verified prices for strips, boxes, or custom units
+              Calculate proportional reference prices for strips, boxes, or custom units
             </p>
           </div>
         </div>
         <span className="text-[11px] font-medium bg-primary/10 text-primary px-2.5 py-1 rounded-full">
-          DRAP Verified Rates
+          Stored Reference Rates
         </span>
       </div>
 
@@ -155,11 +158,11 @@ export default function QuantityCalculator({
               }}
               className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
                 unitMode === "strip"
-                  ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                  ? "bg-primary text-white border-primary shadow-md "
                   : "bg-background hover:bg-surface-hover text-foreground border-border"
               }`}
             >
-              💊 By Strip ({packInfo.unitsPerStrip} {packInfo.unitName})
+              <AppIcon symbol="💊" /> By Strip ({packInfo.unitsPerStrip} {packInfo.unitName})
             </button>
             <button
               type="button"
@@ -169,11 +172,11 @@ export default function QuantityCalculator({
               }}
               className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
                 unitMode === "unit"
-                  ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                  ? "bg-primary text-white border-primary shadow-md "
                   : "bg-background hover:bg-surface-hover text-foreground border-border"
               }`}
             >
-              🔢 Individual {packInfo.unitName}
+              <AppIcon symbol="🔢" /> Individual {packInfo.unitName}
             </button>
             <button
               type="button"
@@ -183,11 +186,11 @@ export default function QuantityCalculator({
               }}
               className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
                 unitMode === "box"
-                  ? "bg-primary text-white border-primary shadow-md shadow-primary/20"
+                  ? "bg-primary text-white border-primary shadow-md "
                   : "bg-background hover:bg-surface-hover text-foreground border-border"
               }`}
             >
-              📦 Full Box / Pack
+              <AppIcon symbol="📦" /> Full Box / Pack
             </button>
           </div>
         </div>
@@ -251,10 +254,10 @@ export default function QuantityCalculator({
         </div>
 
         {/* Calculated Result Card */}
-        <div className="bg-gradient-to-r from-success/10 to-primary/10 border border-success/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="bg-surface   border border-success/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <span className="text-[11px] font-semibold text-muted uppercase tracking-wider block">
-              Total Official DRAP Price
+              Total Reference Price
             </span>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-2xl font-black text-success">

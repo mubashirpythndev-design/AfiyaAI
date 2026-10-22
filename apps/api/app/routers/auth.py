@@ -53,7 +53,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         email=email,
         password_hash=hash_password(req.password),
         # RBAC: ADMIN_EMAILS is the single source of truth for is_admin.
-        is_admin=email in get_admin_emails_set(),
+        is_admin=False,  # Public signup never proves ownership of an admin email.
     )
     db.add(user)
     await db.commit()
@@ -77,7 +77,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     user.last_login_at = datetime.now(timezone.utc)
     # RBAC: re-sync is_admin from ADMIN_EMAILS on every login so adding or
     # removing an email promotes/demotes the user on their next sign-in.
-    user.is_admin = email in get_admin_emails_set()
+    user.is_admin = bool(user.is_verified and email in get_admin_emails_set())
     await db.commit()
     await db.refresh(user)
     return AuthResponse(access_token=create_access_token(user.id), user=user_to_schema(user))
